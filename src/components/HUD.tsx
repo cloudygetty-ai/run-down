@@ -1,10 +1,10 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Player, Storm, WeaponType } from '../types';
+import { Player, Bombardment, WeaponType } from '../types';
 
 type Props = {
   player: Player;
-  storm: Storm;
+  bombardment: Bombardment;
   alivePlayers: number;
   onShoot: () => void;
   onReload: () => void;
@@ -22,26 +22,36 @@ const WEAPON_LABELS: Record<WeaponType, string> = {
 
 export const HUD: React.FC<Props> = ({
   player,
-  storm,
+  bombardment,
   alivePlayers,
   onShoot,
   onReload,
   onBuildToggle,
   onWeaponSwitch,
 }) => {
-  const activeWeapon = player.weapons[player.activeWeaponSlot];
-  const stormSeconds = Math.ceil(storm.timeUntilNextPhase / 1000);
+  const activeWeapon  = player.weapons[player.activeWeaponSlot];
+  const phaseSeconds  = Math.ceil(bombardment.timeUntilNextPhase / 1000);
+  const impactSeconds = Math.ceil(bombardment.timeUntilNextImpact / 1000);
+  const incomingMeteor = bombardment.timeUntilNextImpact < 2000;
 
   return (
     <View style={styles.container} pointerEvents="box-none">
-      {/* Top bar: alive count + storm timer */}
+      {/* Top bar: alive count + meteor timer */}
       <View style={styles.topBar}>
         <View style={styles.aliveChip}>
           <Text style={styles.aliveText}>{alivePlayers} alive</Text>
         </View>
-        <View style={[styles.stormChip, storm.isShrinking && styles.stormChipShrinking]}>
-          <Text style={styles.stormText}>
-            {storm.isShrinking ? 'STORM MOVING' : `Storm: ${stormSeconds}s`}
+        <View style={[
+          styles.meteorChip,
+          bombardment.isShrinking && styles.meteorChipShrinking,
+          incomingMeteor && styles.meteorChipIncoming,
+        ]}>
+          <Text style={styles.meteorText}>
+            {incomingMeteor
+              ? `IMPACT IN ${impactSeconds}s`
+              : bombardment.isShrinking
+                ? 'ZONE CLOSING'
+                : `Zone: ${phaseSeconds}s`}
           </Text>
         </View>
         <View style={styles.killsChip}>
@@ -146,14 +156,15 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   aliveText: { color: '#fff', fontWeight: 'bold', fontSize: 13 },
-  stormChip: {
-    backgroundColor: 'rgba(80,0,160,0.7)',
+  meteorChip: {
+    backgroundColor: 'rgba(120,40,0,0.75)',
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
   },
-  stormChipShrinking: { backgroundColor: 'rgba(200,0,50,0.9)' },
-  stormText: { color: '#fff', fontWeight: 'bold', fontSize: 13 },
+  meteorChipShrinking: { backgroundColor: 'rgba(200,80,0,0.9)' },
+  meteorChipIncoming:  { backgroundColor: 'rgba(220,0,0,0.95)' },
+  meteorText: { color: '#fff', fontWeight: 'bold', fontSize: 13 },
   killsChip: {
     backgroundColor: 'rgba(0,0,0,0.6)',
     paddingHorizontal: 10,

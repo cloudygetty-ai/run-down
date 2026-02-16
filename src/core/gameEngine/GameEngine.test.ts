@@ -1,6 +1,6 @@
 import { tickGame, fireShot, InputState } from './GameEngine';
-import { GameState, Player, Storm } from '../../types';
-import { createInitialStorm } from '../storm';
+import { GameState, Player } from '../../types';
+import { createInitialBombardment } from '../meteor';
 
 const MAP_W = 1600;
 const MAP_H = 1600;
@@ -50,7 +50,7 @@ function makeGameState(overrides: Partial<GameState> = {}): GameState {
     players: [makePlayer()],
     buildPieces: [],
     lootDrops: [],
-    storm: createInitialStorm(MAP_W, MAP_H),
+    bombardment: createInitialBombardment(MAP_W, MAP_H),
     mapWidth: MAP_W,
     mapHeight: MAP_H,
     tickCount: 0,

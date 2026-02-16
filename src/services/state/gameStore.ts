@@ -10,7 +10,7 @@ import {
   BuildingMaterial,
   Vector2,
 } from '../../types';
-import { createInitialStorm } from '../../core/storm';
+import { createInitialBombardment } from '../../core/meteor';
 import { randomInRange, randomInt } from '../../utils';
 
 const MAP_WIDTH  = 1600;
@@ -112,7 +112,7 @@ function buildInitialState(): GameState {
     players: [human, ...bots],
     buildPieces: [],
     lootDrops: scatterLoot(200),
-    storm: createInitialStorm(MAP_WIDTH, MAP_HEIGHT),
+    bombardment: createInitialBombardment(MAP_WIDTH, MAP_HEIGHT),
     mapWidth: MAP_WIDTH,
     mapHeight: MAP_HEIGHT,
     tickCount: 0,

@@ -1,3 +1,3 @@
 export * from './gameEngine';
-export * from './storm';
+export * from './meteor';
 export * from './physics';

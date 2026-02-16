@@ -203,7 +203,7 @@ export const GameScreen: React.FC<Props> = ({ onGameOver }) => {
 
       <HUD
         player={human}
-        storm={gameState.storm}
+        bombardment={gameState.bombardment}
         alivePlayers={gameState.alivePlayers}
         onShoot={human.isBuilding ? handlePlaceBuild : handleShoot}
         onReload={handleReload}

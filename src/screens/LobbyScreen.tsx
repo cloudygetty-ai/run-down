@@ -34,7 +34,7 @@ export const LobbyScreen: React.FC<Props> = ({ onStart }) => {
           </View>
           <View style={styles.statBox}>
             <Text style={styles.statValue}>6</Text>
-            <Text style={styles.statLabel}>Storm Phases</Text>
+            <Text style={styles.statLabel}>Meteor Phases</Text>
           </View>
         </View>
 
@@ -46,7 +46,7 @@ export const LobbyScreen: React.FC<Props> = ({ onStart }) => {
           <Text style={styles.infoText}>• BUILD — place walls to protect yourself</Text>
           <Text style={styles.infoText}>• RELOAD — reload active weapon</Text>
           <Text style={styles.infoText}>• Walk over loot to pick it up</Text>
-          <Text style={styles.infoText}>• Stay inside the storm circle!</Text>
+          <Text style={styles.infoText}>• Stay inside the shelter zone — meteors strike outside!</Text>
         </View>
 
         <TouchableOpacity style={styles.playButton} onPress={handleStart}>

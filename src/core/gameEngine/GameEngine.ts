@@ -1,12 +1,11 @@
-import { GameState, Player, Vector2 } from '../../types';
-import { tickStorm } from '../storm';
+import { GameState, Player, MeteorImpact, Vector2 } from '../../types';
+import { tickBombardment } from '../meteor';
 import { resolvePlayerWallCollision, isPlayerHitByBullet, checkBulletHit } from '../physics';
-import { distance, isInsideCircle, clamp, normalize } from '../../utils';
+import { distance, clamp, normalize } from '../../utils';
 import { logger } from '../../utils';
 
 const TICK_RATE_MS = 50; // 20 ticks per second
 const PLAYER_SPEED = 4;  // units per tick at full joystick
-const STORM_TICK_DAMAGE_INTERVAL_MS = 1000;
 
 export type InputState = {
   moveVector: Vector2;    // normalized joystick direction (-1..1 on each axis)
@@ -17,8 +16,6 @@ export type InputState = {
   buildPosition: Vector2 | null;
   wantsReload: boolean;
 };
-
-let lastStormDamageMs = 0;
 
 // Pure tick function — takes current state + input and returns new state.
 // WHY: keeping this pure makes it trivially testable without mocks.
@@ -33,8 +30,17 @@ export function tickGame(
     let next = { ...state, players: [...state.players], buildPieces: [...state.buildPieces] };
 
     next = moveHumanPlayer(next, humanInput, deltaMs);
-    next = applyStormDamage(next, deltaMs);
-    next = { ...next, storm: tickStorm(next.storm, deltaMs, next.mapWidth, next.mapHeight) };
+
+    // Tick the bombardment and apply any new meteor strikes
+    const { bombardment, newImpacts } = tickBombardment(
+      next.bombardment,
+      deltaMs,
+      next.mapWidth,
+      next.mapHeight,
+    );
+    next = { ...next, bombardment };
+    next = applyMeteorDamage(next, newImpacts);
+
     next = { ...next, tickCount: next.tickCount + 1 };
     next = checkWinCondition(next);
 
@@ -80,21 +86,31 @@ function moveHumanPlayer(state: GameState, input: InputState, deltaMs: number): 
   return { ...state, players };
 }
 
-function applyStormDamage(state: GameState, deltaMs: number): GameState {
-  lastStormDamageMs += deltaMs;
-  if (lastStormDamageMs < STORM_TICK_DAMAGE_INTERVAL_MS) return state;
-  lastStormDamageMs = 0;
+// Apply damage from freshly spawned meteor impacts to players in blast radius.
+// WHY: only new impacts damage players — old craters are purely visual.
+function applyMeteorDamage(state: GameState, newImpacts: MeteorImpact[]): GameState {
+  if (newImpacts.length === 0) return state;
 
   const players = state.players.map(p => {
     if (p.status !== 'alive') return p;
-    if (isInsideCircle(p.position, state.storm.safeZoneCenter, state.storm.safeZoneRadius)) return p;
 
-    const dmg = state.storm.damagePerTick;
-    const newHealth = Math.max(0, p.health - dmg);
-    if (newHealth === 0) {
-      return { ...p, health: 0, status: 'eliminated' as const };
+    let totalDmg = 0;
+    for (const impact of newImpacts) {
+      if (distance(p.position, impact.position) <= impact.blastRadius) {
+        totalDmg += state.bombardment.impactDamage;
+      }
     }
-    return { ...p, health: newHealth };
+    if (totalDmg === 0) return p;
+
+    // Shield absorbs first
+    let shield = p.shield;
+    let health = p.health;
+    const absorbed = Math.min(shield, totalDmg);
+    shield -= absorbed;
+    health = Math.max(0, health - (totalDmg - absorbed));
+
+    const status = health === 0 ? 'eliminated' as const : p.status;
+    return { ...p, shield, health, status };
   });
 
   return { ...state, players };
@@ -149,7 +165,6 @@ export function fireShot(
     if (target.id === shooterId || target.status !== 'alive') continue;
     if (!isPlayerHitByBullet(shooter.position, targetPos, target)) continue;
 
-    // Shield absorbs damage first
     let dmg = weapon.damage;
     let shield = target.shield;
     let health = target.health;
@@ -165,7 +180,6 @@ export function fireShot(
     players[i] = { ...target, shield, health, status };
 
     if (status === 'eliminated') {
-      // Award kill to shooter
       const kills = players[shooterIndex].kills + 1;
       players[shooterIndex] = { ...players[shooterIndex], kills };
     }
@@ -179,7 +193,7 @@ function checkWinCondition(state: GameState): GameState {
   const alive = state.players.filter(p => p.status === 'alive');
   if (alive.length <= 1) {
     const winner = alive[0] ?? null;
-    const human = state.players.find(p => p.isHuman);
+    const human  = state.players.find(p => p.isHuman);
     const placement = human?.status === 'alive' ? 1 : calculatePlacement(state.players);
 
     return {
@@ -198,7 +212,6 @@ function checkWinCondition(state: GameState): GameState {
 }
 
 function calculatePlacement(players: Player[]): number {
-  // Placement = number of players who survived longer
   const human = players.find(p => p.isHuman);
   if (!human) return players.length;
   const survivedLonger = players.filter(p => !p.isHuman && p.status === 'alive').length;

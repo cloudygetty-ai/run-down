@@ -1,8 +1,8 @@
 import React, { useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { GameState, LootDrop, BuildPiece } from '../types';
+import { GameState } from '../types';
 import { PlayerSprite } from './PlayerSprite';
-import { StormOverlay } from './StormOverlay';
+import { MeteorZoneOverlay } from './MeteorZoneOverlay';
 import { BuildPieceView } from './BuildPieceView';
 import { LootDropView } from './LootDropView';
 
@@ -45,15 +45,13 @@ export const GameMap: React.FC<Props> = ({ state, viewportX, viewportY, viewport
       {/* Ground fill */}
       <View style={styles.ground} />
 
-      {/* Storm circle */}
-      <StormOverlay
-        storm={state.storm}
+      {/* Meteor bombardment zone */}
+      <MeteorZoneOverlay
+        bombardment={state.bombardment}
         viewportX={viewportX}
         viewportY={viewportY}
         viewportW={viewportW}
         viewportH={viewportH}
-        mapWidth={state.mapWidth}
-        mapHeight={state.mapHeight}
       />
 
       {/* Build pieces */}

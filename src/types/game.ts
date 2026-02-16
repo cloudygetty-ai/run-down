@@ -70,25 +70,40 @@ export type Player = {
   selectedBuildMaterial: BuildingMaterial;
 };
 
-export type StormPhase = {
-  phase: number;          // 1-based index
-  safeZoneCenter: Vector2;
-  safeZoneRadius: number;
-  damagePerTick: number;  // hp per second outside storm
-  shrinkDuration: number; // ms to shrink to next phase
-  waitDuration: number;   // ms to wait before next shrink
+// A single meteor impact crater — shown briefly on the map after a strike
+export type MeteorImpact = {
+  id: string;
+  position: Vector2;
+  blastRadius: number;
+  age: number;     // ms since impact — used to drive the visual animation
+  maxAge: number;  // ms before the crater fades out
 };
 
-export type Storm = {
+export type BombardmentPhase = {
+  phase: number;           // 1-based index
+  shelterCenter: Vector2;
+  shelterRadius: number;
+  impactDamage: number;    // hp per meteor strike to players in blast radius
+  impactInterval: number;  // ms between meteor strikes outside the shelter zone
+  shrinkDuration: number;  // ms to shrink to next phase
+  waitDuration: number;    // ms to wait before next shrink
+};
+
+// The meteor shower that closes in on players throughout the match.
+// Players inside the shelter zone are safe; outside they risk meteor strikes.
+export type Bombardment = {
   currentPhase: number;
-  safeZoneCenter: Vector2;
-  safeZoneRadius: number;
-  nextSafeZoneCenter: Vector2;
-  nextSafeZoneRadius: number;
+  shelterCenter: Vector2;
+  shelterRadius: number;
+  nextShelterCenter: Vector2;
+  nextShelterRadius: number;
   isShrinking: boolean;
-  shrinkProgress: number; // 0.0 to 1.0
-  damagePerTick: number;
-  timeUntilNextPhase: number; // ms
+  shrinkProgress: number;   // 0.0 → 1.0
+  impactDamage: number;
+  impactInterval: number;   // ms between meteor strikes
+  timeUntilNextImpact: number;
+  timeUntilNextPhase: number;
+  activeImpacts: MeteorImpact[];
 };
 
 export type GamePhase = 'lobby' | 'dropping' | 'playing' | 'game_over';
@@ -111,7 +126,7 @@ export type GameState = {
   players: Player[];
   buildPieces: BuildPiece[];
   lootDrops: LootDrop[];
-  storm: Storm;
+  bombardment: Bombardment;
   mapWidth: number;
   mapHeight: number;
   tickCount: number;

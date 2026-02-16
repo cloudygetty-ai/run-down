@@ -54,9 +54,9 @@ function tickSingleBot(state: GameState, botId: string, nowMs: number, deltaMs: 
   const human = state.players.find(p => p.isHuman && p.status === 'alive');
   const nearestEnemy = findNearestEnemy(bot, state.players);
 
-  // Priority 1: get inside the storm safe zone if outside
-  if (!isInsideCircle(bot.position, state.storm.safeZoneCenter, state.storm.safeZoneRadius)) {
-    const target = state.storm.safeZoneCenter;
+  // Priority 1: get inside the shelter zone if outside during bombardment
+  if (!isInsideCircle(bot.position, state.bombardment.shelterCenter, state.bombardment.shelterRadius)) {
+    const target = state.bombardment.shelterCenter;
     const movedState = moveBot(state, bot, target, deltaMs);
     return movedState;
   }
