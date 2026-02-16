@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Run Down — Browser Demo</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a1a; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: 'Courier New', monospace; overflow: hidden; }
+  #lobby, #gameover { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
+  #game { display: none; position: relative; }
+  canvas { display: block; border: 2px solid #333; }
+
+  h1 { color: #ffcc00; font-size: 48px; letter-spacing: 6px; text-shadow: 0 0 30px rgba(255,200,0,0.6); }
+  .subtitle { color: #888; font-size: 14px; }
+  .stats { display: flex; gap: 20px; }
+  .stat { background: rgba(255,255,255,0.05); border: 1px solid #333; border-radius: 8px; padding: 14px 22px; text-align: center; }
+  .stat-val { color: #fff; font-size: 28px; font-weight: bold; }
+  .stat-lbl { color: #666; font-size: 11px; margin-top: 2px; }
+  .instructions { background: rgba(255,255,255,0.04); border: 1px solid #222; border-radius: 10px; padding: 18px 24px; max-width: 460px; }
+  .instructions h3 { color: #fff; margin-bottom: 10px; font-size: 13px; }
+  .instructions p { color: #bbb; font-size: 12px; line-height: 22px; }
+  #playBtn, #againBtn { background: #ffcc00; color: #000; border: none; padding: 16px 48px; font-size: 18px; font-weight: bold; letter-spacing: 3px; border-radius: 10px; cursor: pointer; transition: transform 0.1s; }
+  #playBtn:hover, #againBtn:hover { transform: scale(1.04); }
+
+  #hud { position: absolute; top: 0; left: 0; right: 0; pointer-events: none; }
+  #topbar { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; }
+  .chip { background: rgba(0,0,0,0.65); border-radius: 12px; padding: 5px 12px; font-size: 13px; font-weight: bold; }
+  #meteorChip { background: rgba(120,40,0,0.8); transition: background 0.3s; }
+  #meteorChip.closing { background: rgba(200,80,0,0.9); }
+  #meteorChip.incoming { background: rgba(220,0,0,0.95); animation: pulse 0.4s infinite alternate; }
+  @keyframes pulse { from { opacity: 1; } to { opacity: 0.6; } }
+  #aliveChip { color: #fff; }
+  #killsChip  { color: #ffcc00; }
+  #meteorText { color: #fff; }
+
+  #bottombar { position: absolute; bottom: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: flex-end; padding: 14px; }
+  #healthblock { display: flex; flex-direction: column; gap: 5px; min-width: 200px; }
+  .barrow { display: flex; align-items: center; gap: 6px; }
+  .barlabel { color: #fff; font-size: 11px; font-weight: bold; width: 22px; }
+  .barbg { flex: 1; height: 12px; background: rgba(0,0,0,0.5); border-radius: 6px; overflow: hidden; }
+  .barfill { height: 100%; border-radius: 6px; transition: width 0.15s; }
+  #hpfill   { background: #44ff44; }
+  #shfill   { background: #44aaff; }
+  .barval  { color: #fff; font-size: 11px; width: 24px; text-align: right; }
+  #mats { display: flex; gap: 10px; margin-top: 4px; }
+  #mats span { color: #ccaa44; font-size: 11px; font-weight: bold; }
+
+  #weaponbar { display: flex; gap: 8px; position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); }
+  .wslot { width: 64px; height: 64px; background: rgba(0,0,0,0.55); border: 2px solid rgba(255,255,255,0.2); border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: border-color 0.1s; }
+  .wslot.active { border-color: #ffcc00; background: rgba(80,60,0,0.7); }
+  .wslot .wname { color: #fff; font-size: 14px; font-weight: bold; }
+  .wslot .wammo { color: #aaa; font-size: 9px; margin-top: 2px; }
+
+  #actionbtns { display: flex; gap: 10px; align-items: flex-end; pointer-events: all; }
+  .abtn { border: none; font-weight: bold; font-size: 13px; color: #fff; cursor: pointer; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: transform 0.1s; letter-spacing: 1px; }
+  .abtn:hover { transform: scale(1.08); }
+  #buildBtn  { width: 64px; height: 64px; background: rgba(100,60,0,0.8); border: 2px solid #aa6600; }
+  #buildBtn.active { background: rgba(200,120,0,0.95); border-color: #ffaa00; }
+  #reloadBtn { width: 64px; height: 64px; background: rgba(0,80,0,0.8); border: 2px solid #00aa00; }
+  #fireBtn   { width: 88px; height: 88px; background: rgba(180,0,0,0.85); border: 3px solid #ff4444; font-size: 16px; }
+
+  #gameoverPanel { display: none; flex-direction: column; align-items: center; gap: 14px; }
+  #gameoverPanel h2 { font-size: 36px; letter-spacing: 4px; }
+  #gameoverPanel.win h2  { color: #ffcc00; }
+  #gameoverPanel.loss h2 { color: #ff4444; }
+
+  #controls-hint { color: #555; font-size: 11px; margin-top: 6px; }
+</style>
+</head>
+<body>
+
+<!-- LOBBY -->
+<div id="lobby">
+  <h1>RUN DOWN</h1>
+  <p class="subtitle">Battle royale — last one standing</p>
+  <div class="stats">
+    <div class="stat"><div class="stat-val">100</div><div class="stat-lbl">Players</div></div>
+    <div class="stat"><div class="stat-val">200</div><div class="stat-lbl">Loot Drops</div></div>
+    <div class="stat"><div class="stat-val">6</div><div class="stat-lbl">Meteor Phases</div></div>
+  </div>
+  <div class="instructions">
+    <h3>How to play</h3>
+    <p>
+      WASD / Arrow keys — move<br>
+      Mouse — aim direction<br>
+      Click / Space — shoot (auto-targets nearest enemy)<br>
+      B — toggle build mode (place wall in front of you)<br>
+      R — reload active weapon<br>
+      1 / 2 / 3 — switch weapon slot<br>
+      Stay inside the shelter zone — meteors strike outside!
+    </p>
+  </div>
+  <button id="playBtn">PLAY NOW</button>
+  <p id="controls-hint">Keyboard + mouse. Tested in Chrome/Firefox.</p>
+</div>
+
+<!-- GAME -->
+<div id="game">
+  <canvas id="canvas"></canvas>
+  <div id="hud">
+    <div id="topbar">
+      <div class="chip" id="aliveChip">100 alive</div>
+      <div class="chip" id="meteorChip"><span id="meteorText">Zone: 120s</span></div>
+      <div class="chip" id="killsChip">0 kills</div>
+    </div>
+    <div id="bottombar">
+      <div id="healthblock">
+        <div class="barrow">
+          <span class="barlabel">SH</span>
+          <div class="barbg"><div class="barfill" id="shfill" style="width:0%"></div></div>
+          <span class="barval" id="shval">0</span>
+        </div>
+        <div class="barrow">
+          <span class="barlabel">HP</span>
+          <div class="barbg"><div class="barfill" id="hpfill" style="width:100%"></div></div>
+          <span class="barval" id="hpval">100</span>
+        </div>
+        <div id="mats"><span id="matW">W:100</span><span id="matS">S:50</span><span id="matM">M:25</span></div>
+      </div>
+      <div id="weaponbar">
+        <div class="wslot active" id="ws0"><span class="wname">AXE</span><span class="wammo">∞</span></div>
+        <div class="wslot" id="ws1"><span class="wname">—</span><span class="wammo"></span></div>
+        <div class="wslot" id="ws2"><span class="wname">—</span><span class="wammo"></span></div>
+      </div>
+      <div id="actionbtns">
+        <button id="buildBtn" class="abtn">BUILD</button>
+        <button id="reloadBtn" class="abtn">RELOAD</button>
+        <button id="fireBtn" class="abtn">FIRE</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- GAME OVER -->
+<div id="gameoverPanel">
+  <h2 id="resultTitle">ELIMINATED</h2>
+  <p id="resultSub" style="color:#aaa; font-size:14px;"></p>
+  <div class="stats" id="resultStats"></div>
+  <button id="againBtn">PLAY AGAIN</button>
+</div>
+
+<script>
+// ─── Constants ───────────────────────────────────────────────────────────────
+const MAP_W = 1600, MAP_H = 1600;
+const PLAYER_SPEED = 3.5;
+const BOT_COUNT = 99;
+const TICK_MS = 50;
+const METEOR_BLAST_R = 45;
+const IMPACT_MAX_AGE = 2500;
+
+const PHASES = [
+  { shelterR: 800, impactDmg: 25, impactInterval: 8000,  shrinkDur: 60000, waitDur: 120000 },
+  { shelterR: 500, impactDmg: 35, impactInterval: 6000,  shrinkDur: 45000, waitDur: 75000  },
+  { shelterR: 300, impactDmg: 50, impactInterval: 4000,  shrinkDur: 30000, waitDur: 45000  },
+  { shelterR: 150, impactDmg: 65, impactInterval: 3000,  shrinkDur: 20000, waitDur: 25000  },
+  { shelterR:  50, impactDmg: 80, impactInterval: 2000,  shrinkDur: 15000, waitDur: 10000  },
+  { shelterR:  10, impactDmg:100, impactInterval: 1000,  shrinkDur: 10000, waitDur: 0       },
+];
+
+const WEAPON_TEMPLATES = {
+  assault_rifle: { label:'AR',  dmg:35,  rate:5,   mag:30, range:400, reload:2000, color:'#44aaff' },
+  shotgun:       { label:'SG',  dmg:110, rate:0.8, mag:5,  range:120, reload:2500, color:'#ff8844' },
+  sniper:        { label:'SN',  dmg:100, rate:0.5, mag:4,  range:800, reload:3000, color:'#aa44ff' },
+  smg:           { label:'SM',  dmg:17,  rate:10,  mag:35, range:200, reload:1800, color:'#44ffaa' },
+  pickaxe:       { label:'AXE', dmg:20,  rate:0.9, mag:Infinity, range:60, reload:0, color:'#aaaaaa' },
+};
+const WEAPON_TYPES = ['assault_rifle','shotgun','sniper','smg'];
+const RARITIES = ['common','common','uncommon','rare','epic','legendary'];
+const RARITY_COLOR = { common:'#aaa', uncommon:'#44cc44', rare:'#4488ff', epic:'#aa44ff', legendary:'#ffaa00' };
+const RARITY_MULT  = { common:1, uncommon:1.1, rare:1.2, epic:1.35, legendary:1.5 };
+
+// ─── State ───────────────────────────────────────────────────────────────────
+let G; // game state
+let intervalId = null;
+let lastFire = 0;
+let buildMode = false;
+let reloading = false;
+let reloadTimer = null;
+let kills = 0;
+let startTime = 0;
+
+const keys = {};
+let mouseWorld = { x: 800, y: 800 };
+let canvasRect = null;
+
+function rand(a, b) { return a + Math.random() * (b - a); }
+function randInt(a, b) { return Math.floor(rand(a, b + 1)); }
+function dist(a, b) { const dx=b.x-a.x, dy=b.y-a.y; return Math.sqrt(dx*dx+dy*dy); }
+function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
+function lerp(a,b,t){ return a+(b-a)*clamp(t,0,1); }
+
+function makeWeapon(type) {
+  const t = WEAPON_TEMPLATES[type];
+  const rar = RARITIES[randInt(0, RARITIES.length-1)];
+  const m = RARITY_MULT[rar];
+  return { type, label:t.label, dmg: Math.round(t.dmg*m), rate:t.rate, mag:t.mag, ammo:t.mag, range:t.range, reload:t.reload, color:t.color, rarity:rar, isReloading:false };
+}
+
+function makePlayer(id, isHuman, x, y) {
+  return {
+    id, isHuman,
+    x, y, rot: 0,
+    hp: 100, maxHp: 100, shield: 0, maxShield: 100,
+    alive: true,
+    weapons: [makeWeapon('pickaxe'), null, null],
+    slot: 0,
+    materials: { wood:100, stone:50, metal:25 },
+    kills: 0,
+    wanderTarget: null, wanderTimer: 0,
+    lastFireMs: 0,
+  };
+}
+
+function scatterLoot(n) {
+  return Array.from({length:n}, (_,i) => ({
+    id:'loot'+i,
+    x: rand(50, MAP_W-50), y: rand(50, MAP_H-50),
+    weapon: makeWeapon(WEAPON_TYPES[randInt(0, WEAPON_TYPES.length-1)]),
+    shield: Math.random()>0.6 ? 50 : 0,
+    hp: Math.random()>0.7 ? 25 : 0,
+    wood: randInt(20,60), stone: randInt(10,30), metal: randInt(5,15),
+  }));
+}
+
+function initGame() {
+  kills = 0; buildMode = false; reloading = false; lastFire = 0; startTime = Date.now();
+  if (reloadTimer) clearTimeout(reloadTimer);
+
+  const human = makePlayer('human', true, MAP_W/2, MAP_H/2);
+  const bots = Array.from({length:BOT_COUNT}, (_,i) =>
+    makePlayer('bot'+i, false, rand(100,MAP_W-100), rand(100,MAP_H-100))
+  );
+  // Give bots starting weapons
+  bots.forEach(b => {
+    b.weapons[1] = makeWeapon(WEAPON_TYPES[randInt(0,WEAPON_TYPES.length-1)]);
+    b.slot = 1;
+  });
+
+  const phase0 = PHASES[0];
+  G = {
+    players: [human, ...bots],
+    loot: scatterLoot(200),
+    walls: [],
+    impacts: [],
+    bombardment: {
+      phase: 0,
+      cx: MAP_W/2, cy: MAP_H/2,
+      r: phase0.shelterR,
+      nextCx: MAP_W/2 + rand(-200,200), nextCy: MAP_H/2 + rand(-200,200),
+      nextR: PHASES[1].shelterR,
+      shrinking: false, shrinkProg: 0,
+      impactDmg: phase0.impactDmg,
+      impactInterval: phase0.impactInterval,
+      timeToImpact: phase0.impactInterval,
+      timeToPhase: phase0.waitDur,
+    },
+    phase: 'playing',
+    result: null,
+  };
+}
+
+// ─── Bombardment tick ─────────────────────────────────────────────────────────
+function tickBombardment(deltaMs) {
+  const b = G.bombardment;
+  const newImpacts = [];
+
+  // Age impacts
+  G.impacts = G.impacts.map(i=>({...i, age:i.age+deltaMs})).filter(i=>i.age<IMPACT_MAX_AGE);
+
+  // Shrink progression
+  if (b.shrinking) {
+    const pd = PHASES[Math.min(b.phase, PHASES.length-1)];
+    b.shrinkProg = Math.min(1, b.shrinkProg + deltaMs / pd.shrinkDur);
+    b.cx = lerp(b.cx, b.nextCx, b.shrinkProg);  // WHY: we lerp from saved start — approximate for demo
+    b.cy = lerp(b.cy, b.nextCy, b.shrinkProg);
+    b.r  = lerp(b.r,  b.nextR,  b.shrinkProg);
+
+    if (b.shrinkProg >= 1) {
+      b.shrinking = false; b.shrinkProg = 0; b.phase++;
+      const nd = PHASES[Math.min(b.phase, PHASES.length-1)];
+      b.impactDmg = nd.impactDmg;
+      b.impactInterval = nd.impactInterval;
+      b.timeToPhase = nd.waitDur;
+      const nr = nd.shelterR;
+      const ang = rand(0, Math.PI*2);
+      b.nextCx = clamp(b.cx + Math.cos(ang)*rand(0, b.r-nr)*0.8, nr, MAP_W-nr);
+      b.nextCy = clamp(b.cy + Math.sin(ang)*rand(0, b.r-nr)*0.8, nr, MAP_H-nr);
+      b.nextR = nr;
+    }
+  } else {
+    b.timeToPhase -= deltaMs;
+    if (b.timeToPhase <= 0) { b.shrinking = true; b.shrinkProg = 0; }
+  }
+
+  // Spawn meteors
+  b.timeToImpact -= deltaMs;
+  while (b.timeToImpact <= 0) {
+    let ix, iy, tries = 0;
+    do {
+      ix = rand(0, MAP_W); iy = rand(0, MAP_H);
+      tries++;
+    } while (dist({x:ix,y:iy},{x:b.cx,y:b.cy}) <= b.r && tries < 20);
+    const impact = { id:'m'+Date.now()+Math.random(), x:ix, y:iy, r:METEOR_BLAST_R, age:0 };
+    newImpacts.push(impact);
+    G.impacts.push(impact);
+    b.timeToImpact += b.impactInterval;
+  }
+
+  // Apply meteor damage
+  if (newImpacts.length > 0) {
+    G.players.forEach(p => {
+      if (!p.alive) return;
+      newImpacts.forEach(impact => {
+        if (dist({x:p.x,y:p.y},{x:impact.x,y:impact.y}) <= impact.r) {
+          let dmg = b.impactDmg;
+          const abs = Math.min(p.shield, dmg);
+          p.shield -= abs; dmg -= abs;
+          p.hp = Math.max(0, p.hp - dmg);
+          if (p.hp === 0) p.alive = false;
+        }
+      });
+    });
+  }
+}
+
+// ─── Bot tick ─────────────────────────────────────────────────────────────────
+function tickBots(deltaMs) {
+  const human = G.players[0];
+  const now = Date.now();
+  const b = G.bombardment;
+
+  G.players.forEach(p => {
+    if (p.isHuman || !p.alive) return;
+
+    // Priority 1: flee to shelter
+    if (dist({x:p.x,y:p.y},{x:b.cx,y:b.cy}) > b.r) {
+      moveToward(p, b.cx, b.cy, 2.2, deltaMs);
+      return;
+    }
+
+    // Priority 2: attack if enemy nearby
+    const enemies = G.players.filter(e => e.id !== p.id && e.alive);
+    let nearest = null, nearDist = Infinity;
+    enemies.forEach(e => { const d=dist({x:p.x,y:p.y},{x:e.x,y:e.y}); if(d<nearDist){nearDist=d;nearest=e;} });
+
+    if (nearest && nearDist < 350) {
+      moveToward(p, nearest.x, nearest.y, 2, deltaMs);
+      const w = p.weapons[p.slot];
+      if (w && w.ammo > 0 && !w.isReloading) {
+        const minInterval = 1000 / w.rate;
+        if (now - p.lastFireMs > minInterval) {
+          p.lastFireMs = now;
+          const spread = 20;
+          fireShot(p, { x: nearest.x + rand(-spread,spread), y: nearest.y + rand(-spread,spread) });
+        }
+      }
+      return;
+    }
+
+    // Priority 3: pick up loot
+    const nearLoot = G.loot.find(l => dist({x:p.x,y:p.y},{x:l.x,y:l.y}) < 60);
+    if (nearLoot) { pickUpLoot(p, nearLoot); return; }
+
+    // Priority 4: wander
+    p.wanderTimer -= deltaMs;
+    if (!p.wanderTarget || p.wanderTimer <= 0) {
+      p.wanderTarget = { x: clamp(p.x+rand(-200,200),50,MAP_W-50), y: clamp(p.y+rand(-200,200),50,MAP_H-50) };
+      p.wanderTimer = rand(2000, 5000);
+    }
+    moveToward(p, p.wanderTarget.x, p.wanderTarget.y, 2, deltaMs);
+  });
+}
+
+function moveToward(p, tx, ty, speed, deltaMs) {
+  const dx = tx-p.x, dy = ty-p.y;
+  const d = Math.sqrt(dx*dx+dy*dy);
+  if (d < 2) return;
+  const s = speed * (deltaMs/TICK_MS);
+  p.x = clamp(p.x + (dx/d)*s, 0, MAP_W);
+  p.y = clamp(p.y + (dy/d)*s, 0, MAP_H);
+  p.rot = Math.atan2(dy, dx) * 180/Math.PI;
+}
+
+function pickUpLoot(p, loot) {
+  if (loot.weapon) {
+    const empty = p.weapons.findIndex((w,i) => i>0 && !w);
+    if (empty !== -1) { p.weapons[empty] = loot.weapon; }
+  }
+  p.shield = Math.min(p.maxShield, p.shield + loot.shield);
+  p.hp = Math.min(p.maxHp, p.hp + loot.hp);
+  p.materials.wood  += loot.wood;
+  p.materials.stone += loot.stone;
+  p.materials.metal += loot.metal;
+  G.loot = G.loot.filter(l => l.id !== loot.id);
+}
+
+// ─── Combat ───────────────────────────────────────────────────────────────────
+function fireShot(shooter, targetPos) {
+  const w = shooter.weapons[shooter.slot];
+  if (!w || w.ammo <= 0 || w.isReloading) return;
+  w.ammo--;
+
+  G.players.forEach(target => {
+    if (target.id === shooter.id || !target.alive) return;
+    // Line-point distance check
+    const ox=shooter.x, oy=shooter.y, tx=targetPos.x, ty=targetPos.y;
+    const dx=tx-ox, dy=ty-oy, lenSq=dx*dx+dy*dy;
+    if (lenSq===0) return;
+    const t = clamp(((target.x-ox)*dx+(target.y-oy)*dy)/lenSq, 0, 1);
+    const cx=ox+t*dx, cy=oy+t*dy;
+    if (dist({x:cx,y:cy},{x:target.x,y:target.y}) > 18) return;
+
+    let dmg = w.dmg;
+    const abs = Math.min(target.shield, dmg);
+    target.shield -= abs; dmg -= abs;
+    target.hp = Math.max(0, target.hp - dmg);
+    if (target.hp === 0) {
+      target.alive = false;
+      if (shooter.isHuman) { kills++; }
+      else { shooter.kills++; }
+    }
+  });
+}
+
+// ─── Main tick ────────────────────────────────────────────────────────────────
+function gameTick() {
+  if (G.phase !== 'playing') return;
+
+  const human = G.players[0];
+  if (!human.alive) { endGame(); return; }
+
+  // Move human
+  let dx = 0, dy = 0;
+  if (keys['ArrowUp']    || keys['w'] || keys['W']) dy = -1;
+  if (keys['ArrowDown']  || keys['s'] || keys['S']) dy =  1;
+  if (keys['ArrowLeft']  || keys['a'] || keys['A']) dx = -1;
+  if (keys['ArrowRight'] || keys['d'] || keys['D']) dx =  1;
+  if (dx !== 0 && dy !== 0) { dx *= 0.707; dy *= 0.707; }
+  human.x = clamp(human.x + dx * PLAYER_SPEED, 0, MAP_W);
+  human.y = clamp(human.y + dy * PLAYER_SPEED, 0, MAP_H);
+  const mx = mouseWorld.x - human.x, my = mouseWorld.y - human.y;
+  if (mx !== 0 || my !== 0) human.rot = Math.atan2(my, mx) * 180/Math.PI;
+
+  // Auto-pickup loot for human
+  const nearLoot = G.loot.find(l => dist({x:human.x,y:human.y},{x:l.x,y:l.y}) < 55);
+  if (nearLoot) pickUpLoot(human, nearLoot);
+
+  tickBombardment(TICK_MS);
+  tickBots(TICK_MS);
+
+  const alive = G.players.filter(p => p.alive).length;
+  if (alive <= 1) { endGame(); return; }
+
+  updateHUD(human, alive);
+  render();
+}
+
+function endGame() {
+  G.phase = 'game_over';
+  clearInterval(intervalId);
+  const human = G.players[0];
+  const isWin = human.alive;
+  const alive = G.players.filter(p=>p.alive);
+  const placement = isWin ? 1 : alive.length + 1;
+  const survived = Math.floor((Date.now()-startTime)/1000);
+
+  document.getElementById('game').style.display = 'none';
+  const panel = document.getElementById('gameoverPanel');
+  panel.style.display = 'flex';
+  panel.className = isWin ? 'win' : 'loss';
+  document.getElementById('resultTitle').textContent = isWin ? 'VICTORY ROYALE' : 'ELIMINATED';
+
+  const ord = n => n===1?'1st':n===2?'2nd':n===3?'3rd':`${n}th`;
+  document.getElementById('resultSub').textContent = isWin ? 'Last one standing!' : `You finished ${ord(placement)} place`;
+
+  const sMin = Math.floor(survived/60), sSec = survived%60;
+  document.getElementById('resultStats').innerHTML = `
+    <div class="stat"><div class="stat-val">${kills}</div><div class="stat-lbl">Eliminations</div></div>
+    <div class="stat"><div class="stat-val">${ord(placement)}</div><div class="stat-lbl">Placement</div></div>
+    <div class="stat"><div class="stat-val">${sMin}:${String(sSec).padStart(2,'0')}</div><div class="stat-lbl">Survived</div></div>
+  `;
+}
+
+// ─── HUD update ───────────────────────────────────────────────────────────────
+function updateHUD(human, alive) {
+  document.getElementById('aliveChip').textContent = alive + ' alive';
+  document.getElementById('killsChip').textContent = kills + ' kills';
+
+  const b = G.bombardment;
+  const impSec = Math.ceil(b.timeToImpact/1000);
+  const phaseSec = Math.ceil(b.timeToPhase/1000);
+  const chip = document.getElementById('meteorChip');
+  chip.className = 'chip';
+  if (b.timeToImpact < 2000) {
+    chip.classList.add('incoming');
+    document.getElementById('meteorText').textContent = `IMPACT IN ${impSec}s`;
+  } else if (b.shrinking) {
+    chip.classList.add('closing');
+    document.getElementById('meteorText').textContent = 'ZONE CLOSING';
+  } else {
+    document.getElementById('meteorText').textContent = `Zone: ${phaseSec}s`;
+  }
+
+  document.getElementById('hpfill').style.width = (human.hp/human.maxHp*100)+'%';
+  document.getElementById('hpfill').style.background = human.hp < 30 ? '#ff4444' : '#44ff44';
+  document.getElementById('hpval').textContent = human.hp;
+  document.getElementById('shfill').style.width = (human.shield/human.maxShield*100)+'%';
+  document.getElementById('shval').textContent = human.shield;
+  document.getElementById('matW').textContent = 'W:'+human.materials.wood;
+  document.getElementById('matS').textContent = 'S:'+human.materials.stone;
+  document.getElementById('matM').textContent = 'M:'+human.materials.metal;
+
+  // Weapon bar
+  [0,1,2].forEach(i => {
+    const sl = document.getElementById('ws'+i);
+    const w = human.weapons[i];
+    sl.className = 'wslot' + (i===human.slot?' active':'');
+    sl.querySelector('.wname').textContent = w ? w.label : '—';
+    sl.querySelector('.wammo').textContent = w ? (w.isReloading?'RLD':`${w.ammo===Infinity?'∞':w.ammo}/${w.mag===Infinity?'∞':w.mag}`) : '';
+    if (w) sl.querySelector('.wname').style.color = w.rarity ? RARITY_COLOR[w.rarity] : '#fff';
+  });
+
+  document.getElementById('buildBtn').className = 'abtn' + (buildMode?' active':'');
+}
+
+// ─── Canvas rendering ─────────────────────────────────────────────────────────
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+function setupCanvas() {
+  const maxW = Math.min(window.innerWidth - 40, 900);
+  const maxH = Math.min(window.innerHeight - 120, 600);
+  canvas.width  = maxW;
+  canvas.height = maxH;
+  canvasRect = canvas.getBoundingClientRect();
+}
+
+function worldToScreen(wx, wy, human) {
+  const vx = clamp(human.x - canvas.width/2,  0, MAP_W - canvas.width);
+  const vy = clamp(human.y - canvas.height/2, 0, MAP_H - canvas.height);
+  return { sx: wx - vx, sy: wy - vy, vx, vy };
+}
+
+function render() {
+  const human = G.players[0];
+  const { vx, vy } = worldToScreen(human.x, human.y, human);
+
+  // Ground
+  ctx.fillStyle = '#3a7a30';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Grid lines (terrain hint)
+  ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+  ctx.lineWidth = 1;
+  for (let gx = -(vx%100); gx < canvas.width; gx+=100) {
+    ctx.beginPath(); ctx.moveTo(gx,0); ctx.lineTo(gx,canvas.height); ctx.stroke();
+  }
+  for (let gy = -(vy%100); gy < canvas.height; gy+=100) {
+    ctx.beginPath(); ctx.moveTo(0,gy); ctx.lineTo(canvas.width,gy); ctx.stroke();
+  }
+
+  // Danger zone tint (outside shelter)
+  const b = G.bombardment;
+  const scx = b.cx - vx, scy = b.cy - vy;
+  ctx.save();
+  ctx.fillStyle = 'rgba(200,60,0,0.28)';
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  // Cut out shelter zone
+  ctx.globalCompositeOperation = 'destination-out';
+  ctx.beginPath();
+  ctx.arc(scx, scy, b.r, 0, Math.PI*2);
+  ctx.fill();
+  ctx.restore();
+
+  // Shelter ring (fire orange)
+  ctx.beginPath();
+  ctx.arc(scx, scy, b.r, 0, Math.PI*2);
+  ctx.strokeStyle = 'rgba(255,120,0,0.95)';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+  // Next shelter zone (dashed)
+  const nscx = b.nextCx - vx, nscy = b.nextCy - vy;
+  ctx.beginPath();
+  ctx.arc(nscx, nscy, b.nextR, 0, Math.PI*2);
+  ctx.strokeStyle = 'rgba(255,200,100,0.4)';
+  ctx.setLineDash([8,8]);
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Meteor impact craters
+  G.impacts.forEach(impact => {
+    const ix = impact.x - vx, iy = impact.y - vy;
+    const opacity = Math.max(0, 1 - impact.age/IMPACT_MAX_AGE);
+    const grad = ctx.createRadialGradient(ix, iy, 0, ix, iy, impact.r);
+    grad.addColorStop(0, `rgba(255,200,50,${opacity*0.9})`);
+    grad.addColorStop(0.4, `rgba(255,80,0,${opacity*0.7})`);
+    grad.addColorStop(1, `rgba(255,60,0,0)`);
+    ctx.beginPath();
+    ctx.arc(ix, iy, impact.r, 0, Math.PI*2);
+    ctx.fillStyle = grad;
+    ctx.fill();
+    // Ring
+    ctx.beginPath();
+    ctx.arc(ix, iy, impact.r, 0, Math.PI*2);
+    ctx.strokeStyle = `rgba(255,200,0,${opacity*0.8})`;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  });
+
+  // Walls
+  G.walls.forEach(w => {
+    const wx2 = w.x - vx, wy2 = w.y - vy;
+    ctx.fillStyle = w.mat==='wood'?'rgba(130,80,30,0.85)':w.mat==='stone'?'rgba(130,130,130,0.85)':'rgba(160,160,160,0.85)';
+    ctx.fillRect(wx2-50, wy2-4, 100, 8);
+  });
+
+  // Loot
+  G.loot.forEach(l => {
+    const lx = l.x - vx, ly = l.y - vy;
+    if (lx < -20 || lx > canvas.width+20 || ly < -20 || ly > canvas.height+20) return;
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    ctx.beginPath();
+    ctx.roundRect(lx-12, ly-6, 24, 12, 3);
+    ctx.fill();
+    ctx.strokeStyle = l.weapon ? RARITY_COLOR[l.weapon.rarity] : '#fff';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.fillStyle = l.weapon ? RARITY_COLOR[l.weapon.rarity] : '#fff';
+    ctx.font = 'bold 7px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(l.weapon ? l.weapon.label : 'IT', lx, ly);
+  });
+
+  // Players (bots first, then human on top)
+  const drawPlayer = (p, isHuman) => {
+    const px = p.x - vx, py = p.y - vy;
+    if (px < -30 || px > canvas.width+30 || py < -30 || py > canvas.height+30) return;
+
+    const rotRad = p.rot * Math.PI/180;
+    const color = isHuman ? '#00aaff' : '#ff4444';
+    const outline = isHuman ? '#0055aa' : '#880000';
+
+    // Shadow
+    ctx.beginPath();
+    ctx.ellipse(px, py+2, 11, 7, 0, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.fill();
+
+    // Body
+    ctx.beginPath();
+    ctx.arc(px, py, 10, 0, Math.PI*2);
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.strokeStyle = outline;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Direction dot
+    ctx.beginPath();
+    ctx.arc(px + Math.cos(rotRad)*6, py + Math.sin(rotRad)*6, 3, 0, Math.PI*2);
+    ctx.fillStyle = '#fff';
+    ctx.fill();
+
+    // Health bar
+    const barW = 24, barX = px - barW/2, barY = py - 18;
+    ctx.fillStyle = '#222';
+    ctx.fillRect(barX, barY, barW, 4);
+    ctx.fillStyle = p.hp > 30 ? '#44ff44' : '#ff4444';
+    ctx.fillRect(barX, barY, barW * (p.hp/p.maxHp), 4);
+
+    // YOU label
+    if (isHuman) {
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 8px monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText('YOU', px, barY - 1);
+    }
+  };
+
+  G.players.filter(p=>p.alive && !p.isHuman).forEach(p=>drawPlayer(p,false));
+  if (human.alive) drawPlayer(human, true);
+
+  // Crosshair at mouse position
+  const msx = mouseWorld.x - vx, msy = mouseWorld.y - vy;
+  ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(msx-8, msy); ctx.lineTo(msx+8, msy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(msx, msy-8); ctx.lineTo(msx, msy+8); ctx.stroke();
+}
+
+// ─── Controls ─────────────────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  keys[e.key] = true;
+  if (['1','2','3'].includes(e.key)) {
+    const human = G?.players?.[0];
+    if (human) human.slot = parseInt(e.key)-1;
+  }
+  if (e.key==='r'||e.key==='R') doReload();
+  if (e.key==='b'||e.key==='B') { buildMode = !buildMode; }
+  if (e.key===' ') { e.preventDefault(); doFire(); }
+});
+document.addEventListener('keyup', e => { keys[e.key] = false; });
+
+canvas.addEventListener('mousemove', e => {
+  canvasRect = canvas.getBoundingClientRect();
+  const csX = e.clientX - canvasRect.left;
+  const csY = e.clientY - canvasRect.top;
+  const human = G?.players?.[0];
+  if (!human) return;
+  const vx = clamp(human.x - canvas.width/2,  0, MAP_W - canvas.width);
+  const vy = clamp(human.y - canvas.height/2, 0, MAP_H - canvas.height);
+  mouseWorld = { x: csX + vx, y: csY + vy };
+});
+
+canvas.addEventListener('click', () => doFire());
+
+function doFire() {
+  const human = G?.players?.[0];
+  if (!human || !human.alive || G.phase !== 'playing') return;
+
+  if (buildMode) {
+    // Place wall in front
+    const ang = human.rot * Math.PI/180;
+    G.walls.push({ x: human.x + Math.cos(ang)*60, y: human.y + Math.sin(ang)*60, mat: human.slot===1?'stone':human.slot===2?'metal':'wood' });
+    return;
+  }
+
+  const w = human.weapons[human.slot];
+  if (!w || w.isReloading || w.ammo<=0) return;
+  const now = Date.now();
+  const minInt = 1000/w.rate;
+  if (now - lastFire < minInt) return;
+  lastFire = now;
+
+  // Auto-aim nearest enemy
+  const enemies = G.players.filter(p=>!p.isHuman && p.alive);
+  let nearest=null, nearDist=Infinity;
+  enemies.forEach(e=>{ const d=dist({x:human.x,y:human.y},{x:e.x,y:e.y}); if(d<nearDist&&d<w.range+50){nearDist=d;nearest=e;} });
+
+  const target = nearest
+    ? { x: nearest.x + rand(-8,8), y: nearest.y + rand(-8,8) }
+    : { x: human.x + Math.cos(human.rot*Math.PI/180)*w.range, y: human.y + Math.sin(human.rot*Math.PI/180)*w.range };
+
+  fireShot(human, target);
+}
+
+function doReload() {
+  const human = G?.players?.[0];
+  if (!human || reloading) return;
+  const w = human.weapons[human.slot];
+  if (!w || w.type==='pickaxe' || w.ammo===w.mag) return;
+  reloading = true;
+  w.isReloading = true;
+  reloadTimer = setTimeout(() => {
+    w.ammo = w.mag; w.isReloading = false; reloading = false;
+  }, w.reload);
+}
+
+// Weapon slot clicks
+[0,1,2].forEach(i => {
+  document.getElementById('ws'+i).addEventListener('click', () => {
+    if (G?.players?.[0]) G.players[0].slot = i;
+  });
+});
+document.getElementById('buildBtn').addEventListener('click', () => { buildMode = !buildMode; });
+document.getElementById('reloadBtn').addEventListener('click', doReload);
+document.getElementById('fireBtn').addEventListener('click', doFire);
+
+// ─── Screen transitions ───────────────────────────────────────────────────────
+document.getElementById('playBtn').addEventListener('click', () => {
+  document.getElementById('lobby').style.display = 'none';
+  document.getElementById('game').style.display = 'block';
+  setupCanvas();
+  initGame();
+  render();
+  updateHUD(G.players[0], G.players.filter(p=>p.alive).length);
+  intervalId = setInterval(gameTick, TICK_MS);
+});
+
+document.getElementById('againBtn').addEventListener('click', () => {
+  document.getElementById('gameoverPanel').style.display = 'none';
+  document.getElementById('game').style.display = 'block';
+  setupCanvas();
+  initGame();
+  render();
+  updateHUD(G.players[0], G.players.filter(p=>p.alive).length);
+  intervalId = setInterval(gameTick, TICK_MS);
+});
+
+window.addEventListener('resize', () => { if (G?.phase==='playing') { setupCanvas(); render(); } });
+</script>
+</body>
+</html>
