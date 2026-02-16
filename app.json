@@ -1,0 +1,20 @@
+{
+  "name": "FortnitePrototype",
+  "displayName": "Battle Royale",
+  "expo": {
+    "name": "Battle Royale",
+    "slug": "fortnite-prototype",
+    "version": "0.1.0",
+    "orientation": "landscape",
+    "ios": {
+      "bundleIdentifier": "com.claude.battleroyale",
+      "infoPlist": {
+        "UIBackgroundModes": ["fetch", "processing"],
+        "BGTaskSchedulerPermittedIdentifiers": ["com.claude.battleroyale.refresh"]
+      }
+    },
+    "android": {
+      "package": "com.claude.battleroyale"
+    }
+  }
+}
