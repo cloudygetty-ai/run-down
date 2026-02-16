@@ -1,20 +1,20 @@
 {
-  "name": "FortnitePrototype",
-  "displayName": "Battle Royale",
+  "name": "RunDown",
+  "displayName": "Run Down",
   "expo": {
-    "name": "Battle Royale",
-    "slug": "fortnite-prototype",
+    "name": "Run Down",
+    "slug": "run-down",
     "version": "0.1.0",
     "orientation": "landscape",
     "ios": {
-      "bundleIdentifier": "com.claude.battleroyale",
+      "bundleIdentifier": "com.claude.rundown",
       "infoPlist": {
         "UIBackgroundModes": ["fetch", "processing"],
-        "BGTaskSchedulerPermittedIdentifiers": ["com.claude.battleroyale.refresh"]
+        "BGTaskSchedulerPermittedIdentifiers": ["com.claude.rundown.refresh"]
       }
     },
     "android": {
-      "package": "com.claude.battleroyale"
+      "package": "com.claude.rundown"
     }
   }
 }

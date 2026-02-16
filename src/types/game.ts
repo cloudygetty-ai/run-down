@@ -1,4 +1,4 @@
-// Core game entity types for the Fortnite-like battle royale prototype
+// Core game entity types for Run Down — a battle royale prototype
 
 export type Vector2 = {
   x: number;

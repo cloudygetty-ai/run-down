@@ -2,7 +2,7 @@ import { Storm, StormPhase, Vector2 } from '../../types';
 import { lerpVec2, lerp, randomInRange } from '../../utils';
 
 // Pre-defined storm phases — the circle shrinks progressively tighter
-// WHY: matching Fortnite's feel where early phases give time to rotate and
+// WHY: early phases give players time to rotate and loot;
 //      late phases force combat in a tiny area.
 const STORM_PHASES: StormPhase[] = [
   { phase: 1, safeZoneCenter: { x: 0, y: 0 }, safeZoneRadius: 800, damagePerTick: 1,  shrinkDuration: 60_000, waitDuration: 120_000 },

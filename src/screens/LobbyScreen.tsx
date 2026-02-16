@@ -20,8 +20,8 @@ export const LobbyScreen: React.FC<Props> = ({ onStart }) => {
   return (
     <View style={styles.container}>
       <View style={styles.card}>
-        <Text style={styles.title}>BATTLE ROYALE</Text>
-        <Text style={styles.subtitle}>A Fortnite-style prototype</Text>
+        <Text style={styles.title}>RUN DOWN</Text>
+        <Text style={styles.subtitle}>Battle royale — last one standing</Text>
 
         <View style={styles.statsGrid}>
           <View style={styles.statBox}>
