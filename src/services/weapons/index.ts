@@ -1,1 +1,1 @@
-export * from './WeaponService';
+export * from "./WeaponService";

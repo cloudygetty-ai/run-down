@@ -1,5 +1,5 @@
-import { Vector2, BuildPiece, Player } from '../../types';
-import { distance } from '../../utils';
+import { Vector2, BuildPiece, Player } from "../../types";
+import { distance } from "../../utils";
 
 // Wall thickness for collision response
 const WALL_HALF_SIZE = 10;
@@ -27,12 +27,14 @@ function buildPieceToAABB(piece: BuildPiece): AABB {
 
 export function resolvePlayerWallCollision(
   player: Player,
-  pieces: BuildPiece[],
+  pieces: BuildPiece[]
 ): Vector2 {
   let pos = { ...player.position };
 
   for (const piece of pieces) {
-    if (piece.type === 'floor') continue; // players walk on floors, no lateral collision
+    if (piece.type === "floor") {
+      continue;
+    } // players walk on floors, no lateral collision
 
     const box = buildPieceToAABB(piece);
     const closestX = Math.max(box.minX, Math.min(pos.x, box.maxX));
@@ -57,11 +59,13 @@ export function resolvePlayerWallCollision(
 export function checkBulletHit(
   bulletOrigin: Vector2,
   bulletTarget: Vector2,
-  pieces: BuildPiece[],
+  pieces: BuildPiece[]
 ): BuildPiece | null {
   // Simple ray-AABB intersection — returns first wall the bullet hits
   for (const piece of pieces) {
-    if (piece.type === 'floor') continue;
+    if (piece.type === "floor") {
+      continue;
+    }
 
     const box = buildPieceToAABB(piece);
     const dx = bulletTarget.x - bulletOrigin.x;
@@ -72,7 +76,7 @@ export function checkBulletHit(
     const tMaxY = dy !== 0 ? (box.maxY - bulletOrigin.y) / dy : Infinity;
 
     const tEnter = Math.max(Math.min(tMinX, tMaxX), Math.min(tMinY, tMaxY));
-    const tExit  = Math.min(Math.max(tMinX, tMaxX), Math.max(tMinY, tMaxY));
+    const tExit = Math.min(Math.max(tMinX, tMaxX), Math.max(tMinY, tMaxY));
 
     if (tEnter <= tExit && tEnter >= 0 && tEnter <= 1) {
       return piece;
@@ -84,17 +88,25 @@ export function checkBulletHit(
 export function isPlayerHitByBullet(
   bulletOrigin: Vector2,
   bulletTarget: Vector2,
-  target: Player,
+  target: Player
 ): boolean {
   // Project target onto the bullet line segment
   const dx = bulletTarget.x - bulletOrigin.x;
   const dy = bulletTarget.y - bulletOrigin.y;
   const lenSq = dx * dx + dy * dy;
-  if (lenSq === 0) return false;
+  if (lenSq === 0) {
+    return false;
+  }
 
-  const t = Math.max(0, Math.min(1,
-    ((target.position.x - bulletOrigin.x) * dx + (target.position.y - bulletOrigin.y) * dy) / lenSq
-  ));
+  const t = Math.max(
+    0,
+    Math.min(
+      1,
+      ((target.position.x - bulletOrigin.x) * dx +
+        (target.position.y - bulletOrigin.y) * dy) /
+        lenSq
+    )
+  );
   const closest = {
     x: bulletOrigin.x + t * dx,
     y: bulletOrigin.y + t * dy,

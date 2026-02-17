@@ -1,18 +1,22 @@
-import { GameState, Player, MeteorImpact, Vector2 } from '../../types';
-import { tickBombardment } from '../meteor';
-import { resolvePlayerWallCollision, isPlayerHitByBullet, checkBulletHit } from '../physics';
-import { distance, clamp, normalize } from '../../utils';
-import { logger } from '../../utils';
+import { GameState, Player, MeteorImpact, Vector2 } from "../../types";
+import { tickBombardment } from "../meteor";
+import {
+  resolvePlayerWallCollision,
+  isPlayerHitByBullet,
+  checkBulletHit,
+} from "../physics";
+import { distance, clamp, normalize } from "../../utils";
+import { logger } from "../../utils";
 
 const TICK_RATE_MS = 50; // 20 ticks per second
-const PLAYER_SPEED = 4;  // units per tick at full joystick
+const PLAYER_SPEED = 4; // units per tick at full joystick
 
 export type InputState = {
-  moveVector: Vector2;    // normalized joystick direction (-1..1 on each axis)
-  aimVector: Vector2;     // direction the player is aiming
+  moveVector: Vector2; // normalized joystick direction (-1..1 on each axis)
+  aimVector: Vector2; // direction the player is aiming
   isShooting: boolean;
   isBuilding: boolean;
-  buildPieceType: 'wall' | 'floor' | 'ramp';
+  buildPieceType: "wall" | "floor" | "ramp";
   buildPosition: Vector2 | null;
   wantsReload: boolean;
 };
@@ -22,12 +26,18 @@ export type InputState = {
 export function tickGame(
   state: GameState,
   humanInput: InputState,
-  deltaMs: number,
+  deltaMs: number
 ): GameState {
-  if (state.phase !== 'playing') return state;
+  if (state.phase !== "playing") {
+    return state;
+  }
 
   try {
-    let next = { ...state, players: [...state.players], buildPieces: [...state.buildPieces] };
+    let next = {
+      ...state,
+      players: [...state.players],
+      buildPieces: [...state.buildPieces],
+    };
 
     next = moveHumanPlayer(next, humanInput, deltaMs);
 
@@ -36,7 +46,7 @@ export function tickGame(
       next.bombardment,
       deltaMs,
       next.mapWidth,
-      next.mapHeight,
+      next.mapHeight
     );
     next = { ...next, bombardment };
     next = applyMeteorDamage(next, newImpacts);
@@ -47,14 +57,22 @@ export function tickGame(
     return next;
   } catch (err) {
     // WHY: the game loop must never crash — log and return unchanged state
-    logger.error('GameEngine', 'tick error', err);
+    logger.error("GameEngine", "tick error", err);
     return state;
   }
 }
 
-function moveHumanPlayer(state: GameState, input: InputState, deltaMs: number): GameState {
-  const humanIndex = state.players.findIndex(p => p.isHuman && p.status === 'alive');
-  if (humanIndex === -1) return state;
+function moveHumanPlayer(
+  state: GameState,
+  input: InputState,
+  deltaMs: number
+): GameState {
+  const humanIndex = state.players.findIndex(
+    (p) => p.isHuman && p.status === "alive"
+  );
+  if (humanIndex === -1) {
+    return state;
+  }
 
   const player = state.players[humanIndex];
   const speed = PLAYER_SPEED * (deltaMs / TICK_RATE_MS);
@@ -67,12 +85,13 @@ function moveHumanPlayer(state: GameState, input: InputState, deltaMs: number): 
 
   const resolvedPos = resolvePlayerWallCollision(
     { ...player, position: rawNext },
-    state.buildPieces,
+    state.buildPieces
   );
 
-  const rotation = input.aimVector.x !== 0 || input.aimVector.y !== 0
-    ? Math.atan2(input.aimVector.y, input.aimVector.x) * (180 / Math.PI)
-    : player.rotation;
+  const rotation =
+    input.aimVector.x !== 0 || input.aimVector.y !== 0
+      ? Math.atan2(input.aimVector.y, input.aimVector.x) * (180 / Math.PI)
+      : player.rotation;
 
   const updated: Player = {
     ...player,
@@ -88,11 +107,18 @@ function moveHumanPlayer(state: GameState, input: InputState, deltaMs: number): 
 
 // Apply damage from freshly spawned meteor impacts to players in blast radius.
 // WHY: only new impacts damage players — old craters are purely visual.
-function applyMeteorDamage(state: GameState, newImpacts: MeteorImpact[]): GameState {
-  if (newImpacts.length === 0) return state;
+function applyMeteorDamage(
+  state: GameState,
+  newImpacts: MeteorImpact[]
+): GameState {
+  if (newImpacts.length === 0) {
+    return state;
+  }
 
-  const players = state.players.map(p => {
-    if (p.status !== 'alive') return p;
+  const players = state.players.map((p) => {
+    if (p.status !== "alive") {
+      return p;
+    }
 
     let totalDmg = 0;
     for (const impact of newImpacts) {
@@ -100,7 +126,9 @@ function applyMeteorDamage(state: GameState, newImpacts: MeteorImpact[]): GameSt
         totalDmg += state.bombardment.impactDamage;
       }
     }
-    if (totalDmg === 0) return p;
+    if (totalDmg === 0) {
+      return p;
+    }
 
     // Shield absorbs first
     let shield = p.shield;
@@ -109,7 +137,7 @@ function applyMeteorDamage(state: GameState, newImpacts: MeteorImpact[]): GameSt
     shield -= absorbed;
     health = Math.max(0, health - (totalDmg - absorbed));
 
-    const status = health === 0 ? 'eliminated' as const : p.status;
+    const status = health === 0 ? ("eliminated" as const) : p.status;
     return { ...p, shield, health, status };
   });
 
@@ -121,32 +149,48 @@ function applyMeteorDamage(state: GameState, newImpacts: MeteorImpact[]): GameSt
 export function fireShot(
   state: GameState,
   shooterId: string,
-  targetPos: Vector2,
+  targetPos: Vector2
 ): GameState {
-  const shooterIndex = state.players.findIndex(p => p.id === shooterId);
-  if (shooterIndex === -1) return state;
+  const shooterIndex = state.players.findIndex((p) => p.id === shooterId);
+  if (shooterIndex === -1) {
+    return state;
+  }
 
   const shooter = state.players[shooterIndex];
-  if (shooter.status !== 'alive') return state;
+  if (shooter.status !== "alive") {
+    return state;
+  }
 
   const weapon = shooter.weapons[shooter.activeWeaponSlot];
-  if (!weapon || weapon.currentAmmo <= 0 || weapon.isReloading) return state;
+  if (!weapon || weapon.currentAmmo <= 0 || weapon.isReloading) {
+    return state;
+  }
 
   // Check for build piece hit first (bullets stop at walls)
-  const hitPiece = checkBulletHit(shooter.position, targetPos, state.buildPieces);
+  const hitPiece = checkBulletHit(
+    shooter.position,
+    targetPos,
+    state.buildPieces
+  );
   if (hitPiece) {
-    const buildPieces = state.buildPieces.map(bp => {
-      if (bp.id !== hitPiece.id) return bp;
-      const newHealth = Math.max(0, bp.health - weapon.damage);
-      return { ...bp, health: newHealth };
-    }).filter(bp => bp.health > 0);
+    const buildPieces = state.buildPieces
+      .map((bp) => {
+        if (bp.id !== hitPiece.id) {
+          return bp;
+        }
+        const newHealth = Math.max(0, bp.health - weapon.damage);
+        return { ...bp, health: newHealth };
+      })
+      .filter((bp) => bp.health > 0);
 
     const players = [...state.players];
     players[shooterIndex] = {
       ...shooter,
       weapons: shooter.weapons.map((w, i) =>
-        i === shooter.activeWeaponSlot && w ? { ...w, currentAmmo: w.currentAmmo - 1 } : w
-      ) as Player['weapons'],
+        i === shooter.activeWeaponSlot && w
+          ? { ...w, currentAmmo: w.currentAmmo - 1 }
+          : w
+      ) as Player["weapons"],
     };
     return { ...state, players, buildPieces };
   }
@@ -156,14 +200,20 @@ export function fireShot(
   players[shooterIndex] = {
     ...shooter,
     weapons: shooter.weapons.map((w, i) =>
-      i === shooter.activeWeaponSlot && w ? { ...w, currentAmmo: w.currentAmmo - 1 } : w
-    ) as Player['weapons'],
+      i === shooter.activeWeaponSlot && w
+        ? { ...w, currentAmmo: w.currentAmmo - 1 }
+        : w
+    ) as Player["weapons"],
   };
 
   for (let i = 0; i < players.length; i++) {
     const target = players[i];
-    if (target.id === shooterId || target.status !== 'alive') continue;
-    if (!isPlayerHitByBullet(shooter.position, targetPos, target)) continue;
+    if (target.id === shooterId || target.status !== "alive") {
+      continue;
+    }
+    if (!isPlayerHitByBullet(shooter.position, targetPos, target)) {
+      continue;
+    }
 
     let dmg = weapon.damage;
     let shield = target.shield;
@@ -176,10 +226,10 @@ export function fireShot(
     }
     health = Math.max(0, health - dmg);
 
-    const status = health === 0 ? 'eliminated' as const : target.status;
+    const status = health === 0 ? ("eliminated" as const) : target.status;
     players[i] = { ...target, shield, health, status };
 
-    if (status === 'eliminated') {
+    if (status === "eliminated") {
       const kills = players[shooterIndex].kills + 1;
       players[shooterIndex] = { ...players[shooterIndex], kills };
     }
@@ -190,15 +240,16 @@ export function fireShot(
 }
 
 function checkWinCondition(state: GameState): GameState {
-  const alive = state.players.filter(p => p.status === 'alive');
+  const alive = state.players.filter((p) => p.status === "alive");
   if (alive.length <= 1) {
     const winner = alive[0] ?? null;
-    const human  = state.players.find(p => p.isHuman);
-    const placement = human?.status === 'alive' ? 1 : calculatePlacement(state.players);
+    const human = state.players.find((p) => p.isHuman);
+    const placement =
+      human?.status === "alive" ? 1 : calculatePlacement(state.players);
 
     return {
       ...state,
-      phase: 'game_over',
+      phase: "game_over",
       alivePlayers: alive.length,
       result: {
         placement,
@@ -212,8 +263,12 @@ function checkWinCondition(state: GameState): GameState {
 }
 
 function calculatePlacement(players: Player[]): number {
-  const human = players.find(p => p.isHuman);
-  if (!human) return players.length;
-  const survivedLonger = players.filter(p => !p.isHuman && p.status === 'alive').length;
+  const human = players.find((p) => p.isHuman);
+  if (!human) {
+    return players.length;
+  }
+  const survivedLonger = players.filter(
+    (p) => !p.isHuman && p.status === "alive"
+  ).length;
   return survivedLonger + 1;
 }

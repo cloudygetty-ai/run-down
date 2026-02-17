@@ -1,7 +1,7 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { GameResult } from '../types';
-import { useGameStore } from '../services/state';
+import React from "react";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { GameResult } from "../types";
+import { useGameStore } from "../services/state";
 
 type Props = {
   result: GameResult;
@@ -9,9 +9,15 @@ type Props = {
 };
 
 const ordinal = (n: number): string => {
-  if (n === 1) return '1st';
-  if (n === 2) return '2nd';
-  if (n === 3) return '3rd';
+  if (n === 1) {
+    return "1st";
+  }
+  if (n === 2) {
+    return "2nd";
+  }
+  if (n === 3) {
+    return "3rd";
+  }
   return `${n}th`;
 };
 
@@ -53,7 +59,9 @@ export const GameOverScreen: React.FC<Props> = ({ result, onPlayAgain }) => {
             <Text style={styles.statLabel}>Placement</Text>
           </View>
           <View style={styles.statBox}>
-            <Text style={styles.statValue}>{survivalMin}:{survivalSec.toString().padStart(2, '0')}</Text>
+            <Text style={styles.statValue}>
+              {survivalMin}:{survivalSec.toString().padStart(2, "0")}
+            </Text>
             <Text style={styles.statLabel}>Survived</Text>
           </View>
         </View>
@@ -73,54 +81,54 @@ export const GameOverScreen: React.FC<Props> = ({ result, onPlayAgain }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a0a1a',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#0a0a1a",
+    alignItems: "center",
+    justifyContent: "center",
   },
   card: {
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: "rgba(255,255,255,0.06)",
     borderRadius: 16,
     padding: 32,
     width: 360,
-    maxWidth: '90%',
-    alignItems: 'center',
+    maxWidth: "90%",
+    alignItems: "center",
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: "rgba(255,255,255,0.1)",
   },
   victoryTitle: {
     fontSize: 32,
-    fontWeight: 'bold',
-    color: '#ffcc00',
-    textAlign: 'center',
+    fontWeight: "bold",
+    color: "#ffcc00",
+    textAlign: "center",
     letterSpacing: 3,
   },
   victorySubtitle: {
     fontSize: 14,
-    color: '#aaa',
+    color: "#aaa",
     marginTop: 6,
     marginBottom: 24,
   },
   defeatTitle: {
     fontSize: 32,
-    fontWeight: 'bold',
-    color: '#ff4444',
-    textAlign: 'center',
+    fontWeight: "bold",
+    color: "#ff4444",
+    textAlign: "center",
     letterSpacing: 3,
   },
   defeatSubtitle: {
     fontSize: 14,
-    color: '#aaa',
+    color: "#aaa",
     marginTop: 6,
     marginBottom: 24,
   },
   statsGrid: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 12,
     marginBottom: 20,
   },
   statBox: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.05)",
     borderRadius: 8,
     paddingVertical: 12,
     paddingHorizontal: 16,
@@ -128,21 +136,21 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontWeight: "bold",
+    color: "#fff",
   },
   statLabel: {
     fontSize: 11,
-    color: '#888',
+    color: "#888",
     marginTop: 2,
   },
   winnerText: {
-    color: '#ffcc00',
+    color: "#ffcc00",
     fontSize: 13,
     marginBottom: 20,
   },
   playAgainBtn: {
-    backgroundColor: '#ffcc00',
+    backgroundColor: "#ffcc00",
     borderRadius: 10,
     paddingVertical: 14,
     paddingHorizontal: 40,
@@ -150,8 +158,8 @@ const styles = StyleSheet.create({
   },
   playAgainText: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#000',
+    fontWeight: "bold",
+    color: "#000",
     letterSpacing: 2,
   },
 });

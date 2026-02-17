@@ -1,6 +1,6 @@
-import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import { Bombardment } from '../types';
+import React from "react";
+import { View, StyleSheet } from "react-native";
+import { Bombardment } from "../types";
 
 type Props = {
   bombardment: Bombardment;
@@ -21,7 +21,7 @@ export const MeteorZoneOverlay: React.FC<Props> = ({
 }) => {
   const cx = bombardment.shelterCenter.x - viewportX;
   const cy = bombardment.shelterCenter.y - viewportY;
-  const r  = bombardment.shelterRadius;
+  const r = bombardment.shelterRadius;
   const outlineSize = r * 2;
 
   return (
@@ -65,17 +65,23 @@ export const MeteorZoneOverlay: React.FC<Props> = ({
             width: bombardment.nextShelterRadius * 2,
             height: bombardment.nextShelterRadius * 2,
             borderRadius: bombardment.nextShelterRadius,
-            left: bombardment.nextShelterCenter.x - viewportX - bombardment.nextShelterRadius,
-            top:  bombardment.nextShelterCenter.y - viewportY - bombardment.nextShelterRadius,
+            left:
+              bombardment.nextShelterCenter.x -
+              viewportX -
+              bombardment.nextShelterRadius,
+            top:
+              bombardment.nextShelterCenter.y -
+              viewportY -
+              bombardment.nextShelterRadius,
           },
         ]}
       />
 
       {/* Meteor impact craters */}
-      {bombardment.activeImpacts.map(impact => {
+      {bombardment.activeImpacts.map((impact) => {
         const screenX = impact.position.x - viewportX;
         const screenY = impact.position.y - viewportY;
-        const size    = impact.blastRadius * 2;
+        const size = impact.blastRadius * 2;
         // Fade out as the crater ages
         const opacity = Math.max(0, 1 - impact.age / impact.maxAge);
 
@@ -86,7 +92,7 @@ export const MeteorZoneOverlay: React.FC<Props> = ({
               styles.crater,
               {
                 left: screenX - impact.blastRadius,
-                top:  screenY - impact.blastRadius,
+                top: screenY - impact.blastRadius,
                 width: size,
                 height: size,
                 borderRadius: impact.blastRadius,
@@ -102,30 +108,30 @@ export const MeteorZoneOverlay: React.FC<Props> = ({
 
 const styles = StyleSheet.create({
   dangerZone: {
-    backgroundColor: 'rgba(200, 60, 0, 0.30)',
+    backgroundColor: "rgba(200, 60, 0, 0.30)",
   },
   shelterZone: {
-    position: 'absolute',
-    backgroundColor: 'transparent',
-    overflow: 'hidden',
+    position: "absolute",
+    backgroundColor: "transparent",
+    overflow: "hidden",
   },
   shelterRing: {
-    position: 'absolute',
+    position: "absolute",
     borderWidth: 3,
-    borderColor: 'rgba(255, 120, 0, 0.95)',
-    backgroundColor: 'transparent',
+    borderColor: "rgba(255, 120, 0, 0.95)",
+    backgroundColor: "transparent",
   },
   nextZoneIndicator: {
-    position: 'absolute',
+    position: "absolute",
     borderWidth: 2,
-    borderColor: 'rgba(255, 200, 100, 0.5)',
-    borderStyle: 'dashed',
-    backgroundColor: 'transparent',
+    borderColor: "rgba(255, 200, 100, 0.5)",
+    borderStyle: "dashed",
+    backgroundColor: "transparent",
   },
   crater: {
-    position: 'absolute',
-    backgroundColor: 'rgba(255, 80, 0, 0.6)',
+    position: "absolute",
+    backgroundColor: "rgba(255, 80, 0, 0.6)",
     borderWidth: 2,
-    borderColor: 'rgba(255, 200, 0, 0.8)',
+    borderColor: "rgba(255, 200, 0, 0.8)",
   },
 });

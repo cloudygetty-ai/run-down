@@ -1,1 +1,1 @@
-export * from './CollisionDetector';
+export * from "./CollisionDetector";

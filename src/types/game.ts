@@ -5,33 +5,38 @@ export type Vector2 = {
   y: number;
 };
 
-export type WeaponType = 'assault_rifle' | 'shotgun' | 'sniper' | 'smg' | 'pickaxe';
+export type WeaponType =
+  | "assault_rifle"
+  | "shotgun"
+  | "sniper"
+  | "smg"
+  | "pickaxe";
 
-export type Rarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+export type Rarity = "common" | "uncommon" | "rare" | "epic" | "legendary";
 
 export type Weapon = {
   id: string;
   type: WeaponType;
   rarity: Rarity;
   damage: number;
-  fireRate: number;       // shots per second
+  fireRate: number; // shots per second
   magazineSize: number;
   currentAmmo: number;
-  range: number;          // max effective range in game units
-  reloadTime: number;     // ms
+  range: number; // max effective range in game units
+  reloadTime: number; // ms
   isReloading: boolean;
 };
 
-export type BuildingMaterial = 'wood' | 'stone' | 'metal';
+export type BuildingMaterial = "wood" | "stone" | "metal";
 
-export type BuildPieceType = 'wall' | 'floor' | 'ramp';
+export type BuildPieceType = "wall" | "floor" | "ramp";
 
 export type BuildPiece = {
   id: string;
   type: BuildPieceType;
   material: BuildingMaterial;
   position: Vector2;
-  rotation: number;       // degrees: 0, 90, 180, 270
+  rotation: number; // degrees: 0, 90, 180, 270
   health: number;
   maxHealth: number;
   ownerId: string;
@@ -47,7 +52,7 @@ export type LootDrop = {
   health: number;
 };
 
-export type PlayerStatus = 'alive' | 'knocked' | 'eliminated';
+export type PlayerStatus = "alive" | "knocked" | "eliminated";
 
 export type Player = {
   id: string;
@@ -55,7 +60,7 @@ export type Player = {
   isHuman: boolean;
   position: Vector2;
   velocity: Vector2;
-  rotation: number;       // facing direction in degrees
+  rotation: number; // facing direction in degrees
   health: number;
   maxHealth: number;
   shield: number;
@@ -75,18 +80,18 @@ export type MeteorImpact = {
   id: string;
   position: Vector2;
   blastRadius: number;
-  age: number;     // ms since impact — used to drive the visual animation
-  maxAge: number;  // ms before the crater fades out
+  age: number; // ms since impact — used to drive the visual animation
+  maxAge: number; // ms before the crater fades out
 };
 
 export type BombardmentPhase = {
-  phase: number;           // 1-based index
+  phase: number; // 1-based index
   shelterCenter: Vector2;
   shelterRadius: number;
-  impactDamage: number;    // hp per meteor strike to players in blast radius
-  impactInterval: number;  // ms between meteor strikes outside the shelter zone
-  shrinkDuration: number;  // ms to shrink to next phase
-  waitDuration: number;    // ms to wait before next shrink
+  impactDamage: number; // hp per meteor strike to players in blast radius
+  impactInterval: number; // ms between meteor strikes outside the shelter zone
+  shrinkDuration: number; // ms to shrink to next phase
+  waitDuration: number; // ms to wait before next shrink
 };
 
 // The meteor shower that closes in on players throughout the match.
@@ -98,15 +103,15 @@ export type Bombardment = {
   nextShelterCenter: Vector2;
   nextShelterRadius: number;
   isShrinking: boolean;
-  shrinkProgress: number;   // 0.0 → 1.0
+  shrinkProgress: number; // 0.0 → 1.0
   impactDamage: number;
-  impactInterval: number;   // ms between meteor strikes
+  impactInterval: number; // ms between meteor strikes
   timeUntilNextImpact: number;
   timeUntilNextPhase: number;
   activeImpacts: MeteorImpact[];
 };
 
-export type GamePhase = 'lobby' | 'dropping' | 'playing' | 'game_over';
+export type GamePhase = "lobby" | "dropping" | "playing" | "game_over";
 
 export type GameResult = {
   placement: number;
@@ -116,7 +121,7 @@ export type GameResult = {
 };
 
 export type MapTile = {
-  type: 'ground' | 'water' | 'mountain' | 'building_floor';
+  type: "ground" | "water" | "mountain" | "building_floor";
   elevation: number;
   hasLoot: boolean;
 };
@@ -130,7 +135,7 @@ export type GameState = {
   mapWidth: number;
   mapHeight: number;
   tickCount: number;
-  startTime: number;    // unix ms
+  startTime: number; // unix ms
   result: GameResult | null;
   // Derived: how many alive players remain
   alivePlayers: number;

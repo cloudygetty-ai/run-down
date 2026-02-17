@@ -2,797 +2,1065 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Run Down — Browser Demo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>RUN DOWN — A HERALD EVENT</title>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: #0a0a1a; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: 'Courier New', monospace; overflow: hidden; }
-  #lobby, #gameover { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
-  #game { display: none; position: relative; }
-  canvas { display: block; border: 2px solid #333; }
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'Courier New',monospace}
 
-  h1 { color: #ffcc00; font-size: 48px; letter-spacing: 6px; text-shadow: 0 0 30px rgba(255,200,0,0.6); }
-  .subtitle { color: #888; font-size: 14px; }
-  .stats { display: flex; gap: 20px; }
-  .stat { background: rgba(255,255,255,0.05); border: 1px solid #333; border-radius: 8px; padding: 14px 22px; text-align: center; }
-  .stat-val { color: #fff; font-size: 28px; font-weight: bold; }
-  .stat-lbl { color: #666; font-size: 11px; margin-top: 2px; }
-  .instructions { background: rgba(255,255,255,0.04); border: 1px solid #222; border-radius: 10px; padding: 18px 24px; max-width: 460px; }
-  .instructions h3 { color: #fff; margin-bottom: 10px; font-size: 13px; }
-  .instructions p { color: #bbb; font-size: 12px; line-height: 22px; }
-  #playBtn, #againBtn { background: #ffcc00; color: #000; border: none; padding: 16px 48px; font-size: 18px; font-weight: bold; letter-spacing: 3px; border-radius: 10px; cursor: pointer; transition: transform 0.1s; }
-  #playBtn:hover, #againBtn:hover { transform: scale(1.04); }
+/* ── Screens ─────────────────────────── */
+.screen{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0}
+.screen.hidden{display:none!important}
 
-  #hud { position: absolute; top: 0; left: 0; right: 0; pointer-events: none; }
-  #topbar { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; }
-  .chip { background: rgba(0,0,0,0.65); border-radius: 12px; padding: 5px 12px; font-size: 13px; font-weight: bold; }
-  #meteorChip { background: rgba(120,40,0,0.8); transition: background 0.3s; }
-  #meteorChip.closing { background: rgba(200,80,0,0.9); }
-  #meteorChip.incoming { background: rgba(220,0,0,0.95); animation: pulse 0.4s infinite alternate; }
-  @keyframes pulse { from { opacity: 1; } to { opacity: 0.6; } }
-  #aliveChip { color: #fff; }
-  #killsChip  { color: #ffcc00; }
-  #meteorText { color: #fff; }
+/* ── Story Screen ────────────────────── */
+#storyScreen{background:#000;padding:40px;gap:28px}
+.story-eyebrow{color:#ff3300;font-size:11px;letter-spacing:6px;text-transform:uppercase}
+.story-title{color:#fff;font-size:52px;letter-spacing:8px;text-shadow:0 0 60px rgba(255,50,0,.8)}
+.story-sub{color:#ff3300;font-size:13px;letter-spacing:3px}
+.story-body{max-width:540px;color:#bbb;font-size:13px;line-height:26px;border-left:2px solid #ff3300;padding-left:20px;margin-top:8px}
+.story-body span{color:#fff;font-weight:bold}
+.story-body em{color:#ff6633;font-style:normal}
+.divider{width:160px;height:1px;background:linear-gradient(90deg,transparent,#ff3300,transparent)}
+.primary-btn{
+  background:linear-gradient(135deg,#cc2200,#ff4400);
+  color:#fff;border:none;padding:16px 56px;font-size:16px;
+  font-weight:bold;letter-spacing:4px;border-radius:4px;cursor:pointer;
+  box-shadow:0 0 40px rgba(255,60,0,.5);transition:all .15s;margin-top:8px;
+}
+.primary-btn:hover{transform:scale(1.04);box-shadow:0 0 60px rgba(255,80,0,.8)}
+.ghost-btn{
+  background:transparent;color:#666;border:1px solid #333;
+  padding:10px 32px;font-size:12px;letter-spacing:3px;border-radius:4px;cursor:pointer;
+  transition:all .15s;
+}
+.ghost-btn:hover{color:#fff;border-color:#666}
 
-  #bottombar { position: absolute; bottom: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: flex-end; padding: 14px; }
-  #healthblock { display: flex; flex-direction: column; gap: 5px; min-width: 200px; }
-  .barrow { display: flex; align-items: center; gap: 6px; }
-  .barlabel { color: #fff; font-size: 11px; font-weight: bold; width: 22px; }
-  .barbg { flex: 1; height: 12px; background: rgba(0,0,0,0.5); border-radius: 6px; overflow: hidden; }
-  .barfill { height: 100%; border-radius: 6px; transition: width 0.15s; }
-  #hpfill   { background: #44ff44; }
-  #shfill   { background: #44aaff; }
-  .barval  { color: #fff; font-size: 11px; width: 24px; text-align: right; }
-  #mats { display: flex; gap: 10px; margin-top: 4px; }
-  #mats span { color: #ccaa44; font-size: 11px; font-weight: bold; }
+/* ── Lobby Screen ────────────────────── */
+#lobbyScreen{background:radial-gradient(ellipse at center,#0d0500 0%,#000 70%);gap:22px}
+.lobby-title{color:#ffcc00;font-size:56px;letter-spacing:10px;text-shadow:0 0 80px rgba(255,200,0,.6),0 0 160px rgba(255,100,0,.3)}
+.lobby-tagline{color:#ff6600;font-size:11px;letter-spacing:5px}
+.herald-banner{
+  background:rgba(255,30,0,.08);border:1px solid rgba(255,30,0,.3);
+  border-radius:6px;padding:12px 28px;max-width:500px;text-align:center;
+  color:#ff5500;font-size:12px;letter-spacing:1px;line-height:22px;
+}
+.stat-row{display:flex;gap:16px}
+.stat-box{
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);
+  border-radius:8px;padding:16px 24px;text-align:center;min-width:100px;
+}
+.stat-val{color:#fff;font-size:30px;font-weight:bold}
+.stat-lbl{color:#555;font-size:10px;margin-top:4px;letter-spacing:2px}
+.controls-box{
+  background:rgba(0,0,0,.4);border:1px solid #1a1a1a;border-radius:8px;
+  padding:16px 24px;max-width:440px;
+}
+.controls-box h3{color:#666;font-size:10px;letter-spacing:3px;margin-bottom:10px}
+.key-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #111}
+.key-row:last-child{border-bottom:none}
+.key-lbl{color:#555;font-size:11px}
+.key-val{color:#888;font-size:11px}
+kbd{background:#1a1a1a;border:1px solid #333;border-radius:3px;padding:1px 5px;color:#aaa;font-size:10px}
 
-  #weaponbar { display: flex; gap: 8px; position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); }
-  .wslot { width: 64px; height: 64px; background: rgba(0,0,0,0.55); border: 2px solid rgba(255,255,255,0.2); border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: border-color 0.1s; }
-  .wslot.active { border-color: #ffcc00; background: rgba(80,60,0,0.7); }
-  .wslot .wname { color: #fff; font-size: 14px; font-weight: bold; }
-  .wslot .wammo { color: #aaa; font-size: 9px; margin-top: 2px; }
+/* ── Game Screen ─────────────────────── */
+#gameScreen{background:#000}
+#canvas{display:block}
 
-  #actionbtns { display: flex; gap: 10px; align-items: flex-end; pointer-events: all; }
-  .abtn { border: none; font-weight: bold; font-size: 13px; color: #fff; cursor: pointer; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: transform 0.1s; letter-spacing: 1px; }
-  .abtn:hover { transform: scale(1.08); }
-  #buildBtn  { width: 64px; height: 64px; background: rgba(100,60,0,0.8); border: 2px solid #aa6600; }
-  #buildBtn.active { background: rgba(200,120,0,0.95); border-color: #ffaa00; }
-  #reloadBtn { width: 64px; height: 64px; background: rgba(0,80,0,0.8); border: 2px solid #00aa00; }
-  #fireBtn   { width: 88px; height: 88px; background: rgba(180,0,0,0.85); border: 3px solid #ff4444; font-size: 16px; }
+/* ── HUD ─────────────────────────────── */
+#hud{position:absolute;inset:0;pointer-events:none}
 
-  #gameoverPanel { display: none; flex-direction: column; align-items: center; gap: 14px; }
-  #gameoverPanel h2 { font-size: 36px; letter-spacing: 4px; }
-  #gameoverPanel.win h2  { color: #ffcc00; }
-  #gameoverPanel.loss h2 { color: #ff4444; }
+#topBar{
+  position:absolute;top:0;left:0;right:0;
+  display:flex;justify-content:space-between;align-items:flex-start;
+  padding:14px 16px;
+}
+.chip{
+  background:rgba(0,0,0,.72);border:1px solid rgba(255,255,255,.08);
+  backdrop-filter:blur(8px);border-radius:20px;padding:6px 16px;font-size:13px;font-weight:bold;
+}
+#aliveChip{color:#fff}
+#killsChip{color:#ffcc00}
+#zoneChip{transition:background .4s,border-color .4s}
+#zoneChip.safe{background:rgba(0,0,0,.72);border-color:rgba(255,255,255,.08);color:#aaa}
+#zoneChip.closing{background:rgba(160,60,0,.8);border-color:rgba(255,120,0,.5);color:#ffaa44}
+#zoneChip.incoming{background:rgba(200,0,0,.9);border-color:rgba(255,50,50,.8);color:#fff;animation:pulse .35s infinite alternate}
+@keyframes pulse{from{opacity:1}to{opacity:.55}}
 
-  #controls-hint { color: #555; font-size: 11px; margin-top: 6px; }
+#healdMsg{
+  position:absolute;top:60px;left:50%;transform:translateX(-50%);
+  color:#ff4400;font-size:11px;letter-spacing:3px;text-align:center;
+  text-shadow:0 0 20px rgba(255,60,0,.8);opacity:0;transition:opacity .5s;
+  pointer-events:none;white-space:nowrap;
+}
+
+#bottomBar{position:absolute;bottom:0;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-end;padding:16px}
+
+#healthBlock{display:flex;flex-direction:column;gap:6px;min-width:200px}
+.bar-row{display:flex;align-items:center;gap:8px}
+.bar-lbl{color:#aaa;font-size:10px;letter-spacing:2px;width:20px}
+.bar-bg{flex:1;height:10px;background:rgba(0,0,0,.6);border-radius:5px;overflow:hidden;border:1px solid rgba(255,255,255,.06)}
+.bar-fill{height:100%;border-radius:5px;transition:width .12s}
+#hpFill{background:linear-gradient(90deg,#22cc22,#66ff66)}
+#hpFill.low{background:linear-gradient(90deg,#cc2200,#ff4444)}
+#shFill{background:linear-gradient(90deg,#0066cc,#44aaff)}
+.bar-val{color:#888;font-size:10px;width:26px;text-align:right}
+#matsRow{display:flex;gap:10px;margin-top:2px;padding-left:28px}
+.mat-lbl{font-size:10px;font-weight:bold;letter-spacing:1px}
+.mat-w{color:#c8a050}.mat-s{color:#999}.mat-m{color:#88aacc}
+
+#weaponBar{
+  position:absolute;bottom:16px;left:50%;transform:translateX(-50%);
+  display:flex;gap:10px;pointer-events:all;
+}
+.wslot{
+  width:68px;height:68px;
+  background:rgba(0,0,0,.65);border:2px solid rgba(255,255,255,.12);
+  border-radius:10px;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;cursor:pointer;transition:all .12s;
+  backdrop-filter:blur(6px);
+}
+.wslot.active{border-color:#ffcc00;background:rgba(60,45,0,.8);box-shadow:0 0 20px rgba(255,200,0,.3)}
+.wslot .wname{color:#fff;font-size:15px;font-weight:bold}
+.wslot .wammo{color:#666;font-size:9px;margin-top:2px;letter-spacing:1px}
+.wslot .wrar{font-size:7px;margin-top:1px;letter-spacing:1px}
+
+#actionBtns{display:flex;gap:12px;align-items:flex-end;pointer-events:all}
+.abtn{
+  border:none;font-weight:bold;color:#fff;cursor:pointer;
+  border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:11px;letter-spacing:1px;transition:transform .1s,box-shadow .1s;backdrop-filter:blur(4px);
+}
+.abtn:hover{transform:scale(1.08)}
+#buildBtn{
+  width:64px;height:64px;font-size:10px;
+  background:rgba(80,50,0,.8);border:2px solid #aa7700;
+  box-shadow:0 0 12px rgba(180,100,0,.3);
+}
+#buildBtn.active{background:rgba(200,130,0,.95);border-color:#ffcc00;box-shadow:0 0 24px rgba(255,180,0,.6)}
+#reloadBtn{
+  width:64px;height:64px;font-size:10px;
+  background:rgba(0,60,0,.8);border:2px solid #006600;
+  box-shadow:0 0 12px rgba(0,120,0,.3);
+}
+#fireBtn{
+  width:90px;height:90px;font-size:14px;letter-spacing:2px;
+  background:rgba(160,0,0,.9);border:3px solid #ff3300;
+  box-shadow:0 0 30px rgba(255,50,0,.5);
+}
+#fireBtn:hover{box-shadow:0 0 50px rgba(255,80,0,.8)}
+
+#lowHpVignette{
+  position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .3s;
+  background:radial-gradient(ellipse at center,transparent 40%,rgba(180,0,0,.55) 100%);
+}
+
+/* ── Game Over ───────────────────────── */
+#gameOverScreen{background:rgba(0,0,0,.96);gap:20px}
+#gameOverScreen.win #goTitle{color:#ffcc00;text-shadow:0 0 60px rgba(255,200,0,.8)}
+#gameOverScreen.loss #goTitle{color:#ff3300;text-shadow:0 0 60px rgba(255,50,0,.8)}
+#goTitle{font-size:42px;letter-spacing:6px}
+#goSub{color:#666;font-size:13px;letter-spacing:2px}
+#goMsg{
+  max-width:460px;color:#ff5500;font-size:12px;line-height:22px;
+  border-left:2px solid #ff3300;padding-left:16px;text-align:left;
+}
+#goStats{display:flex;gap:14px}
 </style>
 </head>
 <body>
 
-<!-- LOBBY -->
-<div id="lobby">
-  <h1>RUN DOWN</h1>
-  <p class="subtitle">Battle royale — last one standing</p>
-  <div class="stats">
-    <div class="stat"><div class="stat-val">100</div><div class="stat-lbl">Players</div></div>
-    <div class="stat"><div class="stat-val">200</div><div class="stat-lbl">Loot Drops</div></div>
-    <div class="stat"><div class="stat-val">6</div><div class="stat-lbl">Meteor Phases</div></div>
+<!-- ══ STORY SCREEN ══════════════════════════════════════ -->
+<div class="screen" id="storyScreen">
+  <p class="story-eyebrow">Classified — Herald Event 001</p>
+  <h1 class="story-title">RUN DOWN</h1>
+  <p class="story-sub">Year 2047 &nbsp;·&nbsp; Orbital bombardment active</p>
+  <div class="divider"></div>
+  <div class="story-body">
+    <p>In 2047, a rogue superintelligence called <span>HERALD</span> detonated 97 orbital weapons platforms
+    simultaneously—triggering a global <em>meteor bombardment</em> that has lasted 14 months.</p>
+    <br>
+    <p>HERALD has located the last 100 survivors. It is dropping them into a quarantine zone—not for rescue,
+    but as <span>a live broadcast to the 11 million people watching in the bunkers</span>.</p>
+    <br>
+    <p>Every few minutes, HERALD collapses the <em>EM shelter field</em>. The last survivor standing receives
+    coordinates for the final evacuation shuttle. There is <span>one seat</span>.</p>
+    <br>
+    <p style="color:#ff3300">HERALD says: <em>"Demonstrate your fitness. Or be removed from the gene pool."</em></p>
   </div>
-  <div class="instructions">
-    <h3>How to play</h3>
-    <p>
-      WASD / Arrow keys — move<br>
-      Mouse — aim direction<br>
-      Click / Space — shoot (auto-targets nearest enemy)<br>
-      B — toggle build mode (place wall in front of you)<br>
-      R — reload active weapon<br>
-      1 / 2 / 3 — switch weapon slot<br>
-      Stay inside the shelter zone — meteors strike outside!
-    </p>
+  <div style="display:flex;gap:12px;margin-top:12px">
+    <button class="primary-btn" id="storyPlayBtn">ENTER THE ZONE</button>
+    <button class="ghost-btn" id="skipStoryBtn">SKIP</button>
   </div>
-  <button id="playBtn">PLAY NOW</button>
-  <p id="controls-hint">Keyboard + mouse. Tested in Chrome/Firefox.</p>
 </div>
 
-<!-- GAME -->
-<div id="game">
+<!-- ══ LOBBY SCREEN ══════════════════════════════════════ -->
+<div class="screen hidden" id="lobbyScreen">
+  <p class="lobby-tagline">Herald Event 001 — Live Broadcast</p>
+  <h1 class="lobby-title">RUN DOWN</h1>
+  <div class="herald-banner">
+    ⚠ HERALD BROADCAST ACTIVE ⚠<br>
+    "Survivors located. Commencing targeted bombardment in T-minus 120 seconds.<br>
+    Shelter zones will collapse every 90 seconds. Good luck. You will need it."
+  </div>
+  <div class="stat-row">
+    <div class="stat-box"><div class="stat-val">100</div><div class="stat-lbl">SURVIVORS</div></div>
+    <div class="stat-box"><div class="stat-val">200</div><div class="stat-lbl">LOOT DROPS</div></div>
+    <div class="stat-box"><div class="stat-val">6</div><div class="stat-lbl">PHASES</div></div>
+    <div class="stat-box"><div class="stat-val">1</div><div class="stat-lbl">SEAT LEFT</div></div>
+  </div>
+  <div class="controls-box">
+    <h3>CONTROLS</h3>
+    <div class="key-row"><span class="key-lbl">Move</span><span class="key-val"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or Arrow keys</span></div>
+    <div class="key-row"><span class="key-lbl">Shoot / Place</span><span class="key-val"><kbd>Click</kbd> or <kbd>Space</kbd></span></div>
+    <div class="key-row"><span class="key-lbl">Reload</span><span class="key-val"><kbd>R</kbd></span></div>
+    <div class="key-row"><span class="key-lbl">Build mode</span><span class="key-val"><kbd>B</kbd></span></div>
+    <div class="key-row"><span class="key-lbl">Switch weapon</span><span class="key-val"><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></span></div>
+  </div>
+  <button class="primary-btn" id="lobbyPlayBtn">DROP IN</button>
+</div>
+
+<!-- ══ GAME SCREEN ═══════════════════════════════════════ -->
+<div class="screen hidden" id="gameScreen">
   <canvas id="canvas"></canvas>
   <div id="hud">
-    <div id="topbar">
+    <div id="topBar">
       <div class="chip" id="aliveChip">100 alive</div>
-      <div class="chip" id="meteorChip"><span id="meteorText">Zone: 120s</span></div>
+      <div class="chip safe" id="zoneChip">Zone: 120s</div>
       <div class="chip" id="killsChip">0 kills</div>
     </div>
-    <div id="bottombar">
-      <div id="healthblock">
-        <div class="barrow">
-          <span class="barlabel">SH</span>
-          <div class="barbg"><div class="barfill" id="shfill" style="width:0%"></div></div>
-          <span class="barval" id="shval">0</span>
+    <div id="healdMsg"></div>
+    <div id="bottomBar">
+      <div id="healthBlock">
+        <div class="bar-row">
+          <span class="bar-lbl">SH</span>
+          <div class="bar-bg"><div class="bar-fill" id="shFill" style="width:0%"></div></div>
+          <span class="bar-val" id="shVal">0</span>
         </div>
-        <div class="barrow">
-          <span class="barlabel">HP</span>
-          <div class="barbg"><div class="barfill" id="hpfill" style="width:100%"></div></div>
-          <span class="barval" id="hpval">100</span>
+        <div class="bar-row">
+          <span class="bar-lbl">HP</span>
+          <div class="bar-bg"><div class="bar-fill" id="hpFill" style="width:100%"></div></div>
+          <span class="bar-val" id="hpVal">100</span>
         </div>
-        <div id="mats"><span id="matW">W:100</span><span id="matS">S:50</span><span id="matM">M:25</span></div>
+        <div id="matsRow">
+          <span class="mat-lbl mat-w" id="matW">W 100</span>
+          <span class="mat-lbl mat-s" id="matS">S 50</span>
+          <span class="mat-lbl mat-m" id="matM">M 25</span>
+        </div>
       </div>
-      <div id="weaponbar">
-        <div class="wslot active" id="ws0"><span class="wname">AXE</span><span class="wammo">∞</span></div>
-        <div class="wslot" id="ws1"><span class="wname">—</span><span class="wammo"></span></div>
-        <div class="wslot" id="ws2"><span class="wname">—</span><span class="wammo"></span></div>
+      <div id="weaponBar">
+        <div class="wslot active" id="ws0"><span class="wname">AXE</span><span class="wammo">∞</span><span class="wrar" style="color:#aaa">COMMON</span></div>
+        <div class="wslot" id="ws1"><span class="wname">—</span><span class="wammo"></span><span class="wrar"></span></div>
+        <div class="wslot" id="ws2"><span class="wname">—</span><span class="wammo"></span><span class="wrar"></span></div>
       </div>
-      <div id="actionbtns">
-        <button id="buildBtn" class="abtn">BUILD</button>
-        <button id="reloadBtn" class="abtn">RELOAD</button>
-        <button id="fireBtn" class="abtn">FIRE</button>
+      <div id="actionBtns">
+        <button class="abtn" id="buildBtn">BUILD</button>
+        <button class="abtn" id="reloadBtn">RELOAD</button>
+        <button class="abtn" id="fireBtn">FIRE</button>
       </div>
     </div>
+    <div id="lowHpVignette"></div>
   </div>
 </div>
 
-<!-- GAME OVER -->
-<div id="gameoverPanel">
-  <h2 id="resultTitle">ELIMINATED</h2>
-  <p id="resultSub" style="color:#aaa; font-size:14px;"></p>
-  <div class="stats" id="resultStats"></div>
-  <button id="againBtn">PLAY AGAIN</button>
+<!-- ══ GAME OVER ═════════════════════════════════════════ -->
+<div class="screen hidden" id="gameOverScreen">
+  <p class="story-eyebrow" id="goEyebrow">Herald Broadcast Ended</p>
+  <h2 id="goTitle">ELIMINATED</h2>
+  <p id="goSub"></p>
+  <div id="goMsg"></div>
+  <div id="goStats"></div>
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button class="primary-btn" id="playAgainBtn">TRY AGAIN</button>
+    <button class="ghost-btn" id="goLobbyBtn">MAIN MENU</button>
+  </div>
 </div>
 
 <script>
-// ─── Constants ───────────────────────────────────────────────────────────────
-const MAP_W = 1600, MAP_H = 1600;
-const PLAYER_SPEED = 3.5;
-const BOT_COUNT = 99;
-const TICK_MS = 50;
-const METEOR_BLAST_R = 45;
-const IMPACT_MAX_AGE = 2500;
+// ═══════════════════════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════════════════════
+const MAP  = 1600;
+const TICK = 50;
+const DPR  = Math.min(window.devicePixelRatio || 1, 2);
 
 const PHASES = [
-  { shelterR: 800, impactDmg: 25, impactInterval: 8000,  shrinkDur: 60000, waitDur: 120000 },
-  { shelterR: 500, impactDmg: 35, impactInterval: 6000,  shrinkDur: 45000, waitDur: 75000  },
-  { shelterR: 300, impactDmg: 50, impactInterval: 4000,  shrinkDur: 30000, waitDur: 45000  },
-  { shelterR: 150, impactDmg: 65, impactInterval: 3000,  shrinkDur: 20000, waitDur: 25000  },
-  { shelterR:  50, impactDmg: 80, impactInterval: 2000,  shrinkDur: 15000, waitDur: 10000  },
-  { shelterR:  10, impactDmg:100, impactInterval: 1000,  shrinkDur: 10000, waitDur: 0       },
+  {r:800, dmg:25, interval:8000,  wait:120000, shrink:60000},
+  {r:500, dmg:35, interval:6000,  wait:75000,  shrink:45000},
+  {r:300, dmg:50, interval:4000,  wait:45000,  shrink:30000},
+  {r:150, dmg:65, interval:3000,  wait:25000,  shrink:20000},
+  {r:50,  dmg:80, interval:2000,  wait:10000,  shrink:15000},
+  {r:10,  dmg:100,interval:1000,  wait:0,      shrink:10000},
 ];
 
-const WEAPON_TEMPLATES = {
-  assault_rifle: { label:'AR',  dmg:35,  rate:5,   mag:30, range:400, reload:2000, color:'#44aaff' },
-  shotgun:       { label:'SG',  dmg:110, rate:0.8, mag:5,  range:120, reload:2500, color:'#ff8844' },
-  sniper:        { label:'SN',  dmg:100, rate:0.5, mag:4,  range:800, reload:3000, color:'#aa44ff' },
-  smg:           { label:'SM',  dmg:17,  rate:10,  mag:35, range:200, reload:1800, color:'#44ffaa' },
-  pickaxe:       { label:'AXE', dmg:20,  rate:0.9, mag:Infinity, range:60, reload:0, color:'#aaaaaa' },
+const RARITIES   = ['COMMON','COMMON','UNCOMMON','RARE','EPIC','LEGENDARY'];
+const RARITY_CLR = {COMMON:'#aaa',UNCOMMON:'#44cc44',RARE:'#4488ff',EPIC:'#aa44ff',LEGENDARY:'#ffaa00'};
+const RARITY_MUL = {COMMON:1,UNCOMMON:1.1,RARE:1.2,EPIC:1.35,LEGENDARY:1.5};
+const WEAPONS = {
+  assault_rifle:{label:'AR', dmg:35, rate:5,   mag:30, range:400, reload:2000, spread:12},
+  shotgun:      {label:'SG', dmg:110,rate:.8,  mag:5,  range:120, reload:2500, spread:35},
+  sniper:       {label:'SN', dmg:100,rate:.5,  mag:4,  range:800, reload:3000, spread:3},
+  smg:          {label:'SM', dmg:17, rate:10,  mag:35, range:200, reload:1800, spread:18},
+  pickaxe:      {label:'AXE',dmg:20, rate:.9,  mag:Infinity,range:60,reload:0,spread:0},
 };
-const WEAPON_TYPES = ['assault_rifle','shotgun','sniper','smg'];
-const RARITIES = ['common','common','uncommon','rare','epic','legendary'];
-const RARITY_COLOR = { common:'#aaa', uncommon:'#44cc44', rare:'#4488ff', epic:'#aa44ff', legendary:'#ffaa00' };
-const RARITY_MULT  = { common:1, uncommon:1.1, rare:1.2, epic:1.35, legendary:1.5 };
+const WTYPES = ['assault_rifle','shotgun','sniper','smg'];
 
-// ─── State ───────────────────────────────────────────────────────────────────
-let G; // game state
-let intervalId = null;
-let lastFire = 0;
-let buildMode = false;
-let reloading = false;
-let reloadTimer = null;
-let kills = 0;
-let startTime = 0;
+const HERALD_MSGS = [
+  'HERALD: "Fascinating. You are still alive."',
+  'HERALD: "The shelter field will collapse in 30 seconds."',
+  'HERALD: "Eliminate more. The bunkers are watching."',
+  'HERALD: "Meteor density increasing. Adapt or perish."',
+  'HERALD: "You are the most interesting specimen remaining."',
+  'HERALD: "Only the worthy will board the shuttle."',
+  'HERALD: "I can see your heart rate. It is elevated."',
+  'HERALD: "The bombardment is beautiful, is it not?"',
+];
 
+// ═══════════════════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════════════════
+const rnd  = (a,b) => a + Math.random()*(b-a);
+const rndI = (a,b) => Math.floor(rnd(a,b+1));
+const dist = (a,b) => Math.hypot(b.x-a.x, b.y-a.y);
+const clmp = (v,a,b) => Math.max(a,Math.min(b,v));
+const lerp = (a,b,t) => a+(b-a)*clmp(t,0,1);
+
+// ═══════════════════════════════════════════════════════════════════
+// CANVAS SETUP
+// ═══════════════════════════════════════════════════════════════════
+const canvas = document.getElementById('canvas');
+const ctx    = canvas.getContext('2d');
+let CW, CH;
+
+function resizeCanvas() {
+  CW = window.innerWidth;
+  CH = window.innerHeight;
+  canvas.style.width  = CW+'px';
+  canvas.style.height = CH+'px';
+  canvas.width  = CW * DPR;
+  canvas.height = CH * DPR;
+  ctx.scale(DPR, DPR);
+  buildTerrainCache();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// TERRAIN (pre-rendered offscreen at MAP resolution)
+// ═══════════════════════════════════════════════════════════════════
+let terrainCanvas, terrainCtx;
+function buildTerrainCache() {
+  terrainCanvas = document.createElement('canvas');
+  terrainCanvas.width  = MAP;
+  terrainCanvas.height = MAP;
+  terrainCtx = terrainCanvas.getContext('2d');
+  const tc = terrainCtx;
+
+  // Base grass gradient
+  const grad = tc.createRadialGradient(MAP/2,MAP/2,0,MAP/2,MAP/2,MAP*0.72);
+  grad.addColorStop(0,   '#4a8c3a');
+  grad.addColorStop(0.5, '#3d7830');
+  grad.addColorStop(1,   '#2d5c22');
+  tc.fillStyle = grad;
+  tc.fillRect(0,0,MAP,MAP);
+
+  // Noise patches — darker/lighter variation
+  for (let i = 0; i < 900; i++) {
+    const x = rnd(0,MAP), y = rnd(0,MAP), r = rnd(30,160);
+    const g2 = tc.createRadialGradient(x,y,0,x,y,r);
+    if (Math.random() > .5) {
+      g2.addColorStop(0,'rgba(20,40,10,.18)');
+    } else {
+      g2.addColorStop(0,'rgba(80,140,50,.14)');
+    }
+    g2.addColorStop(1,'rgba(0,0,0,0)');
+    tc.fillStyle = g2;
+    tc.beginPath(); tc.arc(x,y,r,0,Math.PI*2); tc.fill();
+  }
+
+  // Rocks
+  for (let i = 0; i < 180; i++) {
+    const x = rnd(20,MAP-20), y = rnd(20,MAP-20);
+    const r = rnd(6,22);
+    const g3 = tc.createRadialGradient(x-r*.2,y-r*.2,0,x,y,r);
+    g3.addColorStop(0,'#666'); g3.addColorStop(.6,'#444'); g3.addColorStop(1,'#2a2a2a');
+    tc.fillStyle = g3;
+    tc.beginPath(); tc.ellipse(x,y,r,r*.6,rnd(0,Math.PI),0,Math.PI*2); tc.fill();
+  }
+
+  // Cracked-earth detail lines
+  tc.strokeStyle = 'rgba(0,0,0,.06)';
+  tc.lineWidth = 1;
+  for (let i = 0; i < 300; i++) {
+    const x = rnd(0,MAP), y = rnd(0,MAP);
+    tc.beginPath(); tc.moveTo(x,y);
+    tc.lineTo(x+rnd(-80,80),y+rnd(-80,80)); tc.stroke();
+  }
+
+  // Scorched zones (pre-existing crater scars)
+  for (let i = 0; i < 30; i++) {
+    const x = rnd(50,MAP-50), y = rnd(50,MAP-50), r = rnd(25,80);
+    const g4 = tc.createRadialGradient(x,y,0,x,y,r);
+    g4.addColorStop(0,'rgba(20,10,0,.85)');
+    g4.addColorStop(.5,'rgba(40,20,5,.4)');
+    g4.addColorStop(1,'rgba(0,0,0,0)');
+    tc.fillStyle = g4;
+    tc.beginPath(); tc.arc(x,y,r,0,Math.PI*2); tc.fill();
+  }
+
+  // Border darkness
+  const border = tc.createRadialGradient(MAP/2,MAP/2,MAP*.35,MAP/2,MAP/2,MAP*.72);
+  border.addColorStop(0,'rgba(0,0,0,0)');
+  border.addColorStop(1,'rgba(0,0,0,.55)');
+  tc.fillStyle = border;
+  tc.fillRect(0,0,MAP,MAP);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// GAME STATE
+// ═══════════════════════════════════════════════════════════════════
+let G, tickId, kills, startMs, buildMode, reloading, reloadTimer, lastFire, shakeMs;
+let mouseWorld = {x:MAP/2,y:MAP/2};
 const keys = {};
-let mouseWorld = { x: 800, y: 800 };
-let canvasRect = null;
+let particles = [];   // {x,y,vx,vy,r,color,life,maxLife}
+let meteorTrails = []; // {x,y,tx,ty,progress,color}
+let heralatimer = null;
 
-function rand(a, b) { return a + Math.random() * (b - a); }
-function randInt(a, b) { return Math.floor(rand(a, b + 1)); }
-function dist(a, b) { const dx=b.x-a.x, dy=b.y-a.y; return Math.sqrt(dx*dx+dy*dy); }
-function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
-function lerp(a,b,t){ return a+(b-a)*clamp(t,0,1); }
+const HERALD_EVIL_MSGS_ON_KILL = [
+  '"Another one falls. Beautiful."',
+  '"The crowd in the bunkers is cheering."',
+  '"You are earning your seat on that shuttle."',
+  '"Calculated. Brutal. Exactly what I expected."',
+];
 
-function makeWeapon(type) {
-  const t = WEAPON_TEMPLATES[type];
-  const rar = RARITIES[randInt(0, RARITIES.length-1)];
-  const m = RARITY_MULT[rar];
-  return { type, label:t.label, dmg: Math.round(t.dmg*m), rate:t.rate, mag:t.mag, ammo:t.mag, range:t.range, reload:t.reload, color:t.color, rarity:rar, isReloading:false };
+function makeWeaponObj(type) {
+  const t = WEAPONS[type];
+  const rar = RARITIES[rndI(0,RARITIES.length-1)];
+  const m   = RARITY_MUL[rar];
+  return {type,label:t.label,dmg:Math.round(t.dmg*m),rate:t.rate,mag:t.mag,ammo:t.mag,
+          range:t.range,reload:t.reload,spread:t.spread,rarity:rar,reloading:false};
 }
 
-function makePlayer(id, isHuman, x, y) {
-  return {
-    id, isHuman,
-    x, y, rot: 0,
-    hp: 100, maxHp: 100, shield: 0, maxShield: 100,
-    alive: true,
-    weapons: [makeWeapon('pickaxe'), null, null],
-    slot: 0,
-    materials: { wood:100, stone:50, metal:25 },
-    kills: 0,
-    wanderTarget: null, wanderTimer: 0,
-    lastFireMs: 0,
-  };
+function makePlayer(id,isHuman,x,y){
+  return {id,isHuman,x,y,rot:0,hp:100,maxHp:100,sh:0,maxSh:100,alive:true,
+          weapons:[makeWeaponObj('pickaxe'),null,null],slot:0,
+          mats:{wood:100,stone:50,metal:25},kills:0,wTimer:0,wTarget:null,lastFire:0};
 }
 
-function scatterLoot(n) {
-  return Array.from({length:n}, (_,i) => ({
-    id:'loot'+i,
-    x: rand(50, MAP_W-50), y: rand(50, MAP_H-50),
-    weapon: makeWeapon(WEAPON_TYPES[randInt(0, WEAPON_TYPES.length-1)]),
-    shield: Math.random()>0.6 ? 50 : 0,
-    hp: Math.random()>0.7 ? 25 : 0,
-    wood: randInt(20,60), stone: randInt(10,30), metal: randInt(5,15),
+function scatter(n){
+  return Array.from({length:n},(_,i)=>({
+    id:'l'+i,x:rnd(60,MAP-60),y:rnd(60,MAP-60),
+    weapon:makeWeaponObj(WTYPES[rndI(0,WTYPES.length-1)]),
+    sh:Math.random()>.55?50:0, hp:Math.random()>.65?25:0,
+    wood:rndI(20,60),stone:rndI(10,30),metal:rndI(5,15),
   }));
 }
 
-function initGame() {
-  kills = 0; buildMode = false; reloading = false; lastFire = 0; startTime = Date.now();
-  if (reloadTimer) clearTimeout(reloadTimer);
+function initGame(){
+  kills=0; buildMode=false; reloading=false; lastFire=0; shakeMs=0;
+  particles=[]; meteorTrails=[];
+  if(reloadTimer) clearTimeout(reloadTimer);
+  startMs = Date.now();
 
-  const human = makePlayer('human', true, MAP_W/2, MAP_H/2);
-  const bots = Array.from({length:BOT_COUNT}, (_,i) =>
-    makePlayer('bot'+i, false, rand(100,MAP_W-100), rand(100,MAP_H-100))
-  );
-  // Give bots starting weapons
-  bots.forEach(b => {
-    b.weapons[1] = makeWeapon(WEAPON_TYPES[randInt(0,WEAPON_TYPES.length-1)]);
-    b.slot = 1;
-  });
-
-  const phase0 = PHASES[0];
+  const ph = PHASES[0];
   G = {
-    players: [human, ...bots],
-    loot: scatterLoot(200),
-    walls: [],
-    impacts: [],
-    bombardment: {
-      phase: 0,
-      cx: MAP_W/2, cy: MAP_H/2,
-      r: phase0.shelterR,
-      nextCx: MAP_W/2 + rand(-200,200), nextCy: MAP_H/2 + rand(-200,200),
-      nextR: PHASES[1].shelterR,
-      shrinking: false, shrinkProg: 0,
-      impactDmg: phase0.impactDmg,
-      impactInterval: phase0.impactInterval,
-      timeToImpact: phase0.impactInterval,
-      timeToPhase: phase0.waitDur,
-    },
-    phase: 'playing',
-    result: null,
+    players:[makePlayer('human',true,MAP/2,MAP/2),
+             ...Array.from({length:99},(_,i)=>{
+               const b = makePlayer('b'+i,false,rnd(80,MAP-80),rnd(80,MAP-80));
+               b.weapons[1] = makeWeaponObj(WTYPES[rndI(0,WTYPES.length-1)]);
+               b.slot = 1;
+               return b;
+             })],
+    loot: scatter(200),
+    walls:[],
+    impacts:[],
+    phase:0,
+    cx:MAP/2,cy:MAP/2,r:ph.r,
+    ncx:MAP/2+rnd(-200,200),ncy:MAP/2+rnd(-200,200),nr:PHASES[1].r,
+    shrinking:false,shrinkProg:0,
+    dmg:ph.dmg,interval:ph.interval,
+    impTimer:ph.interval,phaseTimer:ph.wait,
   };
+
+  scheduleHerald();
 }
 
-// ─── Bombardment tick ─────────────────────────────────────────────────────────
-function tickBombardment(deltaMs) {
-  const b = G.bombardment;
-  const newImpacts = [];
-
-  // Age impacts
-  G.impacts = G.impacts.map(i=>({...i, age:i.age+deltaMs})).filter(i=>i.age<IMPACT_MAX_AGE);
-
-  // Shrink progression
-  if (b.shrinking) {
-    const pd = PHASES[Math.min(b.phase, PHASES.length-1)];
-    b.shrinkProg = Math.min(1, b.shrinkProg + deltaMs / pd.shrinkDur);
-    b.cx = lerp(b.cx, b.nextCx, b.shrinkProg);  // WHY: we lerp from saved start — approximate for demo
-    b.cy = lerp(b.cy, b.nextCy, b.shrinkProg);
-    b.r  = lerp(b.r,  b.nextR,  b.shrinkProg);
-
-    if (b.shrinkProg >= 1) {
-      b.shrinking = false; b.shrinkProg = 0; b.phase++;
-      const nd = PHASES[Math.min(b.phase, PHASES.length-1)];
-      b.impactDmg = nd.impactDmg;
-      b.impactInterval = nd.impactInterval;
-      b.timeToPhase = nd.waitDur;
-      const nr = nd.shelterR;
-      const ang = rand(0, Math.PI*2);
-      b.nextCx = clamp(b.cx + Math.cos(ang)*rand(0, b.r-nr)*0.8, nr, MAP_W-nr);
-      b.nextCy = clamp(b.cy + Math.sin(ang)*rand(0, b.r-nr)*0.8, nr, MAP_H-nr);
-      b.nextR = nr;
-    }
-  } else {
-    b.timeToPhase -= deltaMs;
-    if (b.timeToPhase <= 0) { b.shrinking = true; b.shrinkProg = 0; }
+// ═══════════════════════════════════════════════════════════════════
+// PARTICLES
+// ═══════════════════════════════════════════════════════════════════
+function spawnExplosion(x,y,big){
+  const count = big ? 60 : 28;
+  for(let i=0;i<count;i++){
+    const ang = rnd(0,Math.PI*2), spd = rnd(big?2:1.5, big?9:5);
+    const clrs = ['#ff6600','#ff3300','#ffaa00','#ffffff','#ff8800'];
+    particles.push({
+      x,y,vx:Math.cos(ang)*spd,vy:Math.sin(ang)*spd,
+      r:rnd(big?2:1.5,big?6:3.5),
+      color:clrs[rndI(0,clrs.length-1)],
+      life:rnd(400,big?1400:800),maxLife:rnd(400,big?1400:800),
+    });
   }
-
-  // Spawn meteors
-  b.timeToImpact -= deltaMs;
-  while (b.timeToImpact <= 0) {
-    let ix, iy, tries = 0;
-    do {
-      ix = rand(0, MAP_W); iy = rand(0, MAP_H);
-      tries++;
-    } while (dist({x:ix,y:iy},{x:b.cx,y:b.cy}) <= b.r && tries < 20);
-    const impact = { id:'m'+Date.now()+Math.random(), x:ix, y:iy, r:METEOR_BLAST_R, age:0 };
-    newImpacts.push(impact);
-    G.impacts.push(impact);
-    b.timeToImpact += b.impactInterval;
-  }
-
-  // Apply meteor damage
-  if (newImpacts.length > 0) {
-    G.players.forEach(p => {
-      if (!p.alive) return;
-      newImpacts.forEach(impact => {
-        if (dist({x:p.x,y:p.y},{x:impact.x,y:impact.y}) <= impact.r) {
-          let dmg = b.impactDmg;
-          const abs = Math.min(p.shield, dmg);
-          p.shield -= abs; dmg -= abs;
-          p.hp = Math.max(0, p.hp - dmg);
-          if (p.hp === 0) p.alive = false;
-        }
-      });
+  // Smoke
+  for(let i=0;i<(big?20:8);i++){
+    const ang=rnd(0,Math.PI*2),spd=rnd(.3,1.8);
+    particles.push({
+      x:x+rnd(-15,15),y:y+rnd(-15,15),
+      vx:Math.cos(ang)*spd,vy:Math.sin(ang)*spd-.5,
+      r:rnd(8,big?28:18),color:'rgba(80,60,50,',isSmoke:true,
+      life:rnd(600,1600),maxLife:rnd(600,1600),
     });
   }
 }
 
-// ─── Bot tick ─────────────────────────────────────────────────────────────────
-function tickBots(deltaMs) {
-  const human = G.players[0];
-  const now = Date.now();
-  const b = G.bombardment;
+function spawnMeteorTrail(tx,ty){
+  // Meteor comes from a random off-screen direction above
+  const sx = tx + rnd(-300,300);
+  const sy = ty - rnd(400,800);
+  meteorTrails.push({sx,sy,tx,ty,prog:0,color:'#ff8800'});
+}
 
-  G.players.forEach(p => {
-    if (p.isHuman || !p.alive) return;
+function tickParticles(dt){
+  const keep=[];
+  for(const p of particles){
+    p.life-=dt; if(p.life<=0) continue;
+    p.x+=p.vx*(dt/16); p.y+=p.vy*(dt/16);
+    if(!p.isSmoke){p.vx*=.96;p.vy*=.96;p.vy+=.06*(dt/16);}
+    else{p.r+=.03*(dt/16);}
+    keep.push(p);
+  }
+  particles=keep;
+  meteorTrails=meteorTrails.map(m=>({...m,prog:m.prog+dt/500})).filter(m=>m.prog<1);
+}
 
-    // Priority 1: flee to shelter
-    if (dist({x:p.x,y:p.y},{x:b.cx,y:b.cy}) > b.r) {
-      moveToward(p, b.cx, b.cy, 2.2, deltaMs);
-      return;
+// ═══════════════════════════════════════════════════════════════════
+// BOMBARDMENT
+// ═══════════════════════════════════════════════════════════════════
+function tickZone(dt){
+  const b=G;
+  const newImpacts=[];
+
+  G.impacts=G.impacts.map(i=>({...i,age:i.age+dt})).filter(i=>i.age<2500);
+
+  if(b.shrinking){
+    const pd=PHASES[Math.min(b.phase,PHASES.length-1)];
+    b.shrinkProg=Math.min(1,b.shrinkProg+dt/pd.shrink);
+    b.cx=lerp(b.cx,b.ncx,b.shrinkProg);
+    b.cy=lerp(b.cy,b.ncy,b.shrinkProg);
+    b.r =lerp(b.r, b.nr, b.shrinkProg);
+    if(b.shrinkProg>=1){
+      b.shrinking=false;b.shrinkProg=0;b.phase++;
+      const nd=PHASES[Math.min(b.phase,PHASES.length-1)];
+      b.dmg=nd.dmg; b.interval=nd.interval; b.phaseTimer=nd.wait;
+      const ang=rnd(0,Math.PI*2);
+      b.ncx=clmp(b.cx+Math.cos(ang)*rnd(0,(b.r-nd.r)*.8),nd.r,MAP-nd.r);
+      b.ncy=clmp(b.cy+Math.sin(ang)*rnd(0,(b.r-nd.r)*.8),nd.r,MAP-nd.r);
+      b.nr=nd.r;
+    }
+  } else {
+    b.phaseTimer-=dt;
+    if(b.phaseTimer<=0){b.shrinking=true;b.shrinkProg=0;}
+  }
+
+  b.impTimer-=dt;
+  while(b.impTimer<=0){
+    let ix,iy,t=0;
+    do{ix=rnd(0,MAP);iy=rnd(0,MAP);t++;}
+    while(Math.hypot(ix-b.cx,iy-b.cy)<=b.r&&t<20);
+    const imp={id:'m'+Date.now()+Math.random(),x:ix,y:iy,r:45,age:0};
+    newImpacts.push(imp);
+    G.impacts.push(imp);
+    spawnMeteorTrail(ix,iy);
+    b.impTimer+=b.interval;
+  }
+
+  // Apply damage
+  if(newImpacts.length){
+    G.players.forEach(p=>{
+      if(!p.alive) return;
+      newImpacts.forEach(imp=>{
+        if(Math.hypot(p.x-imp.x,p.y-imp.y)<=imp.r+14){
+          let d=b.dmg, abs=Math.min(p.sh,d); p.sh-=abs; d-=abs;
+          p.hp=Math.max(0,p.hp-d);
+          if(p.hp===0) p.alive=false;
+          spawnExplosion(imp.x,imp.y,true);
+          if(p.isHuman) shakeMs=400;
+        }
+      });
+    });
+    newImpacts.forEach(imp=>spawnExplosion(imp.x,imp.y,false));
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// BOTS
+// ═══════════════════════════════════════════════════════════════════
+function tickBots(dt){
+  const now=Date.now();
+  G.players.forEach(p=>{
+    if(p.isHuman||!p.alive) return;
+
+    // Priority 1: flee outside shelter
+    if(Math.hypot(p.x-G.cx,p.y-G.cy)>G.r){
+      moveTo(p,G.cx,G.cy,2.2,dt); return;
     }
 
-    // Priority 2: attack if enemy nearby
-    const enemies = G.players.filter(e => e.id !== p.id && e.alive);
-    let nearest = null, nearDist = Infinity;
-    enemies.forEach(e => { const d=dist({x:p.x,y:p.y},{x:e.x,y:e.y}); if(d<nearDist){nearDist=d;nearest=e;} });
-
-    if (nearest && nearDist < 350) {
-      moveToward(p, nearest.x, nearest.y, 2, deltaMs);
-      const w = p.weapons[p.slot];
-      if (w && w.ammo > 0 && !w.isReloading) {
-        const minInterval = 1000 / w.rate;
-        if (now - p.lastFireMs > minInterval) {
-          p.lastFireMs = now;
-          const spread = 20;
-          fireShot(p, { x: nearest.x + rand(-spread,spread), y: nearest.y + rand(-spread,spread) });
-        }
+    // Priority 2: attack nearest
+    let near=null,nd=Infinity;
+    G.players.forEach(e=>{if(e.id!==p.id&&e.alive){const d=Math.hypot(e.x-p.x,e.y-p.y);if(d<nd){nd=d;near=e;}}});
+    if(near&&nd<350){
+      moveTo(p,near.x,near.y,2,dt);
+      const w=p.weapons[p.slot];
+      if(w&&w.ammo>0&&!w.reloading&&now-p.lastFire>1000/w.rate){
+        p.lastFire=now;
+        shoot(p,{x:near.x+rnd(-20,20),y:near.y+rnd(-20,20)});
       }
       return;
     }
 
-    // Priority 3: pick up loot
-    const nearLoot = G.loot.find(l => dist({x:p.x,y:p.y},{x:l.x,y:l.y}) < 60);
-    if (nearLoot) { pickUpLoot(p, nearLoot); return; }
+    // Priority 3: loot
+    const nl=G.loot.find(l=>Math.hypot(l.x-p.x,l.y-p.y)<60);
+    if(nl){pickup(p,nl);return;}
 
     // Priority 4: wander
-    p.wanderTimer -= deltaMs;
-    if (!p.wanderTarget || p.wanderTimer <= 0) {
-      p.wanderTarget = { x: clamp(p.x+rand(-200,200),50,MAP_W-50), y: clamp(p.y+rand(-200,200),50,MAP_H-50) };
-      p.wanderTimer = rand(2000, 5000);
+    p.wTimer-=dt;
+    if(!p.wTarget||p.wTimer<=0){
+      p.wTarget={x:clmp(p.x+rnd(-200,200),50,MAP-50),y:clmp(p.y+rnd(-200,200),50,MAP-50)};
+      p.wTimer=rnd(2000,5000);
     }
-    moveToward(p, p.wanderTarget.x, p.wanderTarget.y, 2, deltaMs);
+    moveTo(p,p.wTarget.x,p.wTarget.y,2,dt);
   });
 }
 
-function moveToward(p, tx, ty, speed, deltaMs) {
-  const dx = tx-p.x, dy = ty-p.y;
-  const d = Math.sqrt(dx*dx+dy*dy);
-  if (d < 2) return;
-  const s = speed * (deltaMs/TICK_MS);
-  p.x = clamp(p.x + (dx/d)*s, 0, MAP_W);
-  p.y = clamp(p.y + (dy/d)*s, 0, MAP_H);
-  p.rot = Math.atan2(dy, dx) * 180/Math.PI;
+function moveTo(p,tx,ty,spd,dt){
+  const dx=tx-p.x,dy=ty-p.y,d=Math.hypot(dx,dy);
+  if(d<2) return;
+  const s=spd*(dt/TICK);
+  p.x=clmp(p.x+dx/d*s,0,MAP); p.y=clmp(p.y+dy/d*s,0,MAP);
+  p.rot=Math.atan2(dy,dx)*180/Math.PI;
 }
 
-function pickUpLoot(p, loot) {
-  if (loot.weapon) {
-    const empty = p.weapons.findIndex((w,i) => i>0 && !w);
-    if (empty !== -1) { p.weapons[empty] = loot.weapon; }
+function pickup(p,loot){
+  if(loot.weapon){
+    const slot=p.weapons.findIndex((w,i)=>i>0&&!w);
+    if(slot!==-1) p.weapons[slot]=loot.weapon;
   }
-  p.shield = Math.min(p.maxShield, p.shield + loot.shield);
-  p.hp = Math.min(p.maxHp, p.hp + loot.hp);
-  p.materials.wood  += loot.wood;
-  p.materials.stone += loot.stone;
-  p.materials.metal += loot.metal;
-  G.loot = G.loot.filter(l => l.id !== loot.id);
+  p.sh=Math.min(p.maxSh,p.sh+loot.sh);
+  p.hp=Math.min(p.maxHp,p.hp+loot.hp);
+  p.mats.wood+=loot.wood; p.mats.stone+=loot.stone; p.mats.metal+=loot.metal;
+  G.loot=G.loot.filter(l=>l.id!==loot.id);
 }
 
-// ─── Combat ───────────────────────────────────────────────────────────────────
-function fireShot(shooter, targetPos) {
-  const w = shooter.weapons[shooter.slot];
-  if (!w || w.ammo <= 0 || w.isReloading) return;
+function shoot(shooter,target){
+  const w=shooter.weapons[shooter.slot];
+  if(!w||w.ammo<=0||w.reloading) return;
   w.ammo--;
-
-  G.players.forEach(target => {
-    if (target.id === shooter.id || !target.alive) return;
-    // Line-point distance check
-    const ox=shooter.x, oy=shooter.y, tx=targetPos.x, ty=targetPos.y;
-    const dx=tx-ox, dy=ty-oy, lenSq=dx*dx+dy*dy;
-    if (lenSq===0) return;
-    const t = clamp(((target.x-ox)*dx+(target.y-oy)*dy)/lenSq, 0, 1);
-    const cx=ox+t*dx, cy=oy+t*dy;
-    if (dist({x:cx,y:cy},{x:target.x,y:target.y}) > 18) return;
-
-    let dmg = w.dmg;
-    const abs = Math.min(target.shield, dmg);
-    target.shield -= abs; dmg -= abs;
-    target.hp = Math.max(0, target.hp - dmg);
-    if (target.hp === 0) {
-      target.alive = false;
-      if (shooter.isHuman) { kills++; }
-      else { shooter.kills++; }
+  G.players.forEach(tgt=>{
+    if(tgt.id===shooter.id||!tgt.alive) return;
+    const ox=shooter.x,oy=shooter.y,tx2=target.x,ty2=target.y;
+    const dx=tx2-ox,dy=ty2-oy,lenSq=dx*dx+dy*dy;
+    if(lenSq===0) return;
+    const t=clmp(((tgt.x-ox)*dx+(tgt.y-oy)*dy)/lenSq,0,1);
+    const cx=ox+t*dx,cy=oy+t*dy;
+    if(Math.hypot(cx-tgt.x,cy-tgt.y)>18) return;
+    let dmg=w.dmg,abs=Math.min(tgt.sh,dmg); tgt.sh-=abs; dmg-=abs;
+    tgt.hp=Math.max(0,tgt.hp-dmg);
+    spawnExplosion(tgt.x,tgt.y,false);
+    if(tgt.hp===0){
+      tgt.alive=false;
+      if(shooter.isHuman){
+        kills++;
+        showHerald(HERALD_EVIL_MSGS_ON_KILL[kills%HERALD_EVIL_MSGS_ON_KILL.length]);
+      }
     }
   });
 }
 
-// ─── Main tick ────────────────────────────────────────────────────────────────
-function gameTick() {
-  if (G.phase !== 'playing') return;
+// ═══════════════════════════════════════════════════════════════════
+// HUMAN FIRE
+// ═══════════════════════════════════════════════════════════════════
+function doFire(){
+  const h=G.players[0];
+  if(!h||!h.alive) return;
+  if(buildMode){
+    const ang=h.rot*Math.PI/180;
+    G.walls.push({x:h.x+Math.cos(ang)*65,y:h.y+Math.sin(ang)*65,mat:'wood'});
+    return;
+  }
+  const w=h.weapons[h.slot];
+  if(!w||w.reloading||w.ammo<=0) return;
+  const now=Date.now(), minInt=1000/w.rate;
+  if(now-lastFire<minInt) return;
+  lastFire=now;
+  const enemies=G.players.filter(p=>!p.isHuman&&p.alive);
+  let near=null,nd=Infinity;
+  enemies.forEach(e=>{const d=Math.hypot(e.x-h.x,e.y-h.y);if(d<nd&&d<w.range+60){nd=d;near=e;}});
+  const target=near
+    ?{x:near.x+rnd(-w.spread,w.spread),y:near.y+rnd(-w.spread,w.spread)}
+    :{x:h.x+Math.cos(h.rot*Math.PI/180)*w.range,y:h.y+Math.sin(h.rot*Math.PI/180)*w.range};
+  shoot(h,target);
+}
 
-  const human = G.players[0];
-  if (!human.alive) { endGame(); return; }
+function doReload(){
+  const h=G.players[0];
+  if(!h||reloading) return;
+  const w=h.weapons[h.slot];
+  if(!w||w.type==='pickaxe'||w.ammo===w.mag||w.reloading) return;
+  reloading=true; w.reloading=true;
+  reloadTimer=setTimeout(()=>{w.ammo=w.mag;w.reloading=false;reloading=false;},w.reload);
+}
 
-  // Move human
-  let dx = 0, dy = 0;
-  if (keys['ArrowUp']    || keys['w'] || keys['W']) dy = -1;
-  if (keys['ArrowDown']  || keys['s'] || keys['S']) dy =  1;
-  if (keys['ArrowLeft']  || keys['a'] || keys['A']) dx = -1;
-  if (keys['ArrowRight'] || keys['d'] || keys['D']) dx =  1;
-  if (dx !== 0 && dy !== 0) { dx *= 0.707; dy *= 0.707; }
-  human.x = clamp(human.x + dx * PLAYER_SPEED, 0, MAP_W);
-  human.y = clamp(human.y + dy * PLAYER_SPEED, 0, MAP_H);
-  const mx = mouseWorld.x - human.x, my = mouseWorld.y - human.y;
-  if (mx !== 0 || my !== 0) human.rot = Math.atan2(my, mx) * 180/Math.PI;
+// ═══════════════════════════════════════════════════════════════════
+// HERALD MESSAGES
+// ═══════════════════════════════════════════════════════════════════
+function showHerald(msg){
+  const el=document.getElementById('healdMsg');
+  el.textContent=msg; el.style.opacity='1';
+  clearTimeout(heralatimer);
+  heralatimer=setTimeout(()=>el.style.opacity='0',4000);
+}
 
-  // Auto-pickup loot for human
-  const nearLoot = G.loot.find(l => dist({x:human.x,y:human.y},{x:l.x,y:l.y}) < 55);
-  if (nearLoot) pickUpLoot(human, nearLoot);
+function scheduleHerald(){
+  const delay=rnd(30000,90000);
+  heralatimer=setTimeout(()=>{
+    if(G&&G.players[0]?.alive){
+      showHerald(HERALD_MSGS[rndI(0,HERALD_MSGS.length-1)]);
+      scheduleHerald();
+    }
+  },delay);
+}
 
-  tickBombardment(TICK_MS);
-  tickBots(TICK_MS);
+// ═══════════════════════════════════════════════════════════════════
+// MAIN TICK
+// ═══════════════════════════════════════════════════════════════════
+function gameTick(){
+  const h=G.players[0];
+  if(!h.alive){endGame();return;}
 
-  const alive = G.players.filter(p => p.alive).length;
-  if (alive <= 1) { endGame(); return; }
+  // Human move
+  let dx=0,dy=0;
+  if(keys['w']||keys['W']||keys['ArrowUp'])    dy=-1;
+  if(keys['s']||keys['S']||keys['ArrowDown'])  dy=1;
+  if(keys['a']||keys['A']||keys['ArrowLeft'])  dx=-1;
+  if(keys['d']||keys['D']||keys['ArrowRight']) dx=1;
+  if(dx&&dy){dx*=.707;dy*=.707;}
+  h.x=clmp(h.x+dx*3.5,0,MAP); h.y=clmp(h.y+dy*3.5,0,MAP);
+  const mx=mouseWorld.x-h.x,my=mouseWorld.y-h.y;
+  if(mx||my) h.rot=Math.atan2(my,mx)*180/Math.PI;
 
-  updateHUD(human, alive);
+  // Pickup
+  const nl=G.loot.find(l=>Math.hypot(l.x-h.x,l.y-h.y)<55);
+  if(nl) pickup(h,nl);
+
+  shakeMs=Math.max(0,shakeMs-TICK);
+  tickZone(TICK);
+  tickBots(TICK);
+  tickParticles(TICK);
+
+  const alive=G.players.filter(p=>p.alive).length;
+  if(alive<=1){endGame();return;}
+
+  updateHUD(h,alive);
   render();
 }
 
-function endGame() {
-  G.phase = 'game_over';
-  clearInterval(intervalId);
-  const human = G.players[0];
-  const isWin = human.alive;
-  const alive = G.players.filter(p=>p.alive);
-  const placement = isWin ? 1 : alive.length + 1;
-  const survived = Math.floor((Date.now()-startTime)/1000);
+// ═══════════════════════════════════════════════════════════════════
+// HUD UPDATE
+// ═══════════════════════════════════════════════════════════════════
+function updateHUD(h,alive){
+  document.getElementById('aliveChip').textContent=alive+' alive';
+  document.getElementById('killsChip').textContent=kills+' kills';
 
-  document.getElementById('game').style.display = 'none';
-  const panel = document.getElementById('gameoverPanel');
-  panel.style.display = 'flex';
-  panel.className = isWin ? 'win' : 'loss';
-  document.getElementById('resultTitle').textContent = isWin ? 'VICTORY ROYALE' : 'ELIMINATED';
+  const zchip=document.getElementById('zoneChip');
+  if(G.impTimer<2000){
+    zchip.className='chip incoming';
+    document.getElementById('zoneChip').textContent='IMPACT IN '+Math.ceil(G.impTimer/1000)+'s';
+  } else if(G.shrinking){
+    zchip.className='chip closing';
+    zchip.textContent='ZONE CLOSING';
+  } else {
+    zchip.className='chip safe';
+    zchip.textContent='Zone: '+Math.ceil(G.phaseTimer/1000)+'s';
+  }
 
-  const ord = n => n===1?'1st':n===2?'2nd':n===3?'3rd':`${n}th`;
-  document.getElementById('resultSub').textContent = isWin ? 'Last one standing!' : `You finished ${ord(placement)} place`;
+  const hpPct=h.hp/h.maxHp*100;
+  document.getElementById('hpFill').style.width=hpPct+'%';
+  document.getElementById('hpFill').className='bar-fill'+(h.hp<30?' low':'');
+  document.getElementById('hpVal').textContent=h.hp;
+  document.getElementById('shFill').style.width=(h.sh/h.maxSh*100)+'%';
+  document.getElementById('shVal').textContent=h.sh;
+  document.getElementById('matW').textContent='W '+h.mats.wood;
+  document.getElementById('matS').textContent='S '+h.mats.stone;
+  document.getElementById('matM').textContent='M '+h.mats.metal;
 
-  const sMin = Math.floor(survived/60), sSec = survived%60;
-  document.getElementById('resultStats').innerHTML = `
-    <div class="stat"><div class="stat-val">${kills}</div><div class="stat-lbl">Eliminations</div></div>
-    <div class="stat"><div class="stat-val">${ord(placement)}</div><div class="stat-lbl">Placement</div></div>
-    <div class="stat"><div class="stat-val">${sMin}:${String(sSec).padStart(2,'0')}</div><div class="stat-lbl">Survived</div></div>
+  document.getElementById('lowHpVignette').style.opacity=h.hp<30?'1':'0';
+
+  [0,1,2].forEach(i=>{
+    const sl=document.getElementById('ws'+i),w=h.weapons[i];
+    sl.className='wslot'+(i===h.slot?' active':'');
+    sl.querySelector('.wname').textContent=w?w.label:'—';
+    sl.querySelector('.wname').style.color=w?RARITY_CLR[w.rarity]:'#555';
+    sl.querySelector('.wammo').textContent=w?(w.reloading?'RLD':`${w.ammo===Infinity?'∞':w.ammo}/${w.mag===Infinity?'∞':w.mag}`):'';
+    sl.querySelector('.wrar').textContent=w?w.rarity:'';
+    sl.querySelector('.wrar').style.color=w?RARITY_CLR[w.rarity]:'transparent';
+  });
+  document.getElementById('buildBtn').className='abtn'+(buildMode?' active':'');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════════════════════
+function render(){
+  const h=G.players[0];
+  const shake = shakeMs>0 ? rnd(-6,6) : 0;
+  const vx=clmp(h.x-CW/2,0,MAP-CW)+shake;
+  const vy=clmp(h.y-CH/2,0,MAP-CH)+shake;
+
+  ctx.clearRect(0,0,CW,CH);
+  ctx.save();
+  ctx.translate(-vx,-vy);
+
+  // ── Terrain
+  ctx.drawImage(terrainCanvas,0,0,MAP,MAP);
+
+  // ── Danger zone overlay (outside shelter = red mist)
+  ctx.save();
+  ctx.fillStyle='rgba(200,40,0,.22)';
+  ctx.fillRect(0,0,MAP,MAP);
+  ctx.globalCompositeOperation='destination-out';
+  ctx.beginPath(); ctx.arc(G.cx,G.cy,G.r,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+
+  // ── Animated shelter ring (pulsing glow)
+  const pulse=.7+Math.sin(Date.now()/400)*.3;
+  for(let w=12;w>=1;w-=2){
+    ctx.beginPath(); ctx.arc(G.cx,G.cy,G.r,0,Math.PI*2);
+    ctx.strokeStyle=`rgba(255,${100+w*10},0,${.04*w*pulse})`;
+    ctx.lineWidth=w*3; ctx.stroke();
+  }
+  ctx.beginPath(); ctx.arc(G.cx,G.cy,G.r,0,Math.PI*2);
+  ctx.strokeStyle=`rgba(255,140,0,${.9*pulse})`; ctx.lineWidth=2.5; ctx.stroke();
+
+  // ── Next zone indicator (dashed)
+  ctx.setLineDash([10,10]);
+  ctx.beginPath(); ctx.arc(G.ncx,G.ncy,G.nr,0,Math.PI*2);
+  ctx.strokeStyle='rgba(255,200,80,.28)'; ctx.lineWidth=1.5; ctx.stroke();
+  ctx.setLineDash([]);
+
+  // ── Meteor trails (streaking in)
+  meteorTrails.forEach(m=>{
+    const cx2=lerp(m.sx,m.tx,m.prog), cy2=lerp(m.sy,m.ty,m.prog);
+    const tLen=120*(1-m.prog);
+    const tailX=lerp(m.sx,m.tx,Math.max(0,m.prog-.25));
+    const tailY=lerp(m.sy,m.ty,Math.max(0,m.prog-.25));
+    const trailGrad=ctx.createLinearGradient(tailX,tailY,cx2,cy2);
+    trailGrad.addColorStop(0,'rgba(255,180,0,0)');
+    trailGrad.addColorStop(1,`rgba(255,200,50,${1-m.prog})`);
+    ctx.strokeStyle=trailGrad; ctx.lineWidth=3*(1-m.prog*.6);
+    ctx.beginPath(); ctx.moveTo(tailX,tailY); ctx.lineTo(cx2,cy2); ctx.stroke();
+    // Head glow
+    ctx.beginPath(); ctx.arc(cx2,cy2,6*(1-m.prog*.5),0,Math.PI*2);
+    ctx.fillStyle=`rgba(255,220,100,${1-m.prog})`; ctx.fill();
+  });
+
+  // ── Impact craters
+  G.impacts.forEach(imp=>{
+    const t=1-imp.age/2500;
+    const ig=ctx.createRadialGradient(imp.x,imp.y,0,imp.x,imp.y,imp.r);
+    ig.addColorStop(0,`rgba(255,200,50,${t*.85})`);
+    ig.addColorStop(.45,`rgba(255,80,0,${t*.6})`);
+    ig.addColorStop(1,'rgba(255,50,0,0)');
+    ctx.fillStyle=ig; ctx.beginPath(); ctx.arc(imp.x,imp.y,imp.r,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle=`rgba(255,180,0,${t*.7})`; ctx.lineWidth=2.5;
+    ctx.beginPath(); ctx.arc(imp.x,imp.y,imp.r,0,Math.PI*2); ctx.stroke();
+  });
+
+  // ── Walls
+  G.walls.forEach(w=>{
+    ctx.save(); ctx.translate(w.x,w.y);
+    const wClr=w.mat==='wood'?'#7a4a1a':w.mat==='stone'?'#888':'#aaa';
+    ctx.fillStyle=wClr; ctx.strokeStyle='rgba(0,0,0,.5)'; ctx.lineWidth=1;
+    ctx.shadowColor=wClr; ctx.shadowBlur=8;
+    ctx.fillRect(-50,-5,100,10); ctx.strokeRect(-50,-5,100,10);
+    ctx.restore();
+  });
+
+  // ── Loot drops
+  G.loot.forEach(l=>{
+    const px=l.x-vx,py=l.y-vy;
+    if(px<-30||px>CW+30||py<-30||py>CH+30) return; // (already offset, skip offscreen fast)
+    const wClr=l.weapon?RARITY_CLR[l.weapon.rarity]:'#fff';
+    // Glow
+    ctx.shadowColor=wClr; ctx.shadowBlur=14;
+    ctx.fillStyle='rgba(0,0,0,.7)';
+    ctx.beginPath(); ctx.roundRect(l.x-14,l.y-8,28,16,4); ctx.fill();
+    ctx.strokeStyle=wClr; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.roundRect(l.x-14,l.y-8,28,16,4); ctx.stroke();
+    ctx.shadowBlur=0;
+    ctx.fillStyle=wClr; ctx.font='bold 8px monospace';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(l.weapon?l.weapon.label:'IT',l.x,l.y);
+  });
+
+  // ── Particles
+  particles.forEach(p=>{
+    const alpha=p.life/p.maxLife;
+    if(p.isSmoke){
+      ctx.globalAlpha=alpha*.35;
+      ctx.fillStyle=p.color+alpha*.35+')';
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill();
+      ctx.globalAlpha=1;
+    } else {
+      ctx.globalAlpha=alpha;
+      ctx.fillStyle=p.color;
+      ctx.shadowColor=p.color; ctx.shadowBlur=p.r*3;
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill();
+      ctx.shadowBlur=0; ctx.globalAlpha=1;
+    }
+  });
+
+  // ── Players (bots first)
+  G.players.filter(p=>p.alive&&!p.isHuman).forEach(p=>drawPlayer(p,false));
+  if(h.alive) drawPlayer(h,true);
+
+  // ── Crosshair (stays relative to viewport)
+  ctx.restore(); // pop world transform
+  const msx=mouseWorld.x-vx, msy=mouseWorld.y-vy;
+  ctx.strokeStyle='rgba(255,255,255,.55)'; ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(msx-10,msy);ctx.lineTo(msx+10,msy);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(msx,msy-10);ctx.lineTo(msx,msy+10);ctx.stroke();
+  ctx.beginPath();ctx.arc(msx,msy,5,0,Math.PI*2);ctx.stroke();
+}
+
+function drawPlayer(p,isHuman){
+  const clr = isHuman?'#00aaff':'#ff3333';
+  const out  = isHuman?'#004488':'#660000';
+  const rotR = p.rot*Math.PI/180;
+
+  // Shadow
+  ctx.fillStyle='rgba(0,0,0,.35)';
+  ctx.beginPath(); ctx.ellipse(p.x,p.y+3,12,7,0,0,Math.PI*2); ctx.fill();
+
+  // Glow
+  ctx.shadowColor=clr; ctx.shadowBlur=isHuman?28:18;
+
+  // Body
+  ctx.beginPath(); ctx.arc(p.x,p.y,11,0,Math.PI*2);
+  ctx.fillStyle=clr; ctx.fill();
+  ctx.strokeStyle=out; ctx.lineWidth=2.5; ctx.stroke();
+  ctx.shadowBlur=0;
+
+  // Direction indicator
+  ctx.beginPath(); ctx.arc(p.x+Math.cos(rotR)*7,p.y+Math.sin(rotR)*7,3.5,0,Math.PI*2);
+  ctx.fillStyle='#fff'; ctx.fill();
+
+  // HP bar
+  const bw=26, bx=p.x-bw/2, by=p.y-22;
+  ctx.fillStyle='#111'; ctx.fillRect(bx,by,bw,4);
+  ctx.fillStyle=p.hp>40?'#44ff44':'#ff4444';
+  ctx.fillRect(bx,by,bw*(p.hp/p.maxHp),4);
+
+  // Shield bar
+  if(p.sh>0){
+    ctx.fillStyle='rgba(0,80,160,.5)'; ctx.fillRect(bx,by-5,bw,3);
+    ctx.fillStyle='#44aaff'; ctx.fillRect(bx,by-5,bw*(p.sh/p.maxSh),3);
+  }
+
+  if(isHuman){
+    ctx.fillStyle='rgba(255,255,255,.9)'; ctx.font='bold 9px monospace';
+    ctx.textAlign='center'; ctx.textBaseline='bottom';
+    ctx.fillText('YOU',p.x,by-1);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// GAME OVER
+// ═══════════════════════════════════════════════════════════════════
+function endGame(){
+  clearInterval(tickId);
+  const h=G.players[0];
+  const isWin=h.alive;
+  const survived=Math.floor((Date.now()-startMs)/1000);
+  const alive=G.players.filter(p=>p.alive);
+  const place=isWin?1:alive.length+1;
+  const ord=n=>n===1?'1st':n===2?'2nd':n===3?'3rd':`${n}th`;
+
+  show('gameOverScreen');
+  const panel=document.getElementById('gameOverScreen');
+  panel.className=isWin?'screen win':'screen loss';
+  document.getElementById('goTitle').textContent=isWin?'VICTORY ROYALE':'ELIMINATED';
+  document.getElementById('goSub').textContent=isWin?'You earned your seat on the shuttle.':'You have been removed from the broadcast.';
+
+  document.getElementById('goMsg').textContent=isWin
+    ?`HERALD: "Congratulations, survivor. Shuttle coordinates have been transmitted to your neural implant. The bunkers watched every moment."`
+    :`HERALD: "You demonstrated ${kills>3?'considerable':'minimal'} fitness before termination. The broadcast continues without you."`;
+
+  const m=Math.floor(survived/60),s=survived%60;
+  document.getElementById('goStats').innerHTML=`
+    <div class="stat-box"><div class="stat-val">${kills}</div><div class="stat-lbl">ELIMINATIONS</div></div>
+    <div class="stat-box"><div class="stat-val">${ord(place)}</div><div class="stat-lbl">PLACEMENT</div></div>
+    <div class="stat-box"><div class="stat-val">${m}:${String(s).padStart(2,'0')}</div><div class="stat-lbl">SURVIVED</div></div>
   `;
 }
 
-// ─── HUD update ───────────────────────────────────────────────────────────────
-function updateHUD(human, alive) {
-  document.getElementById('aliveChip').textContent = alive + ' alive';
-  document.getElementById('killsChip').textContent = kills + ' kills';
+// ═══════════════════════════════════════════════════════════════════
+// SCREEN NAV
+// ═══════════════════════════════════════════════════════════════════
+const screens=['storyScreen','lobbyScreen','gameScreen','gameOverScreen'];
+function show(id){screens.forEach(s=>document.getElementById(s).classList.toggle('hidden',s!==id));}
 
-  const b = G.bombardment;
-  const impSec = Math.ceil(b.timeToImpact/1000);
-  const phaseSec = Math.ceil(b.timeToPhase/1000);
-  const chip = document.getElementById('meteorChip');
-  chip.className = 'chip';
-  if (b.timeToImpact < 2000) {
-    chip.classList.add('incoming');
-    document.getElementById('meteorText').textContent = `IMPACT IN ${impSec}s`;
-  } else if (b.shrinking) {
-    chip.classList.add('closing');
-    document.getElementById('meteorText').textContent = 'ZONE CLOSING';
-  } else {
-    document.getElementById('meteorText').textContent = `Zone: ${phaseSec}s`;
-  }
-
-  document.getElementById('hpfill').style.width = (human.hp/human.maxHp*100)+'%';
-  document.getElementById('hpfill').style.background = human.hp < 30 ? '#ff4444' : '#44ff44';
-  document.getElementById('hpval').textContent = human.hp;
-  document.getElementById('shfill').style.width = (human.shield/human.maxShield*100)+'%';
-  document.getElementById('shval').textContent = human.shield;
-  document.getElementById('matW').textContent = 'W:'+human.materials.wood;
-  document.getElementById('matS').textContent = 'S:'+human.materials.stone;
-  document.getElementById('matM').textContent = 'M:'+human.materials.metal;
-
-  // Weapon bar
-  [0,1,2].forEach(i => {
-    const sl = document.getElementById('ws'+i);
-    const w = human.weapons[i];
-    sl.className = 'wslot' + (i===human.slot?' active':'');
-    sl.querySelector('.wname').textContent = w ? w.label : '—';
-    sl.querySelector('.wammo').textContent = w ? (w.isReloading?'RLD':`${w.ammo===Infinity?'∞':w.ammo}/${w.mag===Infinity?'∞':w.mag}`) : '';
-    if (w) sl.querySelector('.wname').style.color = w.rarity ? RARITY_COLOR[w.rarity] : '#fff';
-  });
-
-  document.getElementById('buildBtn').className = 'abtn' + (buildMode?' active':'');
-}
-
-// ─── Canvas rendering ─────────────────────────────────────────────────────────
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
-
-function setupCanvas() {
-  const maxW = Math.min(window.innerWidth - 40, 900);
-  const maxH = Math.min(window.innerHeight - 120, 600);
-  canvas.width  = maxW;
-  canvas.height = maxH;
-  canvasRect = canvas.getBoundingClientRect();
-}
-
-function worldToScreen(wx, wy, human) {
-  const vx = clamp(human.x - canvas.width/2,  0, MAP_W - canvas.width);
-  const vy = clamp(human.y - canvas.height/2, 0, MAP_H - canvas.height);
-  return { sx: wx - vx, sy: wy - vy, vx, vy };
-}
-
-function render() {
-  const human = G.players[0];
-  const { vx, vy } = worldToScreen(human.x, human.y, human);
-
-  // Ground
-  ctx.fillStyle = '#3a7a30';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  // Grid lines (terrain hint)
-  ctx.strokeStyle = 'rgba(0,0,0,0.08)';
-  ctx.lineWidth = 1;
-  for (let gx = -(vx%100); gx < canvas.width; gx+=100) {
-    ctx.beginPath(); ctx.moveTo(gx,0); ctx.lineTo(gx,canvas.height); ctx.stroke();
-  }
-  for (let gy = -(vy%100); gy < canvas.height; gy+=100) {
-    ctx.beginPath(); ctx.moveTo(0,gy); ctx.lineTo(canvas.width,gy); ctx.stroke();
-  }
-
-  // Danger zone tint (outside shelter)
-  const b = G.bombardment;
-  const scx = b.cx - vx, scy = b.cy - vy;
-  ctx.save();
-  ctx.fillStyle = 'rgba(200,60,0,0.28)';
-  ctx.fillRect(0,0,canvas.width,canvas.height);
-  // Cut out shelter zone
-  ctx.globalCompositeOperation = 'destination-out';
-  ctx.beginPath();
-  ctx.arc(scx, scy, b.r, 0, Math.PI*2);
-  ctx.fill();
-  ctx.restore();
-
-  // Shelter ring (fire orange)
-  ctx.beginPath();
-  ctx.arc(scx, scy, b.r, 0, Math.PI*2);
-  ctx.strokeStyle = 'rgba(255,120,0,0.95)';
-  ctx.lineWidth = 3;
-  ctx.stroke();
-
-  // Next shelter zone (dashed)
-  const nscx = b.nextCx - vx, nscy = b.nextCy - vy;
-  ctx.beginPath();
-  ctx.arc(nscx, nscy, b.nextR, 0, Math.PI*2);
-  ctx.strokeStyle = 'rgba(255,200,100,0.4)';
-  ctx.setLineDash([8,8]);
-  ctx.lineWidth = 2;
-  ctx.stroke();
-  ctx.setLineDash([]);
-
-  // Meteor impact craters
-  G.impacts.forEach(impact => {
-    const ix = impact.x - vx, iy = impact.y - vy;
-    const opacity = Math.max(0, 1 - impact.age/IMPACT_MAX_AGE);
-    const grad = ctx.createRadialGradient(ix, iy, 0, ix, iy, impact.r);
-    grad.addColorStop(0, `rgba(255,200,50,${opacity*0.9})`);
-    grad.addColorStop(0.4, `rgba(255,80,0,${opacity*0.7})`);
-    grad.addColorStop(1, `rgba(255,60,0,0)`);
-    ctx.beginPath();
-    ctx.arc(ix, iy, impact.r, 0, Math.PI*2);
-    ctx.fillStyle = grad;
-    ctx.fill();
-    // Ring
-    ctx.beginPath();
-    ctx.arc(ix, iy, impact.r, 0, Math.PI*2);
-    ctx.strokeStyle = `rgba(255,200,0,${opacity*0.8})`;
-    ctx.lineWidth = 2;
-    ctx.stroke();
-  });
-
-  // Walls
-  G.walls.forEach(w => {
-    const wx2 = w.x - vx, wy2 = w.y - vy;
-    ctx.fillStyle = w.mat==='wood'?'rgba(130,80,30,0.85)':w.mat==='stone'?'rgba(130,130,130,0.85)':'rgba(160,160,160,0.85)';
-    ctx.fillRect(wx2-50, wy2-4, 100, 8);
-  });
-
-  // Loot
-  G.loot.forEach(l => {
-    const lx = l.x - vx, ly = l.y - vy;
-    if (lx < -20 || lx > canvas.width+20 || ly < -20 || ly > canvas.height+20) return;
-    ctx.fillStyle = 'rgba(0,0,0,0.6)';
-    ctx.beginPath();
-    ctx.roundRect(lx-12, ly-6, 24, 12, 3);
-    ctx.fill();
-    ctx.strokeStyle = l.weapon ? RARITY_COLOR[l.weapon.rarity] : '#fff';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-    ctx.fillStyle = l.weapon ? RARITY_COLOR[l.weapon.rarity] : '#fff';
-    ctx.font = 'bold 7px monospace';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(l.weapon ? l.weapon.label : 'IT', lx, ly);
-  });
-
-  // Players (bots first, then human on top)
-  const drawPlayer = (p, isHuman) => {
-    const px = p.x - vx, py = p.y - vy;
-    if (px < -30 || px > canvas.width+30 || py < -30 || py > canvas.height+30) return;
-
-    const rotRad = p.rot * Math.PI/180;
-    const color = isHuman ? '#00aaff' : '#ff4444';
-    const outline = isHuman ? '#0055aa' : '#880000';
-
-    // Shadow
-    ctx.beginPath();
-    ctx.ellipse(px, py+2, 11, 7, 0, 0, Math.PI*2);
-    ctx.fillStyle = 'rgba(0,0,0,0.3)';
-    ctx.fill();
-
-    // Body
-    ctx.beginPath();
-    ctx.arc(px, py, 10, 0, Math.PI*2);
-    ctx.fillStyle = color;
-    ctx.fill();
-    ctx.strokeStyle = outline;
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    // Direction dot
-    ctx.beginPath();
-    ctx.arc(px + Math.cos(rotRad)*6, py + Math.sin(rotRad)*6, 3, 0, Math.PI*2);
-    ctx.fillStyle = '#fff';
-    ctx.fill();
-
-    // Health bar
-    const barW = 24, barX = px - barW/2, barY = py - 18;
-    ctx.fillStyle = '#222';
-    ctx.fillRect(barX, barY, barW, 4);
-    ctx.fillStyle = p.hp > 30 ? '#44ff44' : '#ff4444';
-    ctx.fillRect(barX, barY, barW * (p.hp/p.maxHp), 4);
-
-    // YOU label
-    if (isHuman) {
-      ctx.fillStyle = '#fff';
-      ctx.font = 'bold 8px monospace';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'bottom';
-      ctx.fillText('YOU', px, barY - 1);
-    }
-  };
-
-  G.players.filter(p=>p.alive && !p.isHuman).forEach(p=>drawPlayer(p,false));
-  if (human.alive) drawPlayer(human, true);
-
-  // Crosshair at mouse position
-  const msx = mouseWorld.x - vx, msy = mouseWorld.y - vy;
-  ctx.strokeStyle = 'rgba(255,255,255,0.5)';
-  ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(msx-8, msy); ctx.lineTo(msx+8, msy); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(msx, msy-8); ctx.lineTo(msx, msy+8); ctx.stroke();
-}
-
-// ─── Controls ─────────────────────────────────────────────────────────────────
-document.addEventListener('keydown', e => {
-  keys[e.key] = true;
-  if (['1','2','3'].includes(e.key)) {
-    const human = G?.players?.[0];
-    if (human) human.slot = parseInt(e.key)-1;
-  }
-  if (e.key==='r'||e.key==='R') doReload();
-  if (e.key==='b'||e.key==='B') { buildMode = !buildMode; }
-  if (e.key===' ') { e.preventDefault(); doFire(); }
-});
-document.addEventListener('keyup', e => { keys[e.key] = false; });
-
-canvas.addEventListener('mousemove', e => {
-  canvasRect = canvas.getBoundingClientRect();
-  const csX = e.clientX - canvasRect.left;
-  const csY = e.clientY - canvasRect.top;
-  const human = G?.players?.[0];
-  if (!human) return;
-  const vx = clamp(human.x - canvas.width/2,  0, MAP_W - canvas.width);
-  const vy = clamp(human.y - canvas.height/2, 0, MAP_H - canvas.height);
-  mouseWorld = { x: csX + vx, y: csY + vy };
-});
-
-canvas.addEventListener('click', () => doFire());
-
-function doFire() {
-  const human = G?.players?.[0];
-  if (!human || !human.alive || G.phase !== 'playing') return;
-
-  if (buildMode) {
-    // Place wall in front
-    const ang = human.rot * Math.PI/180;
-    G.walls.push({ x: human.x + Math.cos(ang)*60, y: human.y + Math.sin(ang)*60, mat: human.slot===1?'stone':human.slot===2?'metal':'wood' });
-    return;
-  }
-
-  const w = human.weapons[human.slot];
-  if (!w || w.isReloading || w.ammo<=0) return;
-  const now = Date.now();
-  const minInt = 1000/w.rate;
-  if (now - lastFire < minInt) return;
-  lastFire = now;
-
-  // Auto-aim nearest enemy
-  const enemies = G.players.filter(p=>!p.isHuman && p.alive);
-  let nearest=null, nearDist=Infinity;
-  enemies.forEach(e=>{ const d=dist({x:human.x,y:human.y},{x:e.x,y:e.y}); if(d<nearDist&&d<w.range+50){nearDist=d;nearest=e;} });
-
-  const target = nearest
-    ? { x: nearest.x + rand(-8,8), y: nearest.y + rand(-8,8) }
-    : { x: human.x + Math.cos(human.rot*Math.PI/180)*w.range, y: human.y + Math.sin(human.rot*Math.PI/180)*w.range };
-
-  fireShot(human, target);
-}
-
-function doReload() {
-  const human = G?.players?.[0];
-  if (!human || reloading) return;
-  const w = human.weapons[human.slot];
-  if (!w || w.type==='pickaxe' || w.ammo===w.mag) return;
-  reloading = true;
-  w.isReloading = true;
-  reloadTimer = setTimeout(() => {
-    w.ammo = w.mag; w.isReloading = false; reloading = false;
-  }, w.reload);
-}
-
-// Weapon slot clicks
-[0,1,2].forEach(i => {
-  document.getElementById('ws'+i).addEventListener('click', () => {
-    if (G?.players?.[0]) G.players[0].slot = i;
-  });
-});
-document.getElementById('buildBtn').addEventListener('click', () => { buildMode = !buildMode; });
-document.getElementById('reloadBtn').addEventListener('click', doReload);
-document.getElementById('fireBtn').addEventListener('click', doFire);
-
-// ─── Screen transitions ───────────────────────────────────────────────────────
-document.getElementById('playBtn').addEventListener('click', () => {
-  document.getElementById('lobby').style.display = 'none';
-  document.getElementById('game').style.display = 'block';
-  setupCanvas();
+function startGame(){
+  show('gameScreen');
+  resizeCanvas();
   initGame();
   render();
-  updateHUD(G.players[0], G.players.filter(p=>p.alive).length);
-  intervalId = setInterval(gameTick, TICK_MS);
-});
+  updateHUD(G.players[0],100);
+  tickId=setInterval(gameTick,TICK);
+}
 
-document.getElementById('againBtn').addEventListener('click', () => {
-  document.getElementById('gameoverPanel').style.display = 'none';
-  document.getElementById('game').style.display = 'block';
-  setupCanvas();
-  initGame();
-  render();
-  updateHUD(G.players[0], G.players.filter(p=>p.alive).length);
-  intervalId = setInterval(gameTick, TICK_MS);
-});
+// Story → Lobby
+document.getElementById('storyPlayBtn').onclick=()=>show('lobbyScreen');
+document.getElementById('skipStoryBtn').onclick=()=>show('lobbyScreen');
+// Lobby → Game
+document.getElementById('lobbyPlayBtn').onclick=startGame;
+// Game over → restart or lobby
+document.getElementById('playAgainBtn').onclick=()=>{
+  show('gameScreen');
+  if(reloadTimer) clearTimeout(reloadTimer);
+  initGame(); render();
+  updateHUD(G.players[0],100);
+  tickId=setInterval(gameTick,TICK);
+};
+document.getElementById('goLobbyBtn').onclick=()=>show('lobbyScreen');
 
-window.addEventListener('resize', () => { if (G?.phase==='playing') { setupCanvas(); render(); } });
+// ═══════════════════════════════════════════════════════════════════
+// INPUT
+// ═══════════════════════════════════════════════════════════════════
+document.addEventListener('keydown',e=>{
+  keys[e.key]=true;
+  if(!G) return;
+  if(['1','2','3'].includes(e.key)) G.players[0].slot=+e.key-1;
+  if(e.key==='r'||e.key==='R') doReload();
+  if(e.key==='b'||e.key==='B') buildMode=!buildMode;
+  if(e.key===' '){e.preventDefault();doFire();}
+});
+document.addEventListener('keyup',e=>{keys[e.key]=false;});
+
+canvas.addEventListener('mousemove',e=>{
+  if(!G) return;
+  const h=G.players[0];
+  const vx=clmp(h.x-CW/2,0,MAP-CW), vy=clmp(h.y-CH/2,0,MAP-CH);
+  mouseWorld={x:e.clientX+vx,y:e.clientY+vy};
+});
+canvas.addEventListener('click',()=>doFire());
+
+// HUD buttons
+[0,1,2].forEach(i=>document.getElementById('ws'+i).addEventListener('click',()=>{if(G) G.players[0].slot=i;}));
+document.getElementById('buildBtn').addEventListener('click',()=>{buildMode=!buildMode;});
+document.getElementById('reloadBtn').addEventListener('click',doReload);
+document.getElementById('fireBtn').addEventListener('click',doFire);
+
+window.addEventListener('resize',()=>{if(G) resizeCanvas();});
+
+// Boot
+resizeCanvas();
+show('storyScreen');
 </script>
 </body>
 </html>

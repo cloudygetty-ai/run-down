@@ -1,7 +1,7 @@
-import React, { useRef, useCallback } from 'react';
-import { View, StyleSheet, PanResponder } from 'react-native';
-import { Vector2 } from '../types';
-import { clamp } from '../utils';
+import React, { useRef } from "react";
+import { View, StyleSheet, PanResponder } from "react-native";
+import { Vector2 } from "../types";
+import { clamp } from "../utils";
 
 type Props = {
   onMove: (direction: Vector2) => void;
@@ -10,17 +10,20 @@ type Props = {
 };
 
 const DEFAULT_SIZE = 120;
-const KNOB_SIZE    = 44;
+const KNOB_SIZE = 44;
 
-export const Joystick: React.FC<Props> = ({ onMove, onRelease, size = DEFAULT_SIZE }) => {
-  const centerRef = useRef<Vector2>({ x: 0, y: 0 });
-  const knobPos   = useRef<Vector2>({ x: 0, y: 0 });
+export const Joystick: React.FC<Props> = ({
+  onMove,
+  onRelease,
+  size = DEFAULT_SIZE,
+}) => {
+  const knobPos = useRef<Vector2>({ x: 0, y: 0 });
   const maxRadius = (size - KNOB_SIZE) / 2;
 
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder:  () => true,
+      onMoveShouldSetPanResponder: () => true,
 
       onPanResponderGrant: () => {
         knobPos.current = { x: 0, y: 0 };
@@ -42,7 +45,7 @@ export const Joystick: React.FC<Props> = ({ onMove, onRelease, size = DEFAULT_SI
         knobPos.current = { x: 0, y: 0 };
         onRelease();
       },
-    }),
+    })
   ).current;
 
   const half = size / 2;
@@ -58,7 +61,7 @@ export const Joystick: React.FC<Props> = ({ onMove, onRelease, size = DEFAULT_SI
           styles.knob,
           {
             left: half - knobHalf + knobPos.current.x,
-            top:  half - knobHalf + knobPos.current.y,
+            top: half - knobHalf + knobPos.current.y,
           },
         ]}
       />
@@ -68,16 +71,16 @@ export const Joystick: React.FC<Props> = ({ onMove, onRelease, size = DEFAULT_SI
 
 const styles = StyleSheet.create({
   base: {
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: "rgba(255,255,255,0.15)",
     borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.4)',
-    position: 'relative',
+    borderColor: "rgba(255,255,255,0.4)",
+    position: "relative",
   },
   knob: {
-    position: 'absolute',
+    position: "absolute",
     width: KNOB_SIZE,
     height: KNOB_SIZE,
     borderRadius: KNOB_SIZE / 2,
-    backgroundColor: 'rgba(255,255,255,0.7)',
+    backgroundColor: "rgba(255,255,255,0.7)",
   },
 });
