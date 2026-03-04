@@ -1,7 +1,7 @@
-import React, { useRef } from "react";
-import { View, StyleSheet, PanResponder } from "react-native";
-import { Vector2 } from "../types";
-import { clamp } from "../utils";
+import React, { useRef, useState } from 'react';
+import { View, StyleSheet, PanResponder } from 'react-native';
+import { Vector2 } from '../types';
+import { clamp } from '../utils';
 
 type Props = {
   onMove: (direction: Vector2) => void;
@@ -17,7 +17,11 @@ export const Joystick: React.FC<Props> = ({
   onRelease,
   size = DEFAULT_SIZE,
 }) => {
-  const knobPos = useRef<Vector2>({ x: 0, y: 0 });
+  // State drives the visual knob position; ref drives the input value.
+  // WHY: PanResponder callbacks are not inside React's render cycle —
+  // setState triggers the re-render while the ref keeps reads synchronous.
+  const [knobOffset, setKnobOffset] = useState<Vector2>({ x: 0, y: 0 });
+  const knobRef = useRef<Vector2>({ x: 0, y: 0 });
   const maxRadius = (size - KNOB_SIZE) / 2;
 
   const panResponder = useRef(
@@ -26,23 +30,27 @@ export const Joystick: React.FC<Props> = ({
       onMoveShouldSetPanResponder: () => true,
 
       onPanResponderGrant: () => {
-        knobPos.current = { x: 0, y: 0 };
+        knobRef.current = { x: 0, y: 0 };
+        setKnobOffset({ x: 0, y: 0 });
       },
 
       onPanResponderMove: (_e, gestureState) => {
         const dx = clamp(gestureState.dx, -maxRadius, maxRadius);
         const dy = clamp(gestureState.dy, -maxRadius, maxRadius);
-        knobPos.current = { x: dx, y: dy };
-
-        // Normalize to -1..1
-        onMove({
-          x: dx / maxRadius,
-          y: dy / maxRadius,
-        });
+        knobRef.current = { x: dx, y: dy };
+        setKnobOffset({ x: dx, y: dy });
+        onMove({ x: dx / maxRadius, y: dy / maxRadius });
       },
 
       onPanResponderRelease: () => {
-        knobPos.current = { x: 0, y: 0 };
+        knobRef.current = { x: 0, y: 0 };
+        setKnobOffset({ x: 0, y: 0 });
+        onRelease();
+      },
+
+      onPanResponderTerminate: () => {
+        knobRef.current = { x: 0, y: 0 };
+        setKnobOffset({ x: 0, y: 0 });
         onRelease();
       },
     })
@@ -60,8 +68,8 @@ export const Joystick: React.FC<Props> = ({
         style={[
           styles.knob,
           {
-            left: half - knobHalf + knobPos.current.x,
-            top: half - knobHalf + knobPos.current.y,
+            left: half - knobHalf + knobOffset.x,
+            top: half - knobHalf + knobOffset.y,
           },
         ]}
       />
@@ -71,16 +79,16 @@ export const Joystick: React.FC<Props> = ({
 
 const styles = StyleSheet.create({
   base: {
-    backgroundColor: "rgba(255,255,255,0.15)",
+    backgroundColor: 'rgba(255,255,255,0.15)',
     borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.4)",
-    position: "relative",
+    borderColor: 'rgba(255,255,255,0.4)',
+    position: 'relative',
   },
   knob: {
-    position: "absolute",
+    position: 'absolute',
     width: KNOB_SIZE,
     height: KNOB_SIZE,
     borderRadius: KNOB_SIZE / 2,
-    backgroundColor: "rgba(255,255,255,0.7)",
+    backgroundColor: 'rgba(255,255,255,0.7)',
   },
 });
