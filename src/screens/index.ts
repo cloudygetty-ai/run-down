@@ -1,3 +1,3 @@
-export * from "./LobbyScreen";
-export * from "./GameScreen";
-export * from "./GameOverScreen";
+export * from './LobbyScreen';
+export * from './GameScreen';
+export * from './GameOverScreen';
