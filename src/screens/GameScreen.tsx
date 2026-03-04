@@ -1,17 +1,17 @@
-import React, { useEffect, useRef } from "react";
-import { View, StyleSheet, Dimensions } from "react-native";
-import { GameMap } from "../components/GameMap";
-import { HUD } from "../components/HUD";
-import { Joystick } from "../components/Joystick";
-import { useGameStore } from "../services/state";
-import { tickGame, fireShot, InputState } from "../core/gameEngine";
-import { tickBots } from "../services/ai";
-import { startReload, switchWeaponSlot } from "../services/weapons";
-import { BuildPiece, Player } from "../types";
-import { distance } from "../utils";
-import { logger } from "../utils";
+import React, { useEffect, useRef, useCallback } from 'react';
+import { View, StyleSheet, Dimensions } from 'react-native';
+import { GameMap } from '../components/GameMap';
+import { HUD } from '../components/HUD';
+import { Joystick } from '../components/Joystick';
+import { useGameStore } from '../services/state';
+import { tickGame, fireShot, InputState } from '../core/gameEngine';
+import { tickBots } from '../services/ai';
+import { startReload, switchWeaponSlot } from '../services/weapons';
+import { BuildPiece, Player, Vector2 } from '../types';
+import { distance } from '../utils';
+import { logger } from '../utils';
 
-const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get("window");
+const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 const TICK_MS = 50;
 const LOOT_PICKUP_RANGE = 60;
 const VIEWPORT_W = SCREEN_W;
@@ -22,45 +22,36 @@ type Props = {
 };
 
 export const GameScreen: React.FC<Props> = ({ onGameOver }) => {
-  const { gameState, updateGameState, pickUpLoot, placeBuildPiece } =
-    useGameStore();
+  const { gameState, updateGameState } = useGameStore();
   const inputRef = useRef<InputState>({
     moveVector: { x: 0, y: 0 },
     aimVector: { x: 1, y: 0 },
     isShooting: false,
     isBuilding: false,
-    buildPieceType: "wall",
+    buildPieceType: 'wall',
     buildPosition: null,
     wantsReload: false,
   });
   const lastFireTimeRef = useRef(0);
   const tickIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const onGameOverRef = useRef(onGameOver);
+  onGameOverRef.current = onGameOver;
 
   // Camera follows the human player
   const human = gameState.players.find((p) => p.isHuman);
   const viewportX = human
-    ? Math.max(
-        0,
-        Math.min(
-          gameState.mapWidth - VIEWPORT_W,
-          human.position.x - VIEWPORT_W / 2
-        )
-      )
+    ? Math.max(0, Math.min(gameState.mapWidth - VIEWPORT_W, human.position.x - VIEWPORT_W / 2))
     : 0;
   const viewportY = human
-    ? Math.max(
-        0,
-        Math.min(
-          gameState.mapHeight - VIEWPORT_H,
-          human.position.y - VIEWPORT_H / 2
-        )
-      )
+    ? Math.max(0, Math.min(gameState.mapHeight - VIEWPORT_H, human.position.y - VIEWPORT_H / 2))
     : 0;
 
   useEffect(() => {
     tickIntervalRef.current = setInterval(() => {
-      const state = useGameStore.getState().gameState;
-      if (state.phase !== "playing") {
+      // WHY: always read from getState() — never close over stale state
+      const { gameState: state, updateGameState: update, pickUpLoot } = useGameStore.getState();
+
+      if (state.phase !== 'playing') {
         clearInterval(tickIntervalRef.current!);
         return;
       }
@@ -69,28 +60,28 @@ export const GameScreen: React.FC<Props> = ({ onGameOver }) => {
         let next = tickGame(state, inputRef.current, TICK_MS);
         next = tickBots(next, TICK_MS);
 
-        if (next.phase === "game_over") {
-          updateGameState(next);
-          onGameOver();
+        if (next.phase === 'game_over') {
+          update(next);
+          onGameOverRef.current();
           return;
         }
 
-        // Auto-pickup loot for human
+        // Auto-pickup loot for human — use store action directly (atomic)
         const h = next.players.find((p) => p.isHuman);
         if (h) {
           const nearby = next.lootDrops.find(
             (l) => distance(l.position, h.position) < LOOT_PICKUP_RANGE
           );
           if (nearby) {
-            // WHY: pickup is handled via store to keep state mutation atomic
-            pickUpLoot(h.id, nearby.id);
-            return; // Store update will trigger re-render
+            update(next); // commit movement first
+            pickUpLoot(h.id, nearby.id); // then pick up
+            return;
           }
         }
 
-        updateGameState(next);
+        update(next);
       } catch (err) {
-        logger.error("GameScreen", "game tick error", err);
+        logger.error('GameScreen', 'game tick error', err);
       }
     }, TICK_MS);
 
@@ -100,7 +91,7 @@ export const GameScreen: React.FC<Props> = ({ onGameOver }) => {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // WHY: intentionally empty — the interval reads state via store.getState() each tick
+  }, []); // intentional: interval reads state via getState() each tick
 
   const handleMove = useCallback((direction: Vector2) => {
     inputRef.current = { ...inputRef.current, moveVector: direction };
@@ -111,114 +102,88 @@ export const GameScreen: React.FC<Props> = ({ onGameOver }) => {
   }, []);
 
   const handleShoot = useCallback(() => {
-    if (!human || human.status !== "alive") {
-      return;
-    }
-    const state = useGameStore.getState().gameState;
-    const weapon = human.weapons[human.activeWeaponSlot];
-    if (!weapon || weapon.isReloading || weapon.currentAmmo <= 0) {
-      return;
-    }
+    // WHY: read fresh state — this handler may be called many frames after render
+    const { gameState: state, updateGameState: update } = useGameStore.getState();
+    const h = state.players.find((p) => p.isHuman);
+    if (!h || h.status !== 'alive') return;
+
+    const weapon = h.weapons[h.activeWeaponSlot];
+    if (!weapon || weapon.isReloading || weapon.currentAmmo <= 0) return;
 
     const now = Date.now();
     const minInterval = 1000 / weapon.fireRate;
-    if (now - lastFireTimeRef.current < minInterval) {
-      return;
-    }
-
+    if (now - lastFireTimeRef.current < minInterval) return;
     lastFireTimeRef.current = now;
 
-    // Aim toward nearest visible enemy, or straight ahead if none
-    const enemies = state.players.filter(
-      (p) => !p.isHuman && p.status === "alive"
-    );
+    const enemies = state.players.filter((p) => !p.isHuman && p.status === 'alive');
     const target = enemies.reduce<Player | null>((best, e) => {
-      if (!best) {
-        return e;
-      }
-      return distance(e.position, human.position) <
-        distance(best.position, human.position)
-        ? e
-        : best;
+      if (!best) return e;
+      return distance(e.position, h.position) < distance(best.position, h.position) ? e : best;
     }, null);
 
     const aimPoint = target
       ? target.position
       : {
-          x:
-            human.position.x +
-            Math.cos((human.rotation * Math.PI) / 180) * weapon.range,
-          y:
-            human.position.y +
-            Math.sin((human.rotation * Math.PI) / 180) * weapon.range,
+          x: h.position.x + Math.cos((h.rotation * Math.PI) / 180) * weapon.range,
+          y: h.position.y + Math.sin((h.rotation * Math.PI) / 180) * weapon.range,
         };
 
-    const next = fireShot(state, human.id, aimPoint);
-    updateGameState(next);
-  }, [human, updateGameState]);
+    update(fireShot(state, h.id, aimPoint));
+  }, []);
 
   const handleReload = useCallback(() => {
-    if (!human) {
-      return;
-    }
-    startReload(human, (updated) => {
-      const state = useGameStore.getState().gameState;
-      const players = state.players.map((p) =>
-        p.id === human.id ? updated : p
-      );
-      updateGameState({ ...state, players });
+    const { gameState: state, updateGameState: update } = useGameStore.getState();
+    const h = state.players.find((p) => p.isHuman);
+    if (!h) return;
+    startReload(h, (updated) => {
+      const { gameState: s, updateGameState: u } = useGameStore.getState();
+      u({ ...s, players: s.players.map((p) => (p.id === h.id ? updated : p)) });
     });
-  }, [human, updateGameState]);
+  }, []);
 
   const handleBuildToggle = useCallback(() => {
-    if (!human) {
-      return;
-    }
-    const state = useGameStore.getState().gameState;
-    const players = state.players.map((p) =>
-      p.id === human.id ? { ...p, isBuilding: !p.isBuilding } : p
-    );
-    updateGameState({ ...state, players });
-  }, [human, updateGameState]);
+    const { gameState: state, updateGameState: update } = useGameStore.getState();
+    const h = state.players.find((p) => p.isHuman);
+    if (!h) return;
+    update({
+      ...state,
+      players: state.players.map((p) =>
+        p.id === h.id ? { ...p, isBuilding: !p.isBuilding } : p
+      ),
+    });
+  }, []);
 
-  const handleWeaponSwitch = useCallback(
-    (slot: 0 | 1 | 2) => {
-      if (!human) {
-        return;
-      }
-      const updated = switchWeaponSlot(human, slot);
-      const state = useGameStore.getState().gameState;
-      const players = state.players.map((p) =>
-        p.id === human.id ? updated : p
-      );
-      updateGameState({ ...state, players });
-    },
-    [human, updateGameState]
-  );
+  const handleWeaponSwitch = useCallback((slot: 0 | 1 | 2) => {
+    const { gameState: state, updateGameState: update } = useGameStore.getState();
+    const h = state.players.find((p) => p.isHuman);
+    if (!h) return;
+    update({
+      ...state,
+      players: state.players.map((p) => (p.id === h.id ? switchWeaponSlot(h, slot) : p)),
+    });
+  }, []);
 
   const handlePlaceBuild = useCallback(() => {
-    if (!human || !human.isBuilding) {
-      return;
-    }
+    const { gameState: state, placeBuildPiece } = useGameStore.getState();
+    const h = state.players.find((p) => p.isHuman);
+    if (!h || !h.isBuilding) return;
     const piece: BuildPiece = {
       id: `bp_${Date.now()}`,
-      type: human.selectedBuildPiece,
-      material: human.selectedBuildMaterial,
+      type: h.selectedBuildPiece,
+      material: h.selectedBuildMaterial,
       position: {
-        x: human.position.x + Math.cos((human.rotation * Math.PI) / 180) * 60,
-        y: human.position.y + Math.sin((human.rotation * Math.PI) / 180) * 60,
+        x: h.position.x + Math.cos((h.rotation * Math.PI) / 180) * 60,
+        y: h.position.y + Math.sin((h.rotation * Math.PI) / 180) * 60,
       },
-      rotation: Math.round(human.rotation / 90) * 90,
+      rotation: Math.round(h.rotation / 90) * 90,
       health: 150,
       maxHealth: 150,
-      ownerId: human.id,
+      ownerId: h.id,
     };
     placeBuildPiece(piece);
-  }, [human, placeBuildPiece]);
+  }, []);
 
-  if (!human) {
-    return null;
-  }
+  if (!human) return null;
 
   return (
     <View style={styles.container}>
@@ -230,17 +195,13 @@ export const GameScreen: React.FC<Props> = ({ onGameOver }) => {
         viewportH={VIEWPORT_H}
       />
 
-      {/* Left joystick for movement */}
       <View style={styles.joystickLeft}>
         <Joystick onMove={handleMove} onRelease={handleMoveRelease} />
       </View>
 
-      {/* Right joystick for aim direction */}
       <View style={styles.joystickRight}>
         <Joystick
-          onMove={(v) => {
-            inputRef.current = { ...inputRef.current, aimVector: v };
-          }}
+          onMove={(v) => { inputRef.current = { ...inputRef.current, aimVector: v }; }}
           onRelease={() => {}}
           size={100}
         />
@@ -260,18 +221,7 @@ export const GameScreen: React.FC<Props> = ({ onGameOver }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#000",
-  },
-  joystickLeft: {
-    position: "absolute",
-    bottom: 30,
-    left: 30,
-  },
-  joystickRight: {
-    position: "absolute",
-    bottom: 50,
-    right: 160,
-  },
+  container: { flex: 1, backgroundColor: '#000' },
+  joystickLeft: { position: 'absolute', bottom: 30, left: 30 },
+  joystickRight: { position: 'absolute', bottom: 50, right: 160 },
 });
