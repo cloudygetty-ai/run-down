@@ -1,0 +1,20 @@
+{
+  "name": "RunDown",
+  "displayName": "Run Down",
+  "expo": {
+    "name": "Run Down",
+    "slug": "run-down",
+    "version": "0.1.0",
+    "orientation": "landscape",
+    "ios": {
+      "bundleIdentifier": "com.claude.rundown",
+      "infoPlist": {
+        "UIBackgroundModes": ["fetch", "processing"],
+        "BGTaskSchedulerPermittedIdentifiers": ["com.claude.rundown.refresh"]
+      }
+    },
+    "android": {
+      "package": "com.claude.rundown"
+    }
+  }
+}

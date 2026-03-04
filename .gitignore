@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# Build output
+android/app/build/
+ios/build/
+*.jsbundle
+
+# Generated
+.expo/
+dist/
+web-build/
+
+# Environment
+.env
+config.js
+
+# Editor
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# Jest
+coverage/
+
+# React Native
+*.orig.*

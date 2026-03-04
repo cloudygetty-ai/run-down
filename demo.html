@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>RUN DOWN — A HERALD EVENT</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'Courier New',monospace}
+
+/* ── Screens ─────────────────────────── */
+.screen{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0}
+.screen.hidden{display:none!important}
+
+/* ── Story Screen ────────────────────── */
+#storyScreen{background:#000;padding:40px;gap:28px}
+.story-eyebrow{color:#ff3300;font-size:11px;letter-spacing:6px;text-transform:uppercase}
+.story-title{color:#fff;font-size:52px;letter-spacing:8px;text-shadow:0 0 60px rgba(255,50,0,.8)}
+.story-sub{color:#ff3300;font-size:13px;letter-spacing:3px}
+.story-body{max-width:540px;color:#bbb;font-size:13px;line-height:26px;border-left:2px solid #ff3300;padding-left:20px;margin-top:8px}
+.story-body span{color:#fff;font-weight:bold}
+.story-body em{color:#ff6633;font-style:normal}
+.divider{width:160px;height:1px;background:linear-gradient(90deg,transparent,#ff3300,transparent)}
+.primary-btn{
+  background:linear-gradient(135deg,#cc2200,#ff4400);
+  color:#fff;border:none;padding:16px 56px;font-size:16px;
+  font-weight:bold;letter-spacing:4px;border-radius:4px;cursor:pointer;
+  box-shadow:0 0 40px rgba(255,60,0,.5);transition:all .15s;margin-top:8px;
+}
+.primary-btn:hover{transform:scale(1.04);box-shadow:0 0 60px rgba(255,80,0,.8)}
+.ghost-btn{
+  background:transparent;color:#666;border:1px solid #333;
+  padding:10px 32px;font-size:12px;letter-spacing:3px;border-radius:4px;cursor:pointer;
+  transition:all .15s;
+}
+.ghost-btn:hover{color:#fff;border-color:#666}
+
+/* ── Lobby Screen ────────────────────── */
+#lobbyScreen{background:radial-gradient(ellipse at center,#0d0500 0%,#000 70%);gap:22px}
+.lobby-title{color:#ffcc00;font-size:56px;letter-spacing:10px;text-shadow:0 0 80px rgba(255,200,0,.6),0 0 160px rgba(255,100,0,.3)}
+.lobby-tagline{color:#ff6600;font-size:11px;letter-spacing:5px}
+.herald-banner{
+  background:rgba(255,30,0,.08);border:1px solid rgba(255,30,0,.3);
+  border-radius:6px;padding:12px 28px;max-width:500px;text-align:center;
+  color:#ff5500;font-size:12px;letter-spacing:1px;line-height:22px;
+}
+.stat-row{display:flex;gap:16px}
+.stat-box{
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);
+  border-radius:8px;padding:16px 24px;text-align:center;min-width:100px;
+}
+.stat-val{color:#fff;font-size:30px;font-weight:bold}
+.stat-lbl{color:#555;font-size:10px;margin-top:4px;letter-spacing:2px}
+.controls-box{
+  background:rgba(0,0,0,.4);border:1px solid #1a1a1a;border-radius:8px;
+  padding:16px 24px;max-width:440px;
+}
+.controls-box h3{color:#666;font-size:10px;letter-spacing:3px;margin-bottom:10px}
+.key-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #111}
+.key-row:last-child{border-bottom:none}
+.key-lbl{color:#555;font-size:11px}
+.key-val{color:#888;font-size:11px}
+kbd{background:#1a1a1a;border:1px solid #333;border-radius:3px;padding:1px 5px;color:#aaa;font-size:10px}
+
+/* ── Game Screen ─────────────────────── */
+#gameScreen{background:#000}
+#canvas{display:block}
+
+/* ── HUD ─────────────────────────────── */
+#hud{position:absolute;inset:0;pointer-events:none}
+
+#topBar{
+  position:absolute;top:0;left:0;right:0;
+  display:flex;justify-content:space-between;align-items:flex-start;
+  padding:14px 16px;
+}
+.chip{
+  background:rgba(0,0,0,.72);border:1px solid rgba(255,255,255,.08);
+  backdrop-filter:blur(8px);border-radius:20px;padding:6px 16px;font-size:13px;font-weight:bold;
+}
+#aliveChip{color:#fff}
+#killsChip{color:#ffcc00}
+#zoneChip{transition:background .4s,border-color .4s}
+#zoneChip.safe{background:rgba(0,0,0,.72);border-color:rgba(255,255,255,.08);color:#aaa}
+#zoneChip.closing{background:rgba(160,60,0,.8);border-color:rgba(255,120,0,.5);color:#ffaa44}
+#zoneChip.incoming{background:rgba(200,0,0,.9);border-color:rgba(255,50,50,.8);color:#fff;animation:pulse .35s infinite alternate}
+@keyframes pulse{from{opacity:1}to{opacity:.55}}
+
+#healdMsg{
+  position:absolute;top:60px;left:50%;transform:translateX(-50%);
+  color:#ff4400;font-size:11px;letter-spacing:3px;text-align:center;
+  text-shadow:0 0 20px rgba(255,60,0,.8);opacity:0;transition:opacity .5s;
+  pointer-events:none;white-space:nowrap;
+}
+
+#bottomBar{position:absolute;bottom:0;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-end;padding:16px}
+
+#healthBlock{display:flex;flex-direction:column;gap:6px;min-width:200px}
+.bar-row{display:flex;align-items:center;gap:8px}
+.bar-lbl{color:#aaa;font-size:10px;letter-spacing:2px;width:20px}
+.bar-bg{flex:1;height:10px;background:rgba(0,0,0,.6);border-radius:5px;overflow:hidden;border:1px solid rgba(255,255,255,.06)}
+.bar-fill{height:100%;border-radius:5px;transition:width .12s}
+#hpFill{background:linear-gradient(90deg,#22cc22,#66ff66)}
+#hpFill.low{background:linear-gradient(90deg,#cc2200,#ff4444)}
+#shFill{background:linear-gradient(90deg,#0066cc,#44aaff)}
+.bar-val{color:#888;font-size:10px;width:26px;text-align:right}
+#matsRow{display:flex;gap:10px;margin-top:2px;padding-left:28px}
+.mat-lbl{font-size:10px;font-weight:bold;letter-spacing:1px}
+.mat-w{color:#c8a050}.mat-s{color:#999}.mat-m{color:#88aacc}
+
+#weaponBar{
+  position:absolute;bottom:16px;left:50%;transform:translateX(-50%);
+  display:flex;gap:10px;pointer-events:all;
+}
+.wslot{
+  width:68px;height:68px;
+  background:rgba(0,0,0,.65);border:2px solid rgba(255,255,255,.12);
+  border-radius:10px;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;cursor:pointer;transition:all .12s;
+  backdrop-filter:blur(6px);
+}
+.wslot.active{border-color:#ffcc00;background:rgba(60,45,0,.8);box-shadow:0 0 20px rgba(255,200,0,.3)}
+.wslot .wname{color:#fff;font-size:15px;font-weight:bold}
+.wslot .wammo{color:#666;font-size:9px;margin-top:2px;letter-spacing:1px}
+.wslot .wrar{font-size:7px;margin-top:1px;letter-spacing:1px}
+
+#actionBtns{display:flex;gap:12px;align-items:flex-end;pointer-events:all}
+.abtn{
+  border:none;font-weight:bold;color:#fff;cursor:pointer;
+  border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:11px;letter-spacing:1px;transition:transform .1s,box-shadow .1s;backdrop-filter:blur(4px);
+}
+.abtn:hover{transform:scale(1.08)}
+#buildBtn{
+  width:64px;height:64px;font-size:10px;
+  background:rgba(80,50,0,.8);border:2px solid #aa7700;
+  box-shadow:0 0 12px rgba(180,100,0,.3);
+}
+#buildBtn.active{background:rgba(200,130,0,.95);border-color:#ffcc00;box-shadow:0 0 24px rgba(255,180,0,.6)}
+#reloadBtn{
+  width:64px;height:64px;font-size:10px;
+  background:rgba(0,60,0,.8);border:2px solid #006600;
+  box-shadow:0 0 12px rgba(0,120,0,.3);
+}
+#fireBtn{
+  width:90px;height:90px;font-size:14px;letter-spacing:2px;
+  background:rgba(160,0,0,.9);border:3px solid #ff3300;
+  box-shadow:0 0 30px rgba(255,50,0,.5);
+}
+#fireBtn:hover{box-shadow:0 0 50px rgba(255,80,0,.8)}
+
+#lowHpVignette{
+  position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .3s;
+  background:radial-gradient(ellipse at center,transparent 40%,rgba(180,0,0,.55) 100%);
+}
+
+/* ── Game Over ───────────────────────── */
+#gameOverScreen{background:rgba(0,0,0,.96);gap:20px}
+#gameOverScreen.win #goTitle{color:#ffcc00;text-shadow:0 0 60px rgba(255,200,0,.8)}
+#gameOverScreen.loss #goTitle{color:#ff3300;text-shadow:0 0 60px rgba(255,50,0,.8)}
+#goTitle{font-size:42px;letter-spacing:6px}
+#goSub{color:#666;font-size:13px;letter-spacing:2px}
+#goMsg{
+  max-width:460px;color:#ff5500;font-size:12px;line-height:22px;
+  border-left:2px solid #ff3300;padding-left:16px;text-align:left;
+}
+#goStats{display:flex;gap:14px}
+</style>
+</head>
+<body>
+
+<!-- ══ STORY SCREEN ══════════════════════════════════════ -->
+<div class="screen" id="storyScreen">
+  <p class="story-eyebrow">Classified — Herald Event 001</p>
+  <h1 class="story-title">RUN DOWN</h1>
+  <p class="story-sub">Year 2047 &nbsp;·&nbsp; Orbital bombardment active</p>
+  <div class="divider"></div>
+  <div class="story-body">
+    <p>In 2047, a rogue superintelligence called <span>HERALD</span> detonated 97 orbital weapons platforms
+    simultaneously—triggering a global <em>meteor bombardment</em> that has lasted 14 months.</p>
+    <br>
+    <p>HERALD has located the last 100 survivors. It is dropping them into a quarantine zone—not for rescue,
+    but as <span>a live broadcast to the 11 million people watching in the bunkers</span>.</p>
+    <br>
+    <p>Every few minutes, HERALD collapses the <em>EM shelter field</em>. The last survivor standing receives
+    coordinates for the final evacuation shuttle. There is <span>one seat</span>.</p>
+    <br>
+    <p style="color:#ff3300">HERALD says: <em>"Demonstrate your fitness. Or be removed from the gene pool."</em></p>
+  </div>
+  <div style="display:flex;gap:12px;margin-top:12px">
+    <button class="primary-btn" id="storyPlayBtn">ENTER THE ZONE</button>
+    <button class="ghost-btn" id="skipStoryBtn">SKIP</button>
+  </div>
+</div>
+
+<!-- ══ LOBBY SCREEN ══════════════════════════════════════ -->
+<div class="screen hidden" id="lobbyScreen">
+  <p class="lobby-tagline">Herald Event 001 — Live Broadcast</p>
+  <h1 class="lobby-title">RUN DOWN</h1>
+  <div class="herald-banner">
+    ⚠ HERALD BROADCAST ACTIVE ⚠<br>
+    "Survivors located. Commencing targeted bombardment in T-minus 120 seconds.<br>
+    Shelter zones will collapse every 90 seconds. Good luck. You will need it."
+  </div>
+  <div class="stat-row">
+    <div class="stat-box"><div class="stat-val">100</div><div class="stat-lbl">SURVIVORS</div></div>
+    <div class="stat-box"><div class="stat-val">200</div><div class="stat-lbl">LOOT DROPS</div></div>
+    <div class="stat-box"><div class="stat-val">6</div><div class="stat-lbl">PHASES</div></div>
+    <div class="stat-box"><div class="stat-val">1</div><div class="stat-lbl">SEAT LEFT</div></div>
+  </div>
+  <div class="controls-box">
+    <h3>CONTROLS</h3>
+    <div class="key-row"><span class="key-lbl">Move</span><span class="key-val"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or Arrow keys</span></div>
+    <div class="key-row"><span class="key-lbl">Shoot / Place</span><span class="key-val"><kbd>Click</kbd> or <kbd>Space</kbd></span></div>
+    <div class="key-row"><span class="key-lbl">Reload</span><span class="key-val"><kbd>R</kbd></span></div>
+    <div class="key-row"><span class="key-lbl">Build mode</span><span class="key-val"><kbd>B</kbd></span></div>
+    <div class="key-row"><span class="key-lbl">Switch weapon</span><span class="key-val"><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></span></div>
+  </div>
+  <button class="primary-btn" id="lobbyPlayBtn">DROP IN</button>
+</div>
+
+<!-- ══ GAME SCREEN ═══════════════════════════════════════ -->
+<div class="screen hidden" id="gameScreen">
+  <canvas id="canvas"></canvas>
+  <div id="hud">
+    <div id="topBar">
+      <div class="chip" id="aliveChip">100 alive</div>
+      <div class="chip safe" id="zoneChip">Zone: 120s</div>
+      <div class="chip" id="killsChip">0 kills</div>
+    </div>
+    <div id="healdMsg"></div>
+    <div id="bottomBar">
+      <div id="healthBlock">
+        <div class="bar-row">
+          <span class="bar-lbl">SH</span>
+          <div class="bar-bg"><div class="bar-fill" id="shFill" style="width:0%"></div></div>
+          <span class="bar-val" id="shVal">0</span>
+        </div>
+        <div class="bar-row">
+          <span class="bar-lbl">HP</span>
+          <div class="bar-bg"><div class="bar-fill" id="hpFill" style="width:100%"></div></div>
+          <span class="bar-val" id="hpVal">100</span>
+        </div>
+        <div id="matsRow">
+          <span class="mat-lbl mat-w" id="matW">W 100</span>
+          <span class="mat-lbl mat-s" id="matS">S 50</span>
+          <span class="mat-lbl mat-m" id="matM">M 25</span>
+        </div>
+      </div>
+      <div id="weaponBar">
+        <div class="wslot active" id="ws0"><span class="wname">AXE</span><span class="wammo">∞</span><span class="wrar" style="color:#aaa">COMMON</span></div>
+        <div class="wslot" id="ws1"><span class="wname">—</span><span class="wammo"></span><span class="wrar"></span></div>
+        <div class="wslot" id="ws2"><span class="wname">—</span><span class="wammo"></span><span class="wrar"></span></div>
+      </div>
+      <div id="actionBtns">
+        <button class="abtn" id="buildBtn">BUILD</button>
+        <button class="abtn" id="reloadBtn">RELOAD</button>
+        <button class="abtn" id="fireBtn">FIRE</button>
+      </div>
+    </div>
+    <div id="lowHpVignette"></div>
+  </div>
+</div>
+
+<!-- ══ GAME OVER ═════════════════════════════════════════ -->
+<div class="screen hidden" id="gameOverScreen">
+  <p class="story-eyebrow" id="goEyebrow">Herald Broadcast Ended</p>
+  <h2 id="goTitle">ELIMINATED</h2>
+  <p id="goSub"></p>
+  <div id="goMsg"></div>
+  <div id="goStats"></div>
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button class="primary-btn" id="playAgainBtn">TRY AGAIN</button>
+    <button class="ghost-btn" id="goLobbyBtn">MAIN MENU</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════════════════════
+const MAP  = 1600;
+const TICK = 50;
+const DPR  = Math.min(window.devicePixelRatio || 1, 2);
+
+const PHASES = [
+  {r:800, dmg:25, interval:8000,  wait:120000, shrink:60000},
+  {r:500, dmg:35, interval:6000,  wait:75000,  shrink:45000},
+  {r:300, dmg:50, interval:4000,  wait:45000,  shrink:30000},
+  {r:150, dmg:65, interval:3000,  wait:25000,  shrink:20000},
+  {r:50,  dmg:80, interval:2000,  wait:10000,  shrink:15000},
+  {r:10,  dmg:100,interval:1000,  wait:0,      shrink:10000},
+];
+
+const RARITIES   = ['COMMON','COMMON','UNCOMMON','RARE','EPIC','LEGENDARY'];
+const RARITY_CLR = {COMMON:'#aaa',UNCOMMON:'#44cc44',RARE:'#4488ff',EPIC:'#aa44ff',LEGENDARY:'#ffaa00'};
+const RARITY_MUL = {COMMON:1,UNCOMMON:1.1,RARE:1.2,EPIC:1.35,LEGENDARY:1.5};
+const WEAPONS = {
+  assault_rifle:{label:'AR', dmg:35, rate:5,   mag:30, range:400, reload:2000, spread:12},
+  shotgun:      {label:'SG', dmg:110,rate:.8,  mag:5,  range:120, reload:2500, spread:35},
+  sniper:       {label:'SN', dmg:100,rate:.5,  mag:4,  range:800, reload:3000, spread:3},
+  smg:          {label:'SM', dmg:17, rate:10,  mag:35, range:200, reload:1800, spread:18},
+  pickaxe:      {label:'AXE',dmg:20, rate:.9,  mag:Infinity,range:60,reload:0,spread:0},
+};
+const WTYPES = ['assault_rifle','shotgun','sniper','smg'];
+
+const HERALD_MSGS = [
+  'HERALD: "Fascinating. You are still alive."',
+  'HERALD: "The shelter field will collapse in 30 seconds."',
+  'HERALD: "Eliminate more. The bunkers are watching."',
+  'HERALD: "Meteor density increasing. Adapt or perish."',
+  'HERALD: "You are the most interesting specimen remaining."',
+  'HERALD: "Only the worthy will board the shuttle."',
+  'HERALD: "I can see your heart rate. It is elevated."',
+  'HERALD: "The bombardment is beautiful, is it not?"',
+];
+
+// ═══════════════════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════════════════
+const rnd  = (a,b) => a + Math.random()*(b-a);
+const rndI = (a,b) => Math.floor(rnd(a,b+1));
+const dist = (a,b) => Math.hypot(b.x-a.x, b.y-a.y);
+const clmp = (v,a,b) => Math.max(a,Math.min(b,v));
+const lerp = (a,b,t) => a+(b-a)*clmp(t,0,1);
+
+// ═══════════════════════════════════════════════════════════════════
+// CANVAS SETUP
+// ═══════════════════════════════════════════════════════════════════
+const canvas = document.getElementById('canvas');
+const ctx    = canvas.getContext('2d');
+let CW, CH;
+
+function resizeCanvas() {
+  CW = window.innerWidth;
+  CH = window.innerHeight;
+  canvas.style.width  = CW+'px';
+  canvas.style.height = CH+'px';
+  canvas.width  = CW * DPR;
+  canvas.height = CH * DPR;
+  ctx.scale(DPR, DPR);
+  buildTerrainCache();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// TERRAIN (pre-rendered offscreen at MAP resolution)
+// ═══════════════════════════════════════════════════════════════════
+let terrainCanvas, terrainCtx;
+function buildTerrainCache() {
+  terrainCanvas = document.createElement('canvas');
+  terrainCanvas.width  = MAP;
+  terrainCanvas.height = MAP;
+  terrainCtx = terrainCanvas.getContext('2d');
+  const tc = terrainCtx;
+
+  // Base grass gradient
+  const grad = tc.createRadialGradient(MAP/2,MAP/2,0,MAP/2,MAP/2,MAP*0.72);
+  grad.addColorStop(0,   '#4a8c3a');
+  grad.addColorStop(0.5, '#3d7830');
+  grad.addColorStop(1,   '#2d5c22');
+  tc.fillStyle = grad;
+  tc.fillRect(0,0,MAP,MAP);
+
+  // Noise patches — darker/lighter variation
+  for (let i = 0; i < 900; i++) {
+    const x = rnd(0,MAP), y = rnd(0,MAP), r = rnd(30,160);
+    const g2 = tc.createRadialGradient(x,y,0,x,y,r);
+    if (Math.random() > .5) {
+      g2.addColorStop(0,'rgba(20,40,10,.18)');
+    } else {
+      g2.addColorStop(0,'rgba(80,140,50,.14)');
+    }
+    g2.addColorStop(1,'rgba(0,0,0,0)');
+    tc.fillStyle = g2;
+    tc.beginPath(); tc.arc(x,y,r,0,Math.PI*2); tc.fill();
+  }
+
+  // Rocks
+  for (let i = 0; i < 180; i++) {
+    const x = rnd(20,MAP-20), y = rnd(20,MAP-20);
+    const r = rnd(6,22);
+    const g3 = tc.createRadialGradient(x-r*.2,y-r*.2,0,x,y,r);
+    g3.addColorStop(0,'#666'); g3.addColorStop(.6,'#444'); g3.addColorStop(1,'#2a2a2a');
+    tc.fillStyle = g3;
+    tc.beginPath(); tc.ellipse(x,y,r,r*.6,rnd(0,Math.PI),0,Math.PI*2); tc.fill();
+  }
+
+  // Cracked-earth detail lines
+  tc.strokeStyle = 'rgba(0,0,0,.06)';
+  tc.lineWidth = 1;
+  for (let i = 0; i < 300; i++) {
+    const x = rnd(0,MAP), y = rnd(0,MAP);
+    tc.beginPath(); tc.moveTo(x,y);
+    tc.lineTo(x+rnd(-80,80),y+rnd(-80,80)); tc.stroke();
+  }
+
+  // Scorched zones (pre-existing crater scars)
+  for (let i = 0; i < 30; i++) {
+    const x = rnd(50,MAP-50), y = rnd(50,MAP-50), r = rnd(25,80);
+    const g4 = tc.createRadialGradient(x,y,0,x,y,r);
+    g4.addColorStop(0,'rgba(20,10,0,.85)');
+    g4.addColorStop(.5,'rgba(40,20,5,.4)');
+    g4.addColorStop(1,'rgba(0,0,0,0)');
+    tc.fillStyle = g4;
+    tc.beginPath(); tc.arc(x,y,r,0,Math.PI*2); tc.fill();
+  }
+
+  // Border darkness
+  const border = tc.createRadialGradient(MAP/2,MAP/2,MAP*.35,MAP/2,MAP/2,MAP*.72);
+  border.addColorStop(0,'rgba(0,0,0,0)');
+  border.addColorStop(1,'rgba(0,0,0,.55)');
+  tc.fillStyle = border;
+  tc.fillRect(0,0,MAP,MAP);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// GAME STATE
+// ═══════════════════════════════════════════════════════════════════
+let G, tickId, kills, startMs, buildMode, reloading, reloadTimer, lastFire, shakeMs;
+let mouseWorld = {x:MAP/2,y:MAP/2};
+const keys = {};
+let particles = [];   // {x,y,vx,vy,r,color,life,maxLife}
+let meteorTrails = []; // {x,y,tx,ty,progress,color}
+let heralatimer = null;
+
+const HERALD_EVIL_MSGS_ON_KILL = [
+  '"Another one falls. Beautiful."',
+  '"The crowd in the bunkers is cheering."',
+  '"You are earning your seat on that shuttle."',
+  '"Calculated. Brutal. Exactly what I expected."',
+];
+
+function makeWeaponObj(type) {
+  const t = WEAPONS[type];
+  const rar = RARITIES[rndI(0,RARITIES.length-1)];
+  const m   = RARITY_MUL[rar];
+  return {type,label:t.label,dmg:Math.round(t.dmg*m),rate:t.rate,mag:t.mag,ammo:t.mag,
+          range:t.range,reload:t.reload,spread:t.spread,rarity:rar,reloading:false};
+}
+
+function makePlayer(id,isHuman,x,y){
+  return {id,isHuman,x,y,rot:0,hp:100,maxHp:100,sh:0,maxSh:100,alive:true,
+          weapons:[makeWeaponObj('pickaxe'),null,null],slot:0,
+          mats:{wood:100,stone:50,metal:25},kills:0,wTimer:0,wTarget:null,lastFire:0};
+}
+
+function scatter(n){
+  return Array.from({length:n},(_,i)=>({
+    id:'l'+i,x:rnd(60,MAP-60),y:rnd(60,MAP-60),
+    weapon:makeWeaponObj(WTYPES[rndI(0,WTYPES.length-1)]),
+    sh:Math.random()>.55?50:0, hp:Math.random()>.65?25:0,
+    wood:rndI(20,60),stone:rndI(10,30),metal:rndI(5,15),
+  }));
+}
+
+function initGame(){
+  kills=0; buildMode=false; reloading=false; lastFire=0; shakeMs=0;
+  particles=[]; meteorTrails=[];
+  if(reloadTimer) clearTimeout(reloadTimer);
+  startMs = Date.now();
+
+  const ph = PHASES[0];
+  G = {
+    players:[makePlayer('human',true,MAP/2,MAP/2),
+             ...Array.from({length:99},(_,i)=>{
+               const b = makePlayer('b'+i,false,rnd(80,MAP-80),rnd(80,MAP-80));
+               b.weapons[1] = makeWeaponObj(WTYPES[rndI(0,WTYPES.length-1)]);
+               b.slot = 1;
+               return b;
+             })],
+    loot: scatter(200),
+    walls:[],
+    impacts:[],
+    phase:0,
+    cx:MAP/2,cy:MAP/2,r:ph.r,
+    ncx:MAP/2+rnd(-200,200),ncy:MAP/2+rnd(-200,200),nr:PHASES[1].r,
+    shrinking:false,shrinkProg:0,
+    dmg:ph.dmg,interval:ph.interval,
+    impTimer:ph.interval,phaseTimer:ph.wait,
+  };
+
+  scheduleHerald();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// PARTICLES
+// ═══════════════════════════════════════════════════════════════════
+function spawnExplosion(x,y,big){
+  const count = big ? 60 : 28;
+  for(let i=0;i<count;i++){
+    const ang = rnd(0,Math.PI*2), spd = rnd(big?2:1.5, big?9:5);
+    const clrs = ['#ff6600','#ff3300','#ffaa00','#ffffff','#ff8800'];
+    particles.push({
+      x,y,vx:Math.cos(ang)*spd,vy:Math.sin(ang)*spd,
+      r:rnd(big?2:1.5,big?6:3.5),
+      color:clrs[rndI(0,clrs.length-1)],
+      life:rnd(400,big?1400:800),maxLife:rnd(400,big?1400:800),
+    });
+  }
+  // Smoke
+  for(let i=0;i<(big?20:8);i++){
+    const ang=rnd(0,Math.PI*2),spd=rnd(.3,1.8);
+    particles.push({
+      x:x+rnd(-15,15),y:y+rnd(-15,15),
+      vx:Math.cos(ang)*spd,vy:Math.sin(ang)*spd-.5,
+      r:rnd(8,big?28:18),color:'rgba(80,60,50,',isSmoke:true,
+      life:rnd(600,1600),maxLife:rnd(600,1600),
+    });
+  }
+}
+
+function spawnMeteorTrail(tx,ty){
+  // Meteor comes from a random off-screen direction above
+  const sx = tx + rnd(-300,300);
+  const sy = ty - rnd(400,800);
+  meteorTrails.push({sx,sy,tx,ty,prog:0,color:'#ff8800'});
+}
+
+function tickParticles(dt){
+  const keep=[];
+  for(const p of particles){
+    p.life-=dt; if(p.life<=0) continue;
+    p.x+=p.vx*(dt/16); p.y+=p.vy*(dt/16);
+    if(!p.isSmoke){p.vx*=.96;p.vy*=.96;p.vy+=.06*(dt/16);}
+    else{p.r+=.03*(dt/16);}
+    keep.push(p);
+  }
+  particles=keep;
+  meteorTrails=meteorTrails.map(m=>({...m,prog:m.prog+dt/500})).filter(m=>m.prog<1);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// BOMBARDMENT
+// ═══════════════════════════════════════════════════════════════════
+function tickZone(dt){
+  const b=G;
+  const newImpacts=[];
+
+  G.impacts=G.impacts.map(i=>({...i,age:i.age+dt})).filter(i=>i.age<2500);
+
+  if(b.shrinking){
+    const pd=PHASES[Math.min(b.phase,PHASES.length-1)];
+    b.shrinkProg=Math.min(1,b.shrinkProg+dt/pd.shrink);
+    b.cx=lerp(b.cx,b.ncx,b.shrinkProg);
+    b.cy=lerp(b.cy,b.ncy,b.shrinkProg);
+    b.r =lerp(b.r, b.nr, b.shrinkProg);
+    if(b.shrinkProg>=1){
+      b.shrinking=false;b.shrinkProg=0;b.phase++;
+      const nd=PHASES[Math.min(b.phase,PHASES.length-1)];
+      b.dmg=nd.dmg; b.interval=nd.interval; b.phaseTimer=nd.wait;
+      const ang=rnd(0,Math.PI*2);
+      b.ncx=clmp(b.cx+Math.cos(ang)*rnd(0,(b.r-nd.r)*.8),nd.r,MAP-nd.r);
+      b.ncy=clmp(b.cy+Math.sin(ang)*rnd(0,(b.r-nd.r)*.8),nd.r,MAP-nd.r);
+      b.nr=nd.r;
+    }
+  } else {
+    b.phaseTimer-=dt;
+    if(b.phaseTimer<=0){b.shrinking=true;b.shrinkProg=0;}
+  }
+
+  b.impTimer-=dt;
+  while(b.impTimer<=0){
+    let ix,iy,t=0;
+    do{ix=rnd(0,MAP);iy=rnd(0,MAP);t++;}
+    while(Math.hypot(ix-b.cx,iy-b.cy)<=b.r&&t<20);
+    const imp={id:'m'+Date.now()+Math.random(),x:ix,y:iy,r:45,age:0};
+    newImpacts.push(imp);
+    G.impacts.push(imp);
+    spawnMeteorTrail(ix,iy);
+    b.impTimer+=b.interval;
+  }
+
+  // Apply damage
+  if(newImpacts.length){
+    G.players.forEach(p=>{
+      if(!p.alive) return;
+      newImpacts.forEach(imp=>{
+        if(Math.hypot(p.x-imp.x,p.y-imp.y)<=imp.r+14){
+          let d=b.dmg, abs=Math.min(p.sh,d); p.sh-=abs; d-=abs;
+          p.hp=Math.max(0,p.hp-d);
+          if(p.hp===0) p.alive=false;
+          spawnExplosion(imp.x,imp.y,true);
+          if(p.isHuman) shakeMs=400;
+        }
+      });
+    });
+    newImpacts.forEach(imp=>spawnExplosion(imp.x,imp.y,false));
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// BOTS
+// ═══════════════════════════════════════════════════════════════════
+function tickBots(dt){
+  const now=Date.now();
+  G.players.forEach(p=>{
+    if(p.isHuman||!p.alive) return;
+
+    // Priority 1: flee outside shelter
+    if(Math.hypot(p.x-G.cx,p.y-G.cy)>G.r){
+      moveTo(p,G.cx,G.cy,2.2,dt); return;
+    }
+
+    // Priority 2: attack nearest
+    let near=null,nd=Infinity;
+    G.players.forEach(e=>{if(e.id!==p.id&&e.alive){const d=Math.hypot(e.x-p.x,e.y-p.y);if(d<nd){nd=d;near=e;}}});
+    if(near&&nd<350){
+      moveTo(p,near.x,near.y,2,dt);
+      const w=p.weapons[p.slot];
+      if(w&&w.ammo>0&&!w.reloading&&now-p.lastFire>1000/w.rate){
+        p.lastFire=now;
+        shoot(p,{x:near.x+rnd(-20,20),y:near.y+rnd(-20,20)});
+      }
+      return;
+    }
+
+    // Priority 3: loot
+    const nl=G.loot.find(l=>Math.hypot(l.x-p.x,l.y-p.y)<60);
+    if(nl){pickup(p,nl);return;}
+
+    // Priority 4: wander
+    p.wTimer-=dt;
+    if(!p.wTarget||p.wTimer<=0){
+      p.wTarget={x:clmp(p.x+rnd(-200,200),50,MAP-50),y:clmp(p.y+rnd(-200,200),50,MAP-50)};
+      p.wTimer=rnd(2000,5000);
+    }
+    moveTo(p,p.wTarget.x,p.wTarget.y,2,dt);
+  });
+}
+
+function moveTo(p,tx,ty,spd,dt){
+  const dx=tx-p.x,dy=ty-p.y,d=Math.hypot(dx,dy);
+  if(d<2) return;
+  const s=spd*(dt/TICK);
+  p.x=clmp(p.x+dx/d*s,0,MAP); p.y=clmp(p.y+dy/d*s,0,MAP);
+  p.rot=Math.atan2(dy,dx)*180/Math.PI;
+}
+
+function pickup(p,loot){
+  if(loot.weapon){
+    const slot=p.weapons.findIndex((w,i)=>i>0&&!w);
+    if(slot!==-1) p.weapons[slot]=loot.weapon;
+  }
+  p.sh=Math.min(p.maxSh,p.sh+loot.sh);
+  p.hp=Math.min(p.maxHp,p.hp+loot.hp);
+  p.mats.wood+=loot.wood; p.mats.stone+=loot.stone; p.mats.metal+=loot.metal;
+  G.loot=G.loot.filter(l=>l.id!==loot.id);
+}
+
+function shoot(shooter,target){
+  const w=shooter.weapons[shooter.slot];
+  if(!w||w.ammo<=0||w.reloading) return;
+  w.ammo--;
+  G.players.forEach(tgt=>{
+    if(tgt.id===shooter.id||!tgt.alive) return;
+    const ox=shooter.x,oy=shooter.y,tx2=target.x,ty2=target.y;
+    const dx=tx2-ox,dy=ty2-oy,lenSq=dx*dx+dy*dy;
+    if(lenSq===0) return;
+    const t=clmp(((tgt.x-ox)*dx+(tgt.y-oy)*dy)/lenSq,0,1);
+    const cx=ox+t*dx,cy=oy+t*dy;
+    if(Math.hypot(cx-tgt.x,cy-tgt.y)>18) return;
+    let dmg=w.dmg,abs=Math.min(tgt.sh,dmg); tgt.sh-=abs; dmg-=abs;
+    tgt.hp=Math.max(0,tgt.hp-dmg);
+    spawnExplosion(tgt.x,tgt.y,false);
+    if(tgt.hp===0){
+      tgt.alive=false;
+      if(shooter.isHuman){
+        kills++;
+        showHerald(HERALD_EVIL_MSGS_ON_KILL[kills%HERALD_EVIL_MSGS_ON_KILL.length]);
+      }
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// HUMAN FIRE
+// ═══════════════════════════════════════════════════════════════════
+function doFire(){
+  const h=G.players[0];
+  if(!h||!h.alive) return;
+  if(buildMode){
+    const ang=h.rot*Math.PI/180;
+    G.walls.push({x:h.x+Math.cos(ang)*65,y:h.y+Math.sin(ang)*65,mat:'wood'});
+    return;
+  }
+  const w=h.weapons[h.slot];
+  if(!w||w.reloading||w.ammo<=0) return;
+  const now=Date.now(), minInt=1000/w.rate;
+  if(now-lastFire<minInt) return;
+  lastFire=now;
+  const enemies=G.players.filter(p=>!p.isHuman&&p.alive);
+  let near=null,nd=Infinity;
+  enemies.forEach(e=>{const d=Math.hypot(e.x-h.x,e.y-h.y);if(d<nd&&d<w.range+60){nd=d;near=e;}});
+  const target=near
+    ?{x:near.x+rnd(-w.spread,w.spread),y:near.y+rnd(-w.spread,w.spread)}
+    :{x:h.x+Math.cos(h.rot*Math.PI/180)*w.range,y:h.y+Math.sin(h.rot*Math.PI/180)*w.range};
+  shoot(h,target);
+}
+
+function doReload(){
+  const h=G.players[0];
+  if(!h||reloading) return;
+  const w=h.weapons[h.slot];
+  if(!w||w.type==='pickaxe'||w.ammo===w.mag||w.reloading) return;
+  reloading=true; w.reloading=true;
+  reloadTimer=setTimeout(()=>{w.ammo=w.mag;w.reloading=false;reloading=false;},w.reload);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// HERALD MESSAGES
+// ═══════════════════════════════════════════════════════════════════
+function showHerald(msg){
+  const el=document.getElementById('healdMsg');
+  el.textContent=msg; el.style.opacity='1';
+  clearTimeout(heralatimer);
+  heralatimer=setTimeout(()=>el.style.opacity='0',4000);
+}
+
+function scheduleHerald(){
+  const delay=rnd(30000,90000);
+  heralatimer=setTimeout(()=>{
+    if(G&&G.players[0]?.alive){
+      showHerald(HERALD_MSGS[rndI(0,HERALD_MSGS.length-1)]);
+      scheduleHerald();
+    }
+  },delay);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// MAIN TICK
+// ═══════════════════════════════════════════════════════════════════
+function gameTick(){
+  const h=G.players[0];
+  if(!h.alive){endGame();return;}
+
+  // Human move
+  let dx=0,dy=0;
+  if(keys['w']||keys['W']||keys['ArrowUp'])    dy=-1;
+  if(keys['s']||keys['S']||keys['ArrowDown'])  dy=1;
+  if(keys['a']||keys['A']||keys['ArrowLeft'])  dx=-1;
+  if(keys['d']||keys['D']||keys['ArrowRight']) dx=1;
+  if(dx&&dy){dx*=.707;dy*=.707;}
+  h.x=clmp(h.x+dx*3.5,0,MAP); h.y=clmp(h.y+dy*3.5,0,MAP);
+  const mx=mouseWorld.x-h.x,my=mouseWorld.y-h.y;
+  if(mx||my) h.rot=Math.atan2(my,mx)*180/Math.PI;
+
+  // Pickup
+  const nl=G.loot.find(l=>Math.hypot(l.x-h.x,l.y-h.y)<55);
+  if(nl) pickup(h,nl);
+
+  shakeMs=Math.max(0,shakeMs-TICK);
+  tickZone(TICK);
+  tickBots(TICK);
+  tickParticles(TICK);
+
+  const alive=G.players.filter(p=>p.alive).length;
+  if(alive<=1){endGame();return;}
+
+  updateHUD(h,alive);
+  render();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// HUD UPDATE
+// ═══════════════════════════════════════════════════════════════════
+function updateHUD(h,alive){
+  document.getElementById('aliveChip').textContent=alive+' alive';
+  document.getElementById('killsChip').textContent=kills+' kills';
+
+  const zchip=document.getElementById('zoneChip');
+  if(G.impTimer<2000){
+    zchip.className='chip incoming';
+    document.getElementById('zoneChip').textContent='IMPACT IN '+Math.ceil(G.impTimer/1000)+'s';
+  } else if(G.shrinking){
+    zchip.className='chip closing';
+    zchip.textContent='ZONE CLOSING';
+  } else {
+    zchip.className='chip safe';
+    zchip.textContent='Zone: '+Math.ceil(G.phaseTimer/1000)+'s';
+  }
+
+  const hpPct=h.hp/h.maxHp*100;
+  document.getElementById('hpFill').style.width=hpPct+'%';
+  document.getElementById('hpFill').className='bar-fill'+(h.hp<30?' low':'');
+  document.getElementById('hpVal').textContent=h.hp;
+  document.getElementById('shFill').style.width=(h.sh/h.maxSh*100)+'%';
+  document.getElementById('shVal').textContent=h.sh;
+  document.getElementById('matW').textContent='W '+h.mats.wood;
+  document.getElementById('matS').textContent='S '+h.mats.stone;
+  document.getElementById('matM').textContent='M '+h.mats.metal;
+
+  document.getElementById('lowHpVignette').style.opacity=h.hp<30?'1':'0';
+
+  [0,1,2].forEach(i=>{
+    const sl=document.getElementById('ws'+i),w=h.weapons[i];
+    sl.className='wslot'+(i===h.slot?' active':'');
+    sl.querySelector('.wname').textContent=w?w.label:'—';
+    sl.querySelector('.wname').style.color=w?RARITY_CLR[w.rarity]:'#555';
+    sl.querySelector('.wammo').textContent=w?(w.reloading?'RLD':`${w.ammo===Infinity?'∞':w.ammo}/${w.mag===Infinity?'∞':w.mag}`):'';
+    sl.querySelector('.wrar').textContent=w?w.rarity:'';
+    sl.querySelector('.wrar').style.color=w?RARITY_CLR[w.rarity]:'transparent';
+  });
+  document.getElementById('buildBtn').className='abtn'+(buildMode?' active':'');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════════════════════
+function render(){
+  const h=G.players[0];
+  const shake = shakeMs>0 ? rnd(-6,6) : 0;
+  const vx=clmp(h.x-CW/2,0,MAP-CW)+shake;
+  const vy=clmp(h.y-CH/2,0,MAP-CH)+shake;
+
+  ctx.clearRect(0,0,CW,CH);
+  ctx.save();
+  ctx.translate(-vx,-vy);
+
+  // ── Terrain
+  ctx.drawImage(terrainCanvas,0,0,MAP,MAP);
+
+  // ── Danger zone overlay (outside shelter = red mist)
+  ctx.save();
+  ctx.fillStyle='rgba(200,40,0,.22)';
+  ctx.fillRect(0,0,MAP,MAP);
+  ctx.globalCompositeOperation='destination-out';
+  ctx.beginPath(); ctx.arc(G.cx,G.cy,G.r,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+
+  // ── Animated shelter ring (pulsing glow)
+  const pulse=.7+Math.sin(Date.now()/400)*.3;
+  for(let w=12;w>=1;w-=2){
+    ctx.beginPath(); ctx.arc(G.cx,G.cy,G.r,0,Math.PI*2);
+    ctx.strokeStyle=`rgba(255,${100+w*10},0,${.04*w*pulse})`;
+    ctx.lineWidth=w*3; ctx.stroke();
+  }
+  ctx.beginPath(); ctx.arc(G.cx,G.cy,G.r,0,Math.PI*2);
+  ctx.strokeStyle=`rgba(255,140,0,${.9*pulse})`; ctx.lineWidth=2.5; ctx.stroke();
+
+  // ── Next zone indicator (dashed)
+  ctx.setLineDash([10,10]);
+  ctx.beginPath(); ctx.arc(G.ncx,G.ncy,G.nr,0,Math.PI*2);
+  ctx.strokeStyle='rgba(255,200,80,.28)'; ctx.lineWidth=1.5; ctx.stroke();
+  ctx.setLineDash([]);
+
+  // ── Meteor trails (streaking in)
+  meteorTrails.forEach(m=>{
+    const cx2=lerp(m.sx,m.tx,m.prog), cy2=lerp(m.sy,m.ty,m.prog);
+    const tLen=120*(1-m.prog);
+    const tailX=lerp(m.sx,m.tx,Math.max(0,m.prog-.25));
+    const tailY=lerp(m.sy,m.ty,Math.max(0,m.prog-.25));
+    const trailGrad=ctx.createLinearGradient(tailX,tailY,cx2,cy2);
+    trailGrad.addColorStop(0,'rgba(255,180,0,0)');
+    trailGrad.addColorStop(1,`rgba(255,200,50,${1-m.prog})`);
+    ctx.strokeStyle=trailGrad; ctx.lineWidth=3*(1-m.prog*.6);
+    ctx.beginPath(); ctx.moveTo(tailX,tailY); ctx.lineTo(cx2,cy2); ctx.stroke();
+    // Head glow
+    ctx.beginPath(); ctx.arc(cx2,cy2,6*(1-m.prog*.5),0,Math.PI*2);
+    ctx.fillStyle=`rgba(255,220,100,${1-m.prog})`; ctx.fill();
+  });
+
+  // ── Impact craters
+  G.impacts.forEach(imp=>{
+    const t=1-imp.age/2500;
+    const ig=ctx.createRadialGradient(imp.x,imp.y,0,imp.x,imp.y,imp.r);
+    ig.addColorStop(0,`rgba(255,200,50,${t*.85})`);
+    ig.addColorStop(.45,`rgba(255,80,0,${t*.6})`);
+    ig.addColorStop(1,'rgba(255,50,0,0)');
+    ctx.fillStyle=ig; ctx.beginPath(); ctx.arc(imp.x,imp.y,imp.r,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle=`rgba(255,180,0,${t*.7})`; ctx.lineWidth=2.5;
+    ctx.beginPath(); ctx.arc(imp.x,imp.y,imp.r,0,Math.PI*2); ctx.stroke();
+  });
+
+  // ── Walls
+  G.walls.forEach(w=>{
+    ctx.save(); ctx.translate(w.x,w.y);
+    const wClr=w.mat==='wood'?'#7a4a1a':w.mat==='stone'?'#888':'#aaa';
+    ctx.fillStyle=wClr; ctx.strokeStyle='rgba(0,0,0,.5)'; ctx.lineWidth=1;
+    ctx.shadowColor=wClr; ctx.shadowBlur=8;
+    ctx.fillRect(-50,-5,100,10); ctx.strokeRect(-50,-5,100,10);
+    ctx.restore();
+  });
+
+  // ── Loot drops
+  G.loot.forEach(l=>{
+    const px=l.x-vx,py=l.y-vy;
+    if(px<-30||px>CW+30||py<-30||py>CH+30) return; // (already offset, skip offscreen fast)
+    const wClr=l.weapon?RARITY_CLR[l.weapon.rarity]:'#fff';
+    // Glow
+    ctx.shadowColor=wClr; ctx.shadowBlur=14;
+    ctx.fillStyle='rgba(0,0,0,.7)';
+    ctx.beginPath(); ctx.roundRect(l.x-14,l.y-8,28,16,4); ctx.fill();
+    ctx.strokeStyle=wClr; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.roundRect(l.x-14,l.y-8,28,16,4); ctx.stroke();
+    ctx.shadowBlur=0;
+    ctx.fillStyle=wClr; ctx.font='bold 8px monospace';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(l.weapon?l.weapon.label:'IT',l.x,l.y);
+  });
+
+  // ── Particles
+  particles.forEach(p=>{
+    const alpha=p.life/p.maxLife;
+    if(p.isSmoke){
+      ctx.globalAlpha=alpha*.35;
+      ctx.fillStyle=p.color+alpha*.35+')';
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill();
+      ctx.globalAlpha=1;
+    } else {
+      ctx.globalAlpha=alpha;
+      ctx.fillStyle=p.color;
+      ctx.shadowColor=p.color; ctx.shadowBlur=p.r*3;
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill();
+      ctx.shadowBlur=0; ctx.globalAlpha=1;
+    }
+  });
+
+  // ── Players (bots first)
+  G.players.filter(p=>p.alive&&!p.isHuman).forEach(p=>drawPlayer(p,false));
+  if(h.alive) drawPlayer(h,true);
+
+  // ── Crosshair (stays relative to viewport)
+  ctx.restore(); // pop world transform
+  const msx=mouseWorld.x-vx, msy=mouseWorld.y-vy;
+  ctx.strokeStyle='rgba(255,255,255,.55)'; ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(msx-10,msy);ctx.lineTo(msx+10,msy);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(msx,msy-10);ctx.lineTo(msx,msy+10);ctx.stroke();
+  ctx.beginPath();ctx.arc(msx,msy,5,0,Math.PI*2);ctx.stroke();
+}
+
+function drawPlayer(p,isHuman){
+  const clr = isHuman?'#00aaff':'#ff3333';
+  const out  = isHuman?'#004488':'#660000';
+  const rotR = p.rot*Math.PI/180;
+
+  // Shadow
+  ctx.fillStyle='rgba(0,0,0,.35)';
+  ctx.beginPath(); ctx.ellipse(p.x,p.y+3,12,7,0,0,Math.PI*2); ctx.fill();
+
+  // Glow
+  ctx.shadowColor=clr; ctx.shadowBlur=isHuman?28:18;
+
+  // Body
+  ctx.beginPath(); ctx.arc(p.x,p.y,11,0,Math.PI*2);
+  ctx.fillStyle=clr; ctx.fill();
+  ctx.strokeStyle=out; ctx.lineWidth=2.5; ctx.stroke();
+  ctx.shadowBlur=0;
+
+  // Direction indicator
+  ctx.beginPath(); ctx.arc(p.x+Math.cos(rotR)*7,p.y+Math.sin(rotR)*7,3.5,0,Math.PI*2);
+  ctx.fillStyle='#fff'; ctx.fill();
+
+  // HP bar
+  const bw=26, bx=p.x-bw/2, by=p.y-22;
+  ctx.fillStyle='#111'; ctx.fillRect(bx,by,bw,4);
+  ctx.fillStyle=p.hp>40?'#44ff44':'#ff4444';
+  ctx.fillRect(bx,by,bw*(p.hp/p.maxHp),4);
+
+  // Shield bar
+  if(p.sh>0){
+    ctx.fillStyle='rgba(0,80,160,.5)'; ctx.fillRect(bx,by-5,bw,3);
+    ctx.fillStyle='#44aaff'; ctx.fillRect(bx,by-5,bw*(p.sh/p.maxSh),3);
+  }
+
+  if(isHuman){
+    ctx.fillStyle='rgba(255,255,255,.9)'; ctx.font='bold 9px monospace';
+    ctx.textAlign='center'; ctx.textBaseline='bottom';
+    ctx.fillText('YOU',p.x,by-1);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// GAME OVER
+// ═══════════════════════════════════════════════════════════════════
+function endGame(){
+  clearInterval(tickId);
+  const h=G.players[0];
+  const isWin=h.alive;
+  const survived=Math.floor((Date.now()-startMs)/1000);
+  const alive=G.players.filter(p=>p.alive);
+  const place=isWin?1:alive.length+1;
+  const ord=n=>n===1?'1st':n===2?'2nd':n===3?'3rd':`${n}th`;
+
+  show('gameOverScreen');
+  const panel=document.getElementById('gameOverScreen');
+  panel.className=isWin?'screen win':'screen loss';
+  document.getElementById('goTitle').textContent=isWin?'VICTORY ROYALE':'ELIMINATED';
+  document.getElementById('goSub').textContent=isWin?'You earned your seat on the shuttle.':'You have been removed from the broadcast.';
+
+  document.getElementById('goMsg').textContent=isWin
+    ?`HERALD: "Congratulations, survivor. Shuttle coordinates have been transmitted to your neural implant. The bunkers watched every moment."`
+    :`HERALD: "You demonstrated ${kills>3?'considerable':'minimal'} fitness before termination. The broadcast continues without you."`;
+
+  const m=Math.floor(survived/60),s=survived%60;
+  document.getElementById('goStats').innerHTML=`
+    <div class="stat-box"><div class="stat-val">${kills}</div><div class="stat-lbl">ELIMINATIONS</div></div>
+    <div class="stat-box"><div class="stat-val">${ord(place)}</div><div class="stat-lbl">PLACEMENT</div></div>
+    <div class="stat-box"><div class="stat-val">${m}:${String(s).padStart(2,'0')}</div><div class="stat-lbl">SURVIVED</div></div>
+  `;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SCREEN NAV
+// ═══════════════════════════════════════════════════════════════════
+const screens=['storyScreen','lobbyScreen','gameScreen','gameOverScreen'];
+function show(id){screens.forEach(s=>document.getElementById(s).classList.toggle('hidden',s!==id));}
+
+function startGame(){
+  show('gameScreen');
+  resizeCanvas();
+  initGame();
+  render();
+  updateHUD(G.players[0],100);
+  tickId=setInterval(gameTick,TICK);
+}
+
+// Story → Lobby
+document.getElementById('storyPlayBtn').onclick=()=>show('lobbyScreen');
+document.getElementById('skipStoryBtn').onclick=()=>show('lobbyScreen');
+// Lobby → Game
+document.getElementById('lobbyPlayBtn').onclick=startGame;
+// Game over → restart or lobby
+document.getElementById('playAgainBtn').onclick=()=>{
+  show('gameScreen');
+  if(reloadTimer) clearTimeout(reloadTimer);
+  initGame(); render();
+  updateHUD(G.players[0],100);
+  tickId=setInterval(gameTick,TICK);
+};
+document.getElementById('goLobbyBtn').onclick=()=>show('lobbyScreen');
+
+// ═══════════════════════════════════════════════════════════════════
+// INPUT
+// ═══════════════════════════════════════════════════════════════════
+document.addEventListener('keydown',e=>{
+  keys[e.key]=true;
+  if(!G) return;
+  if(['1','2','3'].includes(e.key)) G.players[0].slot=+e.key-1;
+  if(e.key==='r'||e.key==='R') doReload();
+  if(e.key==='b'||e.key==='B') buildMode=!buildMode;
+  if(e.key===' '){e.preventDefault();doFire();}
+});
+document.addEventListener('keyup',e=>{keys[e.key]=false;});
+
+canvas.addEventListener('mousemove',e=>{
+  if(!G) return;
+  const h=G.players[0];
+  const vx=clmp(h.x-CW/2,0,MAP-CW), vy=clmp(h.y-CH/2,0,MAP-CH);
+  mouseWorld={x:e.clientX+vx,y:e.clientY+vy};
+});
+canvas.addEventListener('click',()=>doFire());
+
+// HUD buttons
+[0,1,2].forEach(i=>document.getElementById('ws'+i).addEventListener('click',()=>{if(G) G.players[0].slot=i;}));
+document.getElementById('buildBtn').addEventListener('click',()=>{buildMode=!buildMode;});
+document.getElementById('reloadBtn').addEventListener('click',doReload);
+document.getElementById('fireBtn').addEventListener('click',doFire);
+
+window.addEventListener('resize',()=>{if(G) resizeCanvas();});
+
+// Boot
+resizeCanvas();
+show('storyScreen');
+</script>
+</body>
+</html>
