@@ -38,7 +38,14 @@
   },
   "jest": {
     "preset": "react-native",
-    "moduleFileExtensions": ["ts", "tsx", "js", "jsx", "json", "node"],
+    "moduleFileExtensions": [
+      "ts",
+      "tsx",
+      "js",
+      "jsx",
+      "json",
+      "node"
+    ],
     "testRegex": "(/__tests__/.*|(\\.|/)(test|spec))\\.(jsx?|tsx?)$",
     "transform": {
       "^.+\\.(js|jsx|ts|tsx)$": "babel-jest"
@@ -54,5 +61,11 @@
       "^@utils/(.*)$": "<rootDir>/src/utils/$1",
       "^@types/(.*)$": "<rootDir>/src/types/$1"
     }
-  }
+  },
+  "description": "Run Down \u2014 Mobile battle royale game built with React Native and TypeScript",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cloudygetty-ai/run-down.git"
+  },
+  "license": "MIT"
 }
