@@ -1,0 +1,203 @@
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "name": "CitrineOS EV Charging Stack",
+  "description": "Production-grade OCPP 2.0.1 charge point management system. Includes CitrineOS Core, Everest simulator, TimescaleDB, RabbitMQ, Redis, Hasura GraphQL, Directus CMS, an extensible custom-logic service, and an Nginx gateway. Only the gateway is publicly reachable — all internal services communicate over Railway private networking.",
+  "tags": ["ev-charging", "ocpp", "citrineos", "timescaledb", "rabbitmq", "hasura", "directus"],
+  "services": [
+    {
+      "name": "timescaledb",
+      "description": "PostgreSQL 15 + TimescaleDB for time-series meter data. Private only.",
+      "source": {
+        "image": "timescale/timescaledb:latest-pg15"
+      },
+      "variables": {
+        "POSTGRES_DB": "citrineos",
+        "POSTGRES_USER": "citrineos",
+        "POSTGRES_PASSWORD": { "generator": "secret", "length": 32 },
+        "PGDATA": "/var/lib/postgresql/data/pgdata"
+      },
+      "volumes": [
+        { "mountPath": "/var/lib/postgresql/data", "name": "timescaledb-data" }
+      ],
+      "networking": {
+        "tcpProxies": []
+      }
+    },
+
+    {
+      "name": "rabbitmq",
+      "description": "RabbitMQ 3 message broker for OCPP event streaming. Private only.",
+      "source": {
+        "image": "rabbitmq:3.12-management-alpine"
+      },
+      "variables": {
+        "RABBITMQ_DEFAULT_USER": "citrineos",
+        "RABBITMQ_DEFAULT_PASS": { "generator": "secret", "length": 24 },
+        "RABBITMQ_DEFAULT_VHOST": "citrineos"
+      },
+      "volumes": [
+        { "mountPath": "/var/lib/rabbitmq", "name": "rabbitmq-data" }
+      ],
+      "networking": {
+        "tcpProxies": []
+      }
+    },
+
+    {
+      "name": "redis",
+      "description": "Redis 7 cache used by CitrineOS Core and Directus. Private only.",
+      "source": {
+        "image": "redis:7-alpine"
+      },
+      "variables": {
+        "REDIS_PASSWORD": { "generator": "secret", "length": 24 }
+      },
+      "startCommand": "redis-server --requirepass ${{redis.REDIS_PASSWORD}}",
+      "volumes": [
+        { "mountPath": "/data", "name": "redis-data" }
+      ],
+      "networking": {
+        "tcpProxies": []
+      }
+    },
+
+    {
+      "name": "citrineos-core",
+      "description": "CitrineOS OCPP 2.0.1 charge point management server. Private HTTP (8080) and WebSocket (8081).",
+      "source": {
+        "image": "ghcr.io/citrineos/citrineos-core:latest"
+      },
+      "variables": {
+        "APP_NAME": "citrineos",
+        "CITRINEOS_AUTH_SECURITY_MODE": "BOTH",
+        "DATABASE_HOST": "${{timescaledb.RAILWAY_PRIVATE_DOMAIN}}",
+        "DATABASE_PORT": "5432",
+        "DATABASE_NAME": "${{timescaledb.POSTGRES_DB}}",
+        "DATABASE_USER": "${{timescaledb.POSTGRES_USER}}",
+        "DATABASE_PASSWORD": "${{timescaledb.POSTGRES_PASSWORD}}",
+        "AMQP_HOSTNAME": "${{rabbitmq.RAILWAY_PRIVATE_DOMAIN}}",
+        "AMQP_PORT": "5672",
+        "AMQP_USER": "${{rabbitmq.RABBITMQ_DEFAULT_USER}}",
+        "AMQP_PASSWORD": "${{rabbitmq.RABBITMQ_DEFAULT_PASS}}",
+        "AMQP_VHOST": "${{rabbitmq.RABBITMQ_DEFAULT_VHOST}}",
+        "REDIS_HOST": "${{redis.RAILWAY_PRIVATE_DOMAIN}}",
+        "REDIS_PORT": "6379",
+        "REDIS_PASSWORD": "${{redis.REDIS_PASSWORD}}",
+        "CITRINEOS_DIRECTUS_URL": "http://${{directus.RAILWAY_PRIVATE_DOMAIN}}:8055",
+        "CITRINEOS_DIRECTUS_TOKEN": "${{directus.ADMIN_TOKEN}}",
+        "PORT": "8080",
+        "WEBSOCKET_PORT": "8081"
+      },
+      "networking": {
+        "tcpProxies": []
+      }
+    },
+
+    {
+      "name": "hasura",
+      "description": "Hasura GraphQL Engine connected to TimescaleDB. Private only — accessed through gateway.",
+      "source": {
+        "image": "hasura/graphql-engine:v2.40.0"
+      },
+      "variables": {
+        "HASURA_GRAPHQL_DATABASE_URL": "postgres://${{timescaledb.POSTGRES_USER}}:${{timescaledb.POSTGRES_PASSWORD}}@${{timescaledb.RAILWAY_PRIVATE_DOMAIN}}:5432/${{timescaledb.POSTGRES_DB}}",
+        "HASURA_GRAPHQL_ADMIN_SECRET": { "generator": "secret", "length": 32 },
+        "HASURA_GRAPHQL_ENABLE_CONSOLE": "false",
+        "HASURA_GRAPHQL_DEV_MODE": "false",
+        "HASURA_GRAPHQL_ENABLED_LOG_TYPES": "startup, http-log, webhook-log, websocket-log",
+        "HASURA_GRAPHQL_JWT_SECRET": { "generator": "secret", "length": 32 },
+        "PORT": "8080"
+      },
+      "networking": {
+        "tcpProxies": []
+      }
+    },
+
+    {
+      "name": "directus",
+      "description": "Directus headless CMS for CitrineOS data management. Private only.",
+      "source": {
+        "image": "directus/directus:11"
+      },
+      "variables": {
+        "SECRET": { "generator": "secret", "length": 32 },
+        "ADMIN_EMAIL": "admin@citrineos.local",
+        "ADMIN_PASSWORD": { "generator": "secret", "length": 20 },
+        "ADMIN_TOKEN": { "generator": "secret", "length": 32 },
+        "DB_CLIENT": "pg",
+        "DB_HOST": "${{timescaledb.RAILWAY_PRIVATE_DOMAIN}}",
+        "DB_PORT": "5432",
+        "DB_DATABASE": "${{timescaledb.POSTGRES_DB}}",
+        "DB_USER": "${{timescaledb.POSTGRES_USER}}",
+        "DB_PASSWORD": "${{timescaledb.POSTGRES_PASSWORD}}",
+        "CACHE_ENABLED": "true",
+        "CACHE_STORE": "redis",
+        "REDIS": "redis://:${{redis.REDIS_PASSWORD}}@${{redis.RAILWAY_PRIVATE_DOMAIN}}:6379",
+        "PUBLIC_URL": "https://${{gateway.RAILWAY_PUBLIC_DOMAIN}}/cms",
+        "PORT": "8055"
+      },
+      "networking": {
+        "tcpProxies": []
+      }
+    },
+
+    {
+      "name": "everest",
+      "description": "EVerest charging station simulator for integration testing. Private only.",
+      "source": {
+        "image": "ghcr.io/everest/everest-demo:latest"
+      },
+      "variables": {
+        "CITRINEOS_CORE_WS_URL": "ws://${{citrineos-core.RAILWAY_PRIVATE_DOMAIN}}:8081",
+        "STATION_ID": "EVB-P17390866",
+        "OCPP_VERSION": "OCPP201"
+      },
+      "networking": {
+        "tcpProxies": []
+      }
+    },
+
+    {
+      "name": "extensions",
+      "description": "Custom extensions service. Listens to RabbitMQ OCPP events and exposes a REST API for custom business logic (billing, loyalty, alerts). Add new handlers in src/handlers/.",
+      "source": {
+        "repo": "cloudygetty-ai/run-down",
+        "branch": "claude/citrineos-railway-template-PRfh5",
+        "rootDirectory": "citrineos-railway/extensions-service"
+      },
+      "variables": {
+        "PORT": "3001",
+        "NODE_ENV": "production",
+        "RABBITMQ_URL": "amqp://${{rabbitmq.RABBITMQ_DEFAULT_USER}}:${{rabbitmq.RABBITMQ_DEFAULT_PASS}}@${{rabbitmq.RAILWAY_PRIVATE_DOMAIN}}:5672/${{rabbitmq.RABBITMQ_DEFAULT_VHOST}}",
+        "RABBITMQ_EXCHANGE": "citrineos",
+        "RABBITMQ_QUEUE": "extensions.main",
+        "RABBITMQ_ROUTING_KEYS": "ocpp.#",
+        "RABBITMQ_PREFETCH": "10",
+        "CITRINEOS_CORE_URL": "http://${{citrineos-core.RAILWAY_PRIVATE_DOMAIN}}:8080",
+        "LOG_LEVEL": "info"
+      },
+      "networking": {
+        "tcpProxies": []
+      }
+    },
+
+    {
+      "name": "gateway",
+      "description": "Nginx reverse proxy. The ONLY service with a public domain. Routes /api/graphql → Hasura, /cms → Directus, /ocpp → CitrineOS Core, /extensions → Extensions.",
+      "source": {
+        "repo": "cloudygetty-ai/run-down",
+        "branch": "claude/citrineos-railway-template-PRfh5",
+        "rootDirectory": "citrineos-railway/gateway"
+      },
+      "variables": {
+        "CITRINEOS_CORE_HOST": "${{citrineos-core.RAILWAY_PRIVATE_DOMAIN}}",
+        "HASURA_HOST": "${{hasura.RAILWAY_PRIVATE_DOMAIN}}",
+        "DIRECTUS_HOST": "${{directus.RAILWAY_PRIVATE_DOMAIN}}",
+        "EXTENSIONS_HOST": "${{extensions.RAILWAY_PRIVATE_DOMAIN}}"
+      },
+      "networking": {
+        "serviceDomains": [{}]
+      }
+    }
+  ]
+}
