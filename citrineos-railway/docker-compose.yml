@@ -1,0 +1,243 @@
+version: "3.9"
+
+# CitrineOS EV Charging Stack — Local Development
+#
+# Mirrors the Railway production topology exactly.
+# Private networking = the `citrineos-net` bridge network below.
+# Only `gateway` publishes ports to the host machine.
+#
+# Usage:
+#   cp .env.example .env    # fill in secrets
+#   docker compose up -d
+
+networks:
+  citrineos-net:
+    driver: bridge
+
+volumes:
+  timescaledb-data:
+  rabbitmq-data:
+  redis-data:
+  directus-uploads:
+
+# ---------------------------------------------------------------------------
+# INFRASTRUCTURE TIER  (no public ports)
+# ---------------------------------------------------------------------------
+
+services:
+  timescaledb:
+    image: timescale/timescaledb:latest-pg15
+    restart: unless-stopped
+    networks:
+      - citrineos-net
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-citrineos}
+      POSTGRES_USER: ${POSTGRES_USER:-citrineos}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?required}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - timescaledb-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    restart: unless-stopped
+    networks:
+      - citrineos-net
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-citrineos}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:?required}
+      RABBITMQ_DEFAULT_VHOST: ${RABBITMQ_VHOST:-citrineos}
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    networks:
+      - citrineos-net
+    command: redis-server --requirepass ${REDIS_PASSWORD:?required}
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+# ---------------------------------------------------------------------------
+# APPLICATION TIER  (no public ports)
+# ---------------------------------------------------------------------------
+
+  citrineos-core:
+    image: ghcr.io/citrineos/citrineos-core:latest
+    restart: unless-stopped
+    networks:
+      - citrineos-net
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      APP_NAME: citrineos
+      CITRINEOS_AUTH_SECURITY_MODE: ${CITRINEOS_AUTH_SECURITY_MODE:-BOTH}
+      DATABASE_HOST: timescaledb
+      DATABASE_PORT: 5432
+      DATABASE_NAME: ${POSTGRES_DB:-citrineos}
+      DATABASE_USER: ${POSTGRES_USER:-citrineos}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:?required}
+      AMQP_HOSTNAME: rabbitmq
+      AMQP_PORT: 5672
+      AMQP_USER: ${RABBITMQ_USER:-citrineos}
+      AMQP_PASSWORD: ${RABBITMQ_PASS:?required}
+      AMQP_VHOST: ${RABBITMQ_VHOST:-citrineos}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?required}
+      CITRINEOS_DIRECTUS_URL: http://directus:8055
+      CITRINEOS_DIRECTUS_TOKEN: ${DIRECTUS_ADMIN_TOKEN:?required}
+      PORT: 8080
+      WEBSOCKET_PORT: 8081
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  hasura:
+    image: hasura/graphql-engine:v2.40.0
+    restart: unless-stopped
+    networks:
+      - citrineos-net
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    environment:
+      HASURA_GRAPHQL_DATABASE_URL: postgres://${POSTGRES_USER:-citrineos}:${POSTGRES_PASSWORD:?required}@timescaledb:5432/${POSTGRES_DB:-citrineos}
+      HASURA_GRAPHQL_ADMIN_SECRET: ${HASURA_ADMIN_SECRET:?required}
+      HASURA_GRAPHQL_ENABLE_CONSOLE: "false"
+      HASURA_GRAPHQL_DEV_MODE: "false"
+      HASURA_GRAPHQL_ENABLED_LOG_TYPES: "startup,http-log,webhook-log,websocket-log"
+      HASURA_GRAPHQL_JWT_SECRET: ${HASURA_JWT_SECRET:?required}
+      PORT: 8080
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/healthz || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  directus:
+    image: directus/directus:11
+    restart: unless-stopped
+    networks:
+      - citrineos-net
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      SECRET: ${DIRECTUS_SECRET:?required}
+      ADMIN_EMAIL: ${DIRECTUS_ADMIN_EMAIL:-admin@citrineos.local}
+      ADMIN_PASSWORD: ${DIRECTUS_ADMIN_PASSWORD:?required}
+      ADMIN_TOKEN: ${DIRECTUS_ADMIN_TOKEN:?required}
+      DB_CLIENT: pg
+      DB_HOST: timescaledb
+      DB_PORT: 5432
+      DB_DATABASE: ${POSTGRES_DB:-citrineos}
+      DB_USER: ${POSTGRES_USER:-citrineos}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?required}
+      CACHE_ENABLED: "true"
+      CACHE_STORE: redis
+      REDIS: redis://:${REDIS_PASSWORD:?required}@redis:6379
+      PUBLIC_URL: http://localhost/cms
+      PORT: 8055
+    volumes:
+      - directus-uploads:/directus/uploads
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8055/server/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  everest:
+    image: ghcr.io/everest/everest-demo:latest
+    restart: unless-stopped
+    networks:
+      - citrineos-net
+    depends_on:
+      citrineos-core:
+        condition: service_healthy
+    environment:
+      CITRINEOS_CORE_WS_URL: ws://citrineos-core:8081
+      STATION_ID: EVB-P17390866
+      OCPP_VERSION: OCPP201
+
+  extensions:
+    build:
+      context: ./extensions-service
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    networks:
+      - citrineos-net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      citrineos-core:
+        condition: service_healthy
+    environment:
+      PORT: 3001
+      NODE_ENV: production
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-citrineos}:${RABBITMQ_PASS:?required}@rabbitmq:5672/${RABBITMQ_VHOST:-citrineos}
+      RABBITMQ_EXCHANGE: citrineos
+      RABBITMQ_QUEUE: extensions.main
+      RABBITMQ_ROUTING_KEYS: "ocpp.#"
+      RABBITMQ_PREFETCH: "10"
+      CITRINEOS_CORE_URL: http://citrineos-core:8080
+      LOG_LEVEL: info
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:3001/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+# ---------------------------------------------------------------------------
+# GATEWAY TIER  (single public entry point — host port 80)
+# ---------------------------------------------------------------------------
+
+  gateway:
+    build:
+      context: ./gateway
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    networks:
+      - citrineos-net
+    depends_on:
+      - citrineos-core
+      - hasura
+      - directus
+      - extensions
+    ports:
+      - "80:80"
+    environment:
+      CITRINEOS_CORE_HOST: citrineos-core
+      HASURA_HOST: hasura
+      DIRECTUS_HOST: directus
+      EXTENSIONS_HOST: extensions
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
