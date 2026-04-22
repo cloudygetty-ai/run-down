@@ -162,7 +162,7 @@
       "description": "Custom extensions service. Listens to RabbitMQ OCPP events and exposes a REST API for custom business logic (billing, loyalty, alerts). Add new handlers in src/handlers/.",
       "source": {
         "repo": "cloudygetty-ai/run-down",
-        "branch": "claude/citrineos-railway-template-PRfh5",
+        "branch": "citrineos-railway-template",
         "rootDirectory": "citrineos-railway/extensions-service"
       },
       "variables": {
@@ -186,7 +186,7 @@
       "description": "Nginx reverse proxy. The ONLY service with a public domain. Routes /api/graphql → Hasura, /cms → Directus, /ocpp → CitrineOS Core, /extensions → Extensions.",
       "source": {
         "repo": "cloudygetty-ai/run-down",
-        "branch": "claude/citrineos-railway-template-PRfh5",
+        "branch": "citrineos-railway-template",
         "rootDirectory": "citrineos-railway/gateway"
       },
       "variables": {
