@@ -51,7 +51,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: quality
-    if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
+    # WHY: android/ is not committed until the native shell is bootstrapped via
+    # react-native init. Skip this job rather than fail every PR in the meantime.
+    if: >
+      (github.ref == 'refs/heads/main' || github.event_name == 'pull_request') &&
+      hashFiles('android/gradlew') != ''
 
     steps:
       - name: Checkout
