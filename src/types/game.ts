@@ -5,14 +5,9 @@ export type Vector2 = {
   y: number;
 };
 
-export type WeaponType =
-  | "assault_rifle"
-  | "shotgun"
-  | "sniper"
-  | "smg"
-  | "pickaxe";
+export type WeaponType = 'assault_rifle' | 'shotgun' | 'sniper' | 'smg' | 'pickaxe';
 
-export type Rarity = "common" | "uncommon" | "rare" | "epic" | "legendary";
+export type Rarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
 
 export type Weapon = {
   id: string;
@@ -27,9 +22,9 @@ export type Weapon = {
   isReloading: boolean;
 };
 
-export type BuildingMaterial = "wood" | "stone" | "metal";
+export type BuildingMaterial = 'wood' | 'stone' | 'metal';
 
-export type BuildPieceType = "wall" | "floor" | "ramp";
+export type BuildPieceType = 'wall' | 'floor' | 'ramp';
 
 export type BuildPiece = {
   id: string;
@@ -52,7 +47,7 @@ export type LootDrop = {
   health: number;
 };
 
-export type PlayerStatus = "alive" | "knocked" | "eliminated";
+export type PlayerStatus = 'alive' | 'knocked' | 'eliminated';
 
 export type Player = {
   id: string;
@@ -111,7 +106,7 @@ export type Bombardment = {
   activeImpacts: MeteorImpact[];
 };
 
-export type GamePhase = "lobby" | "dropping" | "playing" | "game_over";
+export type GamePhase = 'lobby' | 'dropping' | 'playing' | 'game_over';
 
 export type GameResult = {
   placement: number;
@@ -121,7 +116,7 @@ export type GameResult = {
 };
 
 export type MapTile = {
-  type: "ground" | "water" | "mountain" | "building_floor";
+  type: 'ground' | 'water' | 'mountain' | 'building_floor';
   elevation: number;
   hasLoot: boolean;
 };

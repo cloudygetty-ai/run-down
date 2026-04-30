@@ -44,15 +44,45 @@ export const MeteorZoneOverlay: React.FC<Props> = ({
       )}
       {/* Bottom danger strip */}
       {safeBottom < viewportH && (
-        <View style={[styles.danger, { top: safeBottom, left: 0, width: viewportW, height: viewportH - safeBottom }]} />
+        <View
+          style={[
+            styles.danger,
+            {
+              top: safeBottom,
+              left: 0,
+              width: viewportW,
+              height: viewportH - safeBottom,
+            },
+          ]}
+        />
       )}
       {/* Left danger strip (between top/bottom strips) */}
       {safeLeft > 0 && (
-        <View style={[styles.danger, { top: safeTop, left: 0, width: safeLeft, height: safeBottom - safeTop }]} />
+        <View
+          style={[
+            styles.danger,
+            {
+              top: safeTop,
+              left: 0,
+              width: safeLeft,
+              height: safeBottom - safeTop,
+            },
+          ]}
+        />
       )}
       {/* Right danger strip */}
       {safeRight < viewportW && (
-        <View style={[styles.danger, { top: safeTop, left: safeRight, width: viewportW - safeRight, height: safeBottom - safeTop }]} />
+        <View
+          style={[
+            styles.danger,
+            {
+              top: safeTop,
+              left: safeRight,
+              width: viewportW - safeRight,
+              height: safeBottom - safeTop,
+            },
+          ]}
+        />
       )}
 
       {/* Shelter boundary ring — glowing fire ring */}

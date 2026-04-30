@@ -12,11 +12,7 @@ type Props = {
 const DEFAULT_SIZE = 120;
 const KNOB_SIZE = 44;
 
-export const Joystick: React.FC<Props> = ({
-  onMove,
-  onRelease,
-  size = DEFAULT_SIZE,
-}) => {
+export const Joystick: React.FC<Props> = ({ onMove, onRelease, size = DEFAULT_SIZE }) => {
   // State drives the visual knob position; ref drives the input value.
   // WHY: PanResponder callbacks are not inside React's render cycle —
   // setState triggers the re-render while the ref keeps reads synchronous.
@@ -53,7 +49,7 @@ export const Joystick: React.FC<Props> = ({
         setKnobOffset({ x: 0, y: 0 });
         onRelease();
       },
-    })
+    }),
   ).current;
 
   const half = size / 2;

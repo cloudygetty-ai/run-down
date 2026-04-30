@@ -14,15 +14,9 @@ const App: React.FC = () => {
   return (
     <SafeAreaView style={styles.root}>
       <StatusBar hidden />
-      {phase === 'lobby' && (
-        <LobbyScreen onStart={() => {}} />
-      )}
-      {(phase === 'playing' || phase === 'dropping') && (
-        <GameScreen onGameOver={() => {}} />
-      )}
-      {phase === 'game_over' && gameState.result && (
-        <GameOverScreen result={gameState.result} onPlayAgain={() => {}} />
-      )}
+      {phase === 'lobby' && <LobbyScreen />}
+      {(phase === 'playing' || phase === 'dropping') && <GameScreen onGameOver={() => {}} />}
+      {phase === 'game_over' && gameState.result && <GameOverScreen result={gameState.result} />}
     </SafeAreaView>
   );
 };

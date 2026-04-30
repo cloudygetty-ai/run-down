@@ -1,5 +1,5 @@
-import { Vector2, BuildPiece, Player } from "../../types";
-import { distance } from "../../utils";
+import { Vector2, BuildPiece, Player } from '../../types';
+import { distance } from '../../utils';
 
 // Wall thickness for collision response
 const WALL_HALF_SIZE = 10;
@@ -25,14 +25,11 @@ function buildPieceToAABB(piece: BuildPiece): AABB {
   };
 }
 
-export function resolvePlayerWallCollision(
-  player: Player,
-  pieces: BuildPiece[]
-): Vector2 {
+export function resolvePlayerWallCollision(player: Player, pieces: BuildPiece[]): Vector2 {
   let pos = { ...player.position };
 
   for (const piece of pieces) {
-    if (piece.type === "floor") {
+    if (piece.type === 'floor') {
       continue;
     } // players walk on floors, no lateral collision
 
@@ -59,11 +56,11 @@ export function resolvePlayerWallCollision(
 export function checkBulletHit(
   bulletOrigin: Vector2,
   bulletTarget: Vector2,
-  pieces: BuildPiece[]
+  pieces: BuildPiece[],
 ): BuildPiece | null {
   // Simple ray-AABB intersection — returns first wall the bullet hits
   for (const piece of pieces) {
-    if (piece.type === "floor") {
+    if (piece.type === 'floor') {
       continue;
     }
 
@@ -88,7 +85,7 @@ export function checkBulletHit(
 export function isPlayerHitByBullet(
   bulletOrigin: Vector2,
   bulletTarget: Vector2,
-  target: Player
+  target: Player,
 ): boolean {
   // Project target onto the bullet line segment
   const dx = bulletTarget.x - bulletOrigin.x;
@@ -102,10 +99,9 @@ export function isPlayerHitByBullet(
     0,
     Math.min(
       1,
-      ((target.position.x - bulletOrigin.x) * dx +
-        (target.position.y - bulletOrigin.y) * dy) /
-        lenSq
-    )
+      ((target.position.x - bulletOrigin.x) * dx + (target.position.y - bulletOrigin.y) * dy) /
+        lenSq,
+    ),
   );
   const closest = {
     x: bulletOrigin.x + t * dx,

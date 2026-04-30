@@ -1,4 +1,4 @@
-import { Vector2 } from "../types";
+import { Vector2 } from '../types';
 
 export function distance(a: Vector2, b: Vector2): number {
   const dx = b.x - a.x;
@@ -39,10 +39,6 @@ export function randomInt(min: number, max: number): number {
 }
 
 // Check if a point is inside a circle
-export function isInsideCircle(
-  point: Vector2,
-  center: Vector2,
-  radius: number
-): boolean {
+export function isInsideCircle(point: Vector2, center: Vector2, radius: number): boolean {
   return distance(point, center) <= radius;
 }

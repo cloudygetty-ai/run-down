@@ -44,7 +44,9 @@ export const LobbyScreen: React.FC = () => {
             'Walk over loot to pick it up',
             'Stay inside the zone — meteors strike outside!',
           ].map((line) => (
-            <Text key={line} style={styles.infoText}>• {line}</Text>
+            <Text key={line} style={styles.infoText}>
+              • {line}
+            </Text>
           ))}
         </View>
 
@@ -57,21 +59,67 @@ export const LobbyScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a1a', alignItems: 'center', justifyContent: 'center' },
+  container: {
+    flex: 1,
+    backgroundColor: '#0a0a1a',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   card: {
     backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 16, padding: 32, width: 400, maxWidth: '90%',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 16,
+    padding: 32,
+    width: 400,
+    maxWidth: '90%',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
   },
-  title: { fontSize: 36, fontWeight: 'bold', color: '#ffcc00', textAlign: 'center', letterSpacing: 4 },
-  subtitle: { fontSize: 13, color: '#aaa', textAlign: 'center', marginTop: 4, marginBottom: 24 },
-  statsGrid: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 24 },
-  statBox: { alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 8, paddingVertical: 12, paddingHorizontal: 16 },
+  title: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#ffcc00',
+    textAlign: 'center',
+    letterSpacing: 4,
+  },
+  subtitle: {
+    fontSize: 13,
+    color: '#aaa',
+    textAlign: 'center',
+    marginTop: 4,
+    marginBottom: 24,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 24,
+  },
+  statBox: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
   statValue: { fontSize: 26, fontWeight: 'bold', color: '#fff' },
   statLabel: { fontSize: 11, color: '#888', marginTop: 2 },
   infoSection: { marginBottom: 28 },
-  infoTitle: { fontSize: 14, fontWeight: 'bold', color: '#fff', marginBottom: 8 },
+  infoTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 8,
+  },
   infoText: { fontSize: 13, color: '#bbb', lineHeight: 22 },
-  playButton: { backgroundColor: '#ffcc00', borderRadius: 10, paddingVertical: 16, alignItems: 'center' },
-  playButtonText: { fontSize: 18, fontWeight: 'bold', color: '#000', letterSpacing: 2 },
+  playButton: {
+    backgroundColor: '#ffcc00',
+    borderRadius: 10,
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  playButtonText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#000',
+    letterSpacing: 2,
+  },
 });

@@ -1,13 +1,7 @@
-import { GameState, Player, Vector2 } from "../../types";
-import { fireShot } from "../../core/gameEngine";
-import {
-  distance,
-  normalize,
-  isInsideCircle,
-  clamp,
-  randomInRange,
-} from "../../utils";
-import { computeAimPoint, canFire } from "../weapons";
+import { GameState, Player, Vector2 } from '../../types';
+import { fireShot } from '../../core/gameEngine';
+import { distance, normalize, isInsideCircle, clamp, randomInRange } from '../../utils';
+import { computeAimPoint, canFire } from '../weapons';
 
 const BOT_SPEED = 2.5; // units per tick
 const BOT_SHOOT_RANGE = 300;
@@ -45,7 +39,7 @@ export function tickBots(state: GameState, deltaMs: number): GameState {
   let next = state;
 
   for (const bot of state.players) {
-    if (bot.isHuman || bot.status !== "alive") {
+    if (bot.isHuman || bot.status !== 'alive') {
       continue;
     }
     next = tickSingleBot(next, bot.id, now, deltaMs);
@@ -54,14 +48,9 @@ export function tickBots(state: GameState, deltaMs: number): GameState {
   return next;
 }
 
-function tickSingleBot(
-  state: GameState,
-  botId: string,
-  nowMs: number,
-  deltaMs: number
-): GameState {
+function tickSingleBot(state: GameState, botId: string, nowMs: number, deltaMs: number): GameState {
   const bot = state.players.find((p) => p.id === botId);
-  if (!bot || bot.status !== "alive") {
+  if (!bot || bot.status !== 'alive') {
     return state;
   }
 
@@ -70,11 +59,7 @@ function tickSingleBot(
 
   // Priority 1: get inside the shelter zone if outside during bombardment
   if (
-    !isInsideCircle(
-      bot.position,
-      state.bombardment.shelterCenter,
-      state.bombardment.shelterRadius
-    )
+    !isInsideCircle(bot.position, state.bombardment.shelterCenter, state.bombardment.shelterRadius)
   ) {
     const target = state.bombardment.shelterCenter;
     const movedState = moveBot(state, bot, target, deltaMs);
@@ -82,24 +67,14 @@ function tickSingleBot(
   }
 
   // Priority 2: engage enemy if in range
-  if (
-    nearestEnemy &&
-    distance(bot.position, nearestEnemy.position) < BOT_AGGRO_RANGE
-  ) {
+  if (nearestEnemy && distance(bot.position, nearestEnemy.position) < BOT_AGGRO_RANGE) {
     let updatedState = moveBot(state, bot, nearestEnemy.position, deltaMs);
 
     const weapon = bot.weapons[bot.activeWeaponSlot];
-    if (
-      weapon &&
-      distance(bot.position, nearestEnemy.position) < BOT_SHOOT_RANGE
-    ) {
+    if (weapon && distance(bot.position, nearestEnemy.position) < BOT_SHOOT_RANGE) {
       if (canFire(weapon, brain.lastFireTimeMs, nowMs)) {
         brain.lastFireTimeMs = nowMs;
-        const aimPoint = computeAimPoint(
-          bot.position,
-          nearestEnemy.position,
-          weapon
-        );
+        const aimPoint = computeAimPoint(bot.position, nearestEnemy.position, weapon);
         updatedState = fireShot(updatedState, botId, aimPoint);
       }
     }
@@ -107,9 +82,7 @@ function tickSingleBot(
   }
 
   // Priority 3: pick up nearby loot
-  const nearLoot = state.lootDrops.find(
-    (l) => distance(bot.position, l.position) < BOT_LOOT_RANGE
-  );
+  const nearLoot = state.lootDrops.find((l) => distance(bot.position, l.position) < BOT_LOOT_RANGE);
   if (nearLoot) {
     return pickUpLootForBot(state, bot, nearLoot.id);
   }
@@ -118,16 +91,8 @@ function tickSingleBot(
   brain.wanderTimer -= deltaMs;
   if (!brain.wanderTarget || brain.wanderTimer <= 0) {
     brain.wanderTarget = {
-      x: clamp(
-        bot.position.x + randomInRange(-200, 200),
-        50,
-        state.mapWidth - 50
-      ),
-      y: clamp(
-        bot.position.y + randomInRange(-200, 200),
-        50,
-        state.mapHeight - 50
-      ),
+      x: clamp(bot.position.x + randomInRange(-200, 200), 50, state.mapWidth - 50),
+      y: clamp(bot.position.y + randomInRange(-200, 200), 50, state.mapHeight - 50),
     };
     brain.wanderTimer = randomInRange(2000, 6000);
   }
@@ -135,12 +100,7 @@ function tickSingleBot(
   return moveBot(state, bot, brain.wanderTarget, deltaMs);
 }
 
-function moveBot(
-  state: GameState,
-  bot: Player,
-  target: Vector2,
-  deltaMs: number
-): GameState {
+function moveBot(state: GameState, bot: Player, target: Vector2, deltaMs: number): GameState {
   const dir = normalize({
     x: target.x - bot.position.x,
     y: target.y - bot.position.y,
@@ -165,10 +125,10 @@ function updateBotPosition(
   state: GameState,
   botId: string,
   pos: Vector2,
-  rotation: number
+  rotation: number,
 ): GameState {
   const players = state.players.map((p) =>
-    p.id === botId ? { ...p, position: pos, rotation } : p
+    p.id === botId ? { ...p, position: pos, rotation } : p,
   );
   return { ...state, players };
 }
@@ -178,7 +138,7 @@ function findNearestEnemy(bot: Player, players: Player[]): Player | null {
   let minDist = Infinity;
 
   for (const p of players) {
-    if (p.id === bot.id || p.status !== "alive") {
+    if (p.id === bot.id || p.status !== 'alive') {
       continue;
     }
     const d = distance(bot.position, p.position);
@@ -190,11 +150,7 @@ function findNearestEnemy(bot: Player, players: Player[]): Player | null {
   return nearest;
 }
 
-function pickUpLootForBot(
-  state: GameState,
-  bot: Player,
-  lootId: string
-): GameState {
+function pickUpLootForBot(state: GameState, bot: Player, lootId: string): GameState {
   const loot = state.lootDrops.find((l) => l.id === lootId);
   if (!loot) {
     return state;
@@ -203,11 +159,9 @@ function pickUpLootForBot(
   let updatedBot = { ...bot };
 
   if (loot.weapon) {
-    const emptySlot = updatedBot.weapons.findIndex(
-      (w, i) => i > 0 && w === null
-    ) as 0 | 1 | 2 | -1;
+    const emptySlot = updatedBot.weapons.findIndex((w, i) => i > 0 && w === null) as 0 | 1 | 2 | -1;
     if (emptySlot !== -1) {
-      const weapons = [...updatedBot.weapons] as Player["weapons"];
+      const weapons = [...updatedBot.weapons] as Player['weapons'];
       weapons[emptySlot] = loot.weapon;
       updatedBot = { ...updatedBot, weapons };
     }
