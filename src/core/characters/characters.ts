@@ -1,4 +1,5 @@
 import { Character, CharacterPassive } from '../../types';
+import { PORTRAITS } from './portraits';
 
 const BASE_PASSIVE: CharacterPassive = {
   description: '',
@@ -13,7 +14,6 @@ const BASE_PASSIVE: CharacterPassive = {
   materialsBonus: 0,
 };
 
-// portraitSource: swap null → require('../../../assets/portraits/vex.png') once images are added
 export const CHARACTERS: Character[] = [
   {
     id: 'vex',
@@ -21,7 +21,7 @@ export const CHARACTERS: Character[] = [
     title: 'The Phantom',
     lore: 'Quantum systems engineer who learned to weaponize lag. Blinks in and out of reality like a bad signal.',
     meteorQuip: 'I felt that before it landed. I hate this.',
-    portraitSource: null,
+    portraitSource: PORTRAITS.vex,
     accentColor: '#aa44ff',
     passive: {
       ...BASE_PASSIVE,
@@ -43,7 +43,7 @@ export const CHARACTERS: Character[] = [
     title: 'The Wall',
     lore: 'Walked through a building collapse once. The building lost.',
     meteorQuip: 'Good. Something to hit back.',
-    portraitSource: null,
+    portraitSource: PORTRAITS.brutus,
     accentColor: '#888888',
     passive: {
       ...BASE_PASSIVE,
@@ -64,7 +64,7 @@ export const CHARACTERS: Character[] = [
     title: 'The Solar',
     lore: 'Channelled solar energy into her biology. Warm to the touch. Lethal at range.',
     meteorQuip: 'A core. Finally. Stay back — it\'s mine.',
-    portraitSource: null,
+    portraitSource: PORTRAITS.nyra,
     accentColor: '#ffaa00',
     passive: {
       ...BASE_PASSIVE,
@@ -85,7 +85,7 @@ export const CHARACTERS: Character[] = [
     title: 'The Tracker',
     lore: 'Never loses a mark. Patience measured in days. Mercy measured in zero.',
     meteorQuip: 'Sky just did my job for me.',
-    portraitSource: null,
+    portraitSource: PORTRAITS.kade,
     accentColor: '#cc6633',
     passive: {
       ...BASE_PASSIVE,
@@ -106,7 +106,7 @@ export const CHARACTERS: Character[] = [
     title: 'The Fracture',
     lore: 'Psy-ops operator. Convinced three people they were somewhere else simultaneously.',
     meteorQuip: 'Controlled impact. Someone aimed that.',
-    portraitSource: null,
+    portraitSource: PORTRAITS.iris,
     accentColor: '#cc44aa',
     passive: {
       ...BASE_PASSIVE,
@@ -127,7 +127,7 @@ export const CHARACTERS: Character[] = [
     title: 'The Smoke',
     lore: 'Tactical specialist. Controls terrain. The smoke is never random.',
     meteorQuip: 'New cover. Adapt.',
-    portraitSource: null,
+    portraitSource: PORTRAITS.rook,
     accentColor: '#446688',
     passive: {
       ...BASE_PASSIVE,
@@ -149,7 +149,7 @@ export const CHARACTERS: Character[] = [
     title: 'The Predator',
     lore: 'Apex hunter from a collapsed nation. Tracks by sound. Closes in silence.',
     meteorQuip: 'Flushed them right out. Efficient.',
-    portraitSource: null,
+    portraitSource: PORTRAITS.talon,
     accentColor: '#882222',
     passive: {
       ...BASE_PASSIVE,
@@ -170,7 +170,7 @@ export const CHARACTERS: Character[] = [
     title: 'The Surgeon',
     lore: 'Field surgeon who operates on himself between engagements. The stitches are self-dissolving.',
     meteorQuip: 'Triage priority just changed.',
-    portraitSource: null,
+    portraitSource: PORTRAITS.voss,
     accentColor: '#4488ff',
     passive: {
       ...BASE_PASSIVE,
@@ -192,7 +192,7 @@ export const CHARACTERS: Character[] = [
     title: 'The Tether',
     lore: 'Former intelligence broker. Knows that information shared is pain shared.',
     meteorQuip: 'Accelerated evolution. The weak are being selected out.',
-    portraitSource: null,
+    portraitSource: PORTRAITS.sable,
     accentColor: '#9933cc',
     passive: {
       ...BASE_PASSIVE,
@@ -213,7 +213,7 @@ export const CHARACTERS: Character[] = [
     title: 'The Salvager',
     lore: 'Built his first weapon from a vending machine and a door hinge. Still uses it.',
     meteorQuip: 'Free parts. I\'ll take it.',
-    portraitSource: null,
+    portraitSource: PORTRAITS.orin,
     accentColor: '#cc8800',
     passive: {
       ...BASE_PASSIVE,
@@ -234,7 +234,7 @@ export const CHARACTERS: Character[] = [
     title: 'The Resonance',
     lore: 'Sound engineer turned soldier. The blast radius is calculated, not accidental.',
     meteorQuip: 'Beautiful resonance. Terrible timing.',
-    portraitSource: null,
+    portraitSource: PORTRAITS.lyric,
     accentColor: '#44ccaa',
     passive: {
       ...BASE_PASSIVE,
@@ -255,7 +255,7 @@ export const CHARACTERS: Character[] = [
     title: 'The Gravity',
     lore: 'Physicist who discovered the practical applications of his research. Immediately regretted it.',
     meteorQuip: 'This is my fault. Again.',
-    portraitSource: null,
+    portraitSource: PORTRAITS.magnus,
     accentColor: '#6644ff',
     passive: {
       ...BASE_PASSIVE,
@@ -277,7 +277,7 @@ export const CHARACTERS: Character[] = [
     title: 'The Glacier',
     lore: 'Cryogenic containment specialist. The "containment" part is optional.',
     meteorQuip: 'Heat. I despise heat.',
-    portraitSource: null,
+    portraitSource: PORTRAITS.eira,
     accentColor: '#44ddff',
     passive: {
       ...BASE_PASSIVE,
@@ -298,7 +298,7 @@ export const CHARACTERS: Character[] = [
     title: 'The Overclocked',
     lore: 'Neural augmentations pushed past rated limits. The tremor in his hands is from the speed, not the fear.',
     meteorQuip: 'HA. Let\'s go again.',
-    portraitSource: null,
+    portraitSource: PORTRAITS.jax,
     accentColor: '#ff4400',
     passive: {
       ...BASE_PASSIVE,
@@ -319,7 +319,7 @@ export const CHARACTERS: Character[] = [
     title: 'The Void',
     lore: 'Emerged from a void experiment intact. Mostly. The parts that changed are the useful parts.',
     meteorQuip: 'The void remembers this energy.',
-    portraitSource: null,
+    portraitSource: PORTRAITS.kael,
     accentColor: '#220044',
     passive: {
       ...BASE_PASSIVE,
