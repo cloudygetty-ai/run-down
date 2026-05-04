@@ -1,14 +1,14 @@
-import { tickGame, fireShot, InputState } from "./GameEngine";
-import { GameState, Player } from "../../types";
-import { createInitialBombardment } from "../meteor";
+import { tickGame, fireShot, InputState } from './GameEngine';
+import { GameState, Player } from '../../types';
+import { createInitialBombardment } from '../meteor';
 
 const MAP_W = 1600;
 const MAP_H = 1600;
 
 function makePlayer(overrides: Partial<Player> = {}): Player {
   return {
-    id: "human",
-    name: "Test Player",
+    id: 'human',
+    name: 'Test Player',
     isHuman: true,
     position: { x: 800, y: 800 },
     velocity: { x: 0, y: 0 },
@@ -17,12 +17,12 @@ function makePlayer(overrides: Partial<Player> = {}): Player {
     maxHealth: 100,
     shield: 0,
     maxShield: 100,
-    status: "alive",
+    status: 'alive',
     weapons: [
       {
-        id: "pickaxe",
-        type: "pickaxe",
-        rarity: "common",
+        id: 'pickaxe',
+        type: 'pickaxe',
+        rarity: 'common',
         damage: 20,
         fireRate: 0.9,
         magazineSize: Infinity,
@@ -38,15 +38,27 @@ function makePlayer(overrides: Partial<Player> = {}): Player {
     materials: { wood: 100, stone: 50, metal: 25 },
     kills: 0,
     isBuilding: false,
-    selectedBuildPiece: "wall",
-    selectedBuildMaterial: "wood",
+    selectedBuildPiece: 'wall',
+    selectedBuildMaterial: 'wood',
+    characterId: 'vex',
+    damageMult: 1,
+    damageResistance: 0,
+    killHealAmount: 0,
+    speedMult: 1,
+    reloadMult: 1,
+    abilityChargeMs: 0,
+    abilityActiveMs: 0,
+    activeAbilityEffect: 'none' as const,
+    heldCoreEffect: null,
+    corruptionDps: 0,
     ...overrides,
   };
 }
 
 function makeGameState(overrides: Partial<GameState> = {}): GameState {
   return {
-    phase: "playing",
+    phase: 'playing',
+    selectedCharacterId: 'vex',
     players: [makePlayer()],
     buildPieces: [],
     lootDrops: [],
@@ -57,6 +69,15 @@ function makeGameState(overrides: Partial<GameState> = {}): GameState {
     startTime: Date.now(),
     result: null,
     alivePlayers: 1,
+    fractureCores: [],
+    gravityZones: [],
+    timeEchoZones: [],
+    helixRelays: [],
+    supplyDrops: [],
+    nextSupplyDropMs: 180_000,
+    bountyPlayerId: null,
+    activeQuip: null,
+    quipTtlMs: 0,
     ...overrides,
   };
 }
@@ -66,25 +87,25 @@ const defaultInput: InputState = {
   aimVector: { x: 1, y: 0 },
   isShooting: false,
   isBuilding: false,
-  buildPieceType: "wall",
+  buildPieceType: 'wall',
   buildPosition: null,
   wantsReload: false,
 };
 
-describe("GameEngine.tickGame", () => {
-  it("increments tickCount each tick", () => {
+describe('GameEngine.tickGame', () => {
+  it('increments tickCount each tick', () => {
     const state = makeGameState();
     const next = tickGame(state, defaultInput, 50);
     expect(next.tickCount).toBe(1);
   });
 
-  it("does not tick when phase is not playing", () => {
-    const state = makeGameState({ phase: "lobby" });
+  it('does not tick when phase is not playing', () => {
+    const state = makeGameState({ phase: 'lobby' });
     const next = tickGame(state, defaultInput, 50);
     expect(next.tickCount).toBe(0);
   });
 
-  it("moves human player in the input direction", () => {
+  it('moves human player in the input direction', () => {
     const state = makeGameState();
     const input: InputState = { ...defaultInput, moveVector: { x: 1, y: 0 } };
     const next = tickGame(state, input, 50);
@@ -92,7 +113,7 @@ describe("GameEngine.tickGame", () => {
     expect(human.position.x).toBeGreaterThan(800);
   });
 
-  it("does not move player when input is zero", () => {
+  it('does not move player when input is zero', () => {
     const state = makeGameState();
     const next = tickGame(state, defaultInput, 50);
     const human = next.players.find((p) => p.isHuman)!;
@@ -100,7 +121,7 @@ describe("GameEngine.tickGame", () => {
     expect(human.position.y).toBe(800);
   });
 
-  it("clamps player position to map bounds", () => {
+  it('clamps player position to map bounds', () => {
     const state = makeGameState({
       players: [makePlayer({ position: { x: MAP_W - 1, y: MAP_H - 1 } })],
     });
@@ -111,25 +132,25 @@ describe("GameEngine.tickGame", () => {
     expect(human.position.y).toBeLessThanOrEqual(MAP_H);
   });
 
-  it("triggers game over when only one player is alive", () => {
+  it('triggers game over when only one player is alive', () => {
     const state = makeGameState({ alivePlayers: 1 });
     const next = tickGame(state, defaultInput, 50);
-    expect(next.phase).toBe("game_over");
+    expect(next.phase).toBe('game_over');
   });
 
-  it("does not crash when all players are dead", () => {
-    const deadPlayer = makePlayer({ status: "eliminated" });
+  it('does not crash when all players are dead', () => {
+    const deadPlayer = makePlayer({ status: 'eliminated' });
     const state = makeGameState({ players: [deadPlayer], alivePlayers: 0 });
     expect(() => tickGame(state, defaultInput, 50)).not.toThrow();
   });
 });
 
-describe("GameEngine.fireShot", () => {
-  it("reduces ammo on a valid shot", () => {
+describe('GameEngine.fireShot', () => {
+  it('reduces ammo on a valid shot', () => {
     const arWeapon = {
-      id: "ar1",
-      type: "assault_rifle" as const,
-      rarity: "common" as const,
+      id: 'ar1',
+      type: 'assault_rifle' as const,
+      rarity: 'common' as const,
       damage: 35,
       fireRate: 5,
       magazineSize: 30,
@@ -143,21 +164,21 @@ describe("GameEngine.fireShot", () => {
       activeWeaponSlot: 0,
     });
     const target = makePlayer({
-      id: "bot1",
+      id: 'bot1',
       isHuman: false,
       position: { x: 850, y: 800 },
     });
     const state = makeGameState({ players: [shooter, target] });
-    const next = fireShot(state, "human", { x: 850, y: 800 });
-    const updatedShooter = next.players.find((p) => p.id === "human")!;
+    const next = fireShot(state, 'human', { x: 850, y: 800 });
+    const updatedShooter = next.players.find((p) => p.id === 'human')!;
     expect(updatedShooter.weapons[0]?.currentAmmo).toBe(29);
   });
 
-  it("damages the target player when hit", () => {
+  it('damages the target player when hit', () => {
     const arWeapon = {
-      id: "ar2",
-      type: "assault_rifle" as const,
-      rarity: "common" as const,
+      id: 'ar2',
+      type: 'assault_rifle' as const,
+      rarity: 'common' as const,
       damage: 35,
       fireRate: 5,
       magazineSize: 30,
@@ -171,21 +192,21 @@ describe("GameEngine.fireShot", () => {
       activeWeaponSlot: 0,
     });
     const target = makePlayer({
-      id: "bot1",
+      id: 'bot1',
       isHuman: false,
       position: { x: 810, y: 800 },
     });
     const state = makeGameState({ players: [shooter, target] });
-    const next = fireShot(state, "human", { x: 810, y: 800 });
-    const updatedTarget = next.players.find((p) => p.id === "bot1")!;
+    const next = fireShot(state, 'human', { x: 810, y: 800 });
+    const updatedTarget = next.players.find((p) => p.id === 'bot1')!;
     expect(updatedTarget.health).toBeLessThan(100);
   });
 
-  it("does not fire when ammo is empty", () => {
+  it('does not fire when ammo is empty', () => {
     const emptyWeapon = {
-      id: "ar3",
-      type: "assault_rifle" as const,
-      rarity: "common" as const,
+      id: 'ar3',
+      type: 'assault_rifle' as const,
+      rarity: 'common' as const,
       damage: 35,
       fireRate: 5,
       magazineSize: 30,
@@ -199,8 +220,8 @@ describe("GameEngine.fireShot", () => {
       activeWeaponSlot: 0,
     });
     const state = makeGameState({ players: [shooter] });
-    const next = fireShot(state, "human", { x: 900, y: 800 });
-    const updatedShooter = next.players.find((p) => p.id === "human")!;
+    const next = fireShot(state, 'human', { x: 900, y: 800 });
+    const updatedShooter = next.players.find((p) => p.id === 'human')!;
     expect(updatedShooter.weapons[0]?.currentAmmo).toBe(0);
   });
 });

@@ -1,18 +1,90 @@
 // Core game entity types for Run Down — a battle royale prototype
 
+export type AbilityEffectType =
+  | 'none'
+  | 'damage_immunity'  // take zero damage
+  | 'speed_boost'      // movement speed multiplied
+  | 'rapid_fire'       // fire rate doubled
+  | 'damage_boost';    // outgoing damage multiplied
+
+export type CharacterAbility = {
+  name: string;
+  description: string;
+  cooldownMs: number;
+  durationMs: number; // 0 = instant effect
+  effectType: AbilityEffectType;
+};
+
+export type CharacterPassive = {
+  description: string;
+  maxHealthBonus: number;
+  maxShieldBonus: number;
+  startingShield: number;
+  speedMult: number;
+  damageMult: number;
+  damageResistance: number; // 0.0–1.0 fraction of incoming damage blocked
+  reloadMult: number;       // multiplied into reloadTime (< 1.0 = faster)
+  killHealAmount: number;   // HP restored per elimination
+  materialsBonus: number;   // extra starting units of each material
+};
+
+export type Character = {
+  id: string;
+  name: string;
+  title: string;
+  lore: string;
+  meteorQuip: string; // what the character says when a meteor strikes nearby
+  // Visual identity — local asset require() or remote URL. Null = use color placeholder.
+  portraitSource: number | string | null;
+  accentColor: string; // hex — drives card border, ability tag, and HUD accent
+  passive: CharacterPassive;
+  ability: CharacterAbility;
+};
+
 export type Vector2 = {
   x: number;
   y: number;
 };
 
 export type WeaponType =
-  | "assault_rifle"
-  | "shotgun"
-  | "sniper"
-  | "smg"
-  | "pickaxe";
+  // Melee
+  | 'pickaxe'
+  // Pistols
+  | 'pistol'
+  | 'revolver'
+  | 'hand_cannon'
+  | 'burst_pistol'
+  // SMGs
+  | 'smg'
+  | 'compact_smg'
+  | 'suppressed_smg'
+  // Assault Rifles
+  | 'assault_rifle'
+  | 'burst_ar'
+  | 'heavy_ar'
+  | 'thermal_ar'
+  // Shotguns
+  | 'shotgun'
+  | 'tactical_shotgun'
+  | 'heavy_shotgun'
+  | 'drum_shotgun'
+  // Sniper Rifles
+  | 'sniper'
+  | 'semi_sniper'
+  | 'heavy_sniper'
+  | 'hunting_rifle'
+  // Marksman / DMR
+  | 'marksman_rifle'
+  // LMGs
+  | 'lmg'
+  // Explosives
+  | 'rocket_launcher'
+  // Special / Exotic
+  | 'crossbow'
+  | 'minigun'
+  | 'rail_gun';
 
-export type Rarity = "common" | "uncommon" | "rare" | "epic" | "legendary";
+export type Rarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
 
 export type Weapon = {
   id: string;
@@ -27,9 +99,9 @@ export type Weapon = {
   isReloading: boolean;
 };
 
-export type BuildingMaterial = "wood" | "stone" | "metal";
+export type BuildingMaterial = 'wood' | 'stone' | 'metal';
 
-export type BuildPieceType = "wall" | "floor" | "ramp";
+export type BuildPieceType = 'wall' | 'floor' | 'ramp';
 
 export type BuildPiece = {
   id: string;
@@ -52,7 +124,7 @@ export type LootDrop = {
   health: number;
 };
 
-export type PlayerStatus = "alive" | "knocked" | "eliminated";
+export type PlayerStatus = 'alive' | 'knocked' | 'eliminated';
 
 export type Player = {
   id: string;
@@ -73,7 +145,25 @@ export type Player = {
   isBuilding: boolean;
   selectedBuildPiece: BuildPieceType;
   selectedBuildMaterial: BuildingMaterial;
+  // Character system
+  characterId: string;
+  damageMult: number;          // outgoing damage multiplier from passive
+  damageResistance: number;    // fraction of incoming damage blocked (0.0–1.0)
+  killHealAmount: number;      // HP restored per kill
+  speedMult: number;           // movement speed multiplier from passive
+  reloadMult: number;          // reload time multiplier (< 1.0 = faster)
+  abilityChargeMs: number;     // ms until ability is ready again (0 = ready)
+  abilityActiveMs: number;     // ms remaining on the active timed effect
+  activeAbilityEffect: AbilityEffectType;
+  // Fracture Core system
+  heldCoreEffect: FractureCoreEffect | null; // buff from a picked-up Fracture Core
+  corruptionDps: number;                     // HP drained per second while holding a core
 };
+
+export type MeteorType =
+  | 'explosive' // standard — deals AoE damage, leaves a Fracture Core
+  | 'gravity'   // bends space — creates a Gravity Distortion Field, no AoE damage
+  | 'echo';     // rare — creates a Time Echo Zone, no AoE damage
 
 // A single meteor impact crater — shown briefly on the map after a strike
 export type MeteorImpact = {
@@ -82,6 +172,63 @@ export type MeteorImpact = {
   blastRadius: number;
   age: number; // ms since impact — used to drive the visual animation
   maxAge: number; // ms before the crater fades out
+  meteorType: MeteorType;
+};
+
+export type FractureCoreEffect =
+  | 'cooldown_reduction' // instantly halves ability cooldown; ongoing: charges faster
+  | 'damage_amp'         // +40% outgoing damage while held
+  | 'ability_mutation';  // triggers a random ability effect for 10s; unpredictable
+
+// Loot left at explosive impact sites. Strong buff, slow corruption.
+export type FractureCore = {
+  id: string;
+  position: Vector2;
+  effect: FractureCoreEffect;
+  corruptionDps: number; // HP drained per second while this core is held
+};
+
+// Created by gravity-type meteors. Slows and pulls players toward the center.
+export type GravityZone = {
+  id: string;
+  position: Vector2;
+  radius: number;
+  pullStrength: number; // units per tick pulled toward center
+  speedMult: number;    // movement speed multiplier inside the zone
+  age: number;
+  maxAge: number;
+};
+
+// Created by echo-type meteors. Causes desync effects for players inside.
+export type TimeEchoZone = {
+  id: string;
+  position: Vector2;
+  radius: number;
+  age: number;
+  maxAge: number;
+};
+
+// Helix Dominion's signal tower — players capture it by standing inside.
+// Capturing disrupts Helix targeting and spawns a high-tier loot cache.
+export type HelixRelay = {
+  id: string;
+  position: Vector2;
+  captureRadius: number;
+  captureProgress: number;    // 0.0 → 1.0 (fills over 5 seconds while occupied)
+  capturedById: string | null;
+  rewardCooldownMs: number;   // ms until it can reward again after capture
+};
+
+// A crate airdropped by rogue factions opposing Helix.
+// Lands after a delay and holds epic/legendary loot.
+export type SupplyDrop = {
+  id: string;
+  position: Vector2;
+  isLanded: boolean;
+  landInMs: number;     // countdown ms until impact (positive = descending)
+  pickupRadius: number;
+  weaponType: WeaponType;
+  rarity: Rarity;
 };
 
 export type BombardmentPhase = {
@@ -111,7 +258,7 @@ export type Bombardment = {
   activeImpacts: MeteorImpact[];
 };
 
-export type GamePhase = "lobby" | "dropping" | "playing" | "game_over";
+export type GamePhase = 'lobby' | 'dropping' | 'playing' | 'game_over';
 
 export type GameResult = {
   placement: number;
@@ -121,13 +268,14 @@ export type GameResult = {
 };
 
 export type MapTile = {
-  type: "ground" | "water" | "mountain" | "building_floor";
+  type: 'ground' | 'water' | 'mountain' | 'building_floor';
   elevation: number;
   hasLoot: boolean;
 };
 
 export type GameState = {
   phase: GamePhase;
+  selectedCharacterId: string;
   players: Player[];
   buildPieces: BuildPiece[];
   lootDrops: LootDrop[];
@@ -139,4 +287,17 @@ export type GameState = {
   result: GameResult | null;
   // Derived: how many alive players remain
   alivePlayers: number;
+  // Meteor storm hazard objects
+  fractureCores: FractureCore[];
+  gravityZones: GravityZone[];
+  timeEchoZones: TimeEchoZone[];
+  // Mid-match objectives
+  helixRelays: HelixRelay[];
+  supplyDrops: SupplyDrop[];
+  nextSupplyDropMs: number;  // countdown until next supply drop spawns
+  // Comeback mechanic
+  bountyPlayerId: string | null; // highest-kill alive player — bonus loot on elimination
+  // Active character quip (displayed briefly after a nearby meteor strike)
+  activeQuip: string | null;
+  quipTtlMs: number; // ms remaining before quip clears
 };

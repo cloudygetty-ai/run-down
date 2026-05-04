@@ -1,10 +1,5 @@
-import {
-  Bombardment,
-  BombardmentPhase,
-  MeteorImpact,
-  Vector2,
-} from "../../types";
-import { lerpVec2, lerp, randomInRange, isInsideCircle } from "../../utils";
+import { Bombardment, BombardmentPhase, MeteorImpact, MeteorType, Vector2 } from '../../types';
+import { lerpVec2, lerp, randomInRange, isInsideCircle } from '../../utils';
 
 const METEOR_BLAST_RADIUS = 45;
 const IMPACT_MAX_AGE_MS = 2500; // crater lingers 2.5 s before fading
@@ -68,18 +63,10 @@ const BOMBARDMENT_PHASES: BombardmentPhase[] = [
   },
 ];
 
-export function createInitialBombardment(
-  mapWidth: number,
-  mapHeight: number
-): Bombardment {
+export function createInitialBombardment(mapWidth: number, mapHeight: number): Bombardment {
   const center: Vector2 = { x: mapWidth / 2, y: mapHeight / 2 };
   const first = BOMBARDMENT_PHASES[0];
-  const next = pickNextShelterZone(
-    center,
-    first.shelterRadius,
-    mapWidth,
-    mapHeight
-  );
+  const next = pickNextShelterZone(center, first.shelterRadius, mapWidth, mapHeight);
 
   return {
     currentPhase: 0,
@@ -102,11 +89,9 @@ function pickNextShelterZone(
   currentCenter: Vector2,
   currentRadius: number,
   mapWidth: number,
-  mapHeight: number
+  mapHeight: number,
 ): { center: Vector2; radius: number } {
-  const phaseIndex = BOMBARDMENT_PHASES.findIndex(
-    (p) => p.shelterRadius <= currentRadius
-  );
+  const phaseIndex = BOMBARDMENT_PHASES.findIndex((p) => p.shelterRadius <= currentRadius);
   const nextIndex = Math.min(phaseIndex + 1, BOMBARDMENT_PHASES.length - 1);
   const nextRadius = BOMBARDMENT_PHASES[nextIndex].shelterRadius;
 
@@ -117,17 +102,11 @@ function pickNextShelterZone(
   const center: Vector2 = {
     x: Math.max(
       nextRadius,
-      Math.min(
-        mapWidth - nextRadius,
-        currentCenter.x + Math.cos(angle) * offset
-      )
+      Math.min(mapWidth - nextRadius, currentCenter.x + Math.cos(angle) * offset),
     ),
     y: Math.max(
       nextRadius,
-      Math.min(
-        mapHeight - nextRadius,
-        currentCenter.y + Math.sin(angle) * offset
-      )
+      Math.min(mapHeight - nextRadius, currentCenter.y + Math.sin(angle) * offset),
     ),
   };
   return { center, radius: nextRadius };
@@ -139,7 +118,7 @@ function spawnImpactPosition(
   shelterCenter: Vector2,
   shelterRadius: number,
   mapWidth: number,
-  mapHeight: number
+  mapHeight: number,
 ): Vector2 {
   for (let attempt = 0; attempt < 20; attempt++) {
     const pos: Vector2 = {
@@ -156,9 +135,15 @@ function spawnImpactPosition(
 
 // Age existing impacts (ms), remove expired ones.
 function tickImpacts(impacts: MeteorImpact[], deltaMs: number): MeteorImpact[] {
-  return impacts
-    .map((i) => ({ ...i, age: i.age + deltaMs }))
-    .filter((i) => i.age < i.maxAge);
+  return impacts.map((i) => ({ ...i, age: i.age + deltaMs })).filter((i) => i.age < i.maxAge);
+}
+
+// WHY: 5% echo, 15% gravity, 80% explosive — chaos is calibrated, not random.
+function pickMeteorType(): MeteorType {
+  const roll = Math.random();
+  if (roll < 0.05) return 'echo';
+  if (roll < 0.20) return 'gravity';
+  return 'explosive';
 }
 
 // Returns the updated Bombardment state and a list of NEW impacts this tick
@@ -167,7 +152,7 @@ export function tickBombardment(
   bombardment: Bombardment,
   deltaMs: number,
   mapWidth: number,
-  mapHeight: number
+  mapHeight: number,
 ): { bombardment: Bombardment; newImpacts: MeteorImpact[] } {
   let b = {
     ...bombardment,
@@ -177,45 +162,23 @@ export function tickBombardment(
 
   // -- Shelter zone shrink progression --
   if (b.isShrinking) {
-    const phaseData =
-      BOMBARDMENT_PHASES[
-        Math.min(b.currentPhase, BOMBARDMENT_PHASES.length - 1)
-      ];
-    b.shrinkProgress = Math.min(
-      1,
-      b.shrinkProgress + deltaMs / phaseData.shrinkDuration
-    );
+    const phaseData = BOMBARDMENT_PHASES[Math.min(b.currentPhase, BOMBARDMENT_PHASES.length - 1)];
+    b.shrinkProgress = Math.min(1, b.shrinkProgress + deltaMs / phaseData.shrinkDuration);
 
-    b.shelterCenter = lerpVec2(
-      bombardment.shelterCenter,
-      b.nextShelterCenter,
-      b.shrinkProgress
-    );
-    b.shelterRadius = lerp(
-      bombardment.shelterRadius,
-      b.nextShelterRadius,
-      b.shrinkProgress
-    );
+    b.shelterCenter = lerpVec2(bombardment.shelterCenter, b.nextShelterCenter, b.shrinkProgress);
+    b.shelterRadius = lerp(bombardment.shelterRadius, b.nextShelterRadius, b.shrinkProgress);
 
     if (b.shrinkProgress >= 1) {
       b.isShrinking = false;
       b.shrinkProgress = 0;
       b.currentPhase += 1;
 
-      const nextData =
-        BOMBARDMENT_PHASES[
-          Math.min(b.currentPhase, BOMBARDMENT_PHASES.length - 1)
-        ];
+      const nextData = BOMBARDMENT_PHASES[Math.min(b.currentPhase, BOMBARDMENT_PHASES.length - 1)];
       b.impactDamage = nextData.impactDamage;
       b.impactInterval = nextData.impactInterval;
       b.timeUntilNextPhase = nextData.waitDuration;
 
-      const next = pickNextShelterZone(
-        b.shelterCenter,
-        b.shelterRadius,
-        mapWidth,
-        mapHeight
-      );
+      const next = pickNextShelterZone(b.shelterCenter, b.shelterRadius, mapWidth, mapHeight);
       b.nextShelterCenter = next.center;
       b.nextShelterRadius = next.radius;
     }
@@ -230,18 +193,15 @@ export function tickBombardment(
   // -- Meteor strikes --
   b.timeUntilNextImpact -= deltaMs;
   while (b.timeUntilNextImpact <= 0) {
-    const pos = spawnImpactPosition(
-      b.shelterCenter,
-      b.shelterRadius,
-      mapWidth,
-      mapHeight
-    );
+    const pos = spawnImpactPosition(b.shelterCenter, b.shelterRadius, mapWidth, mapHeight);
+    const meteorType = pickMeteorType();
     const impact: MeteorImpact = {
       id: `meteor_${Date.now()}_${Math.random().toString(36).slice(2)}`,
       position: pos,
       blastRadius: METEOR_BLAST_RADIUS,
       age: 0,
       maxAge: IMPACT_MAX_AGE_MS,
+      meteorType,
     };
     newImpacts.push(impact);
     b.activeImpacts = [...b.activeImpacts, impact];
