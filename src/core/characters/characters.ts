@@ -13,6 +13,7 @@ const BASE_PASSIVE: CharacterPassive = {
   materialsBonus: 0,
 };
 
+// portraitSource: swap null → require('../../../assets/portraits/vex.png') once images are added
 export const CHARACTERS: Character[] = [
   {
     id: 'vex',
@@ -20,6 +21,8 @@ export const CHARACTERS: Character[] = [
     title: 'The Phantom',
     lore: 'Quantum systems engineer who learned to weaponize lag. Blinks in and out of reality like a bad signal.',
     meteorQuip: 'I felt that before it landed. I hate this.',
+    portraitSource: null,
+    accentColor: '#aa44ff',
     passive: {
       ...BASE_PASSIVE,
       description: 'Unstable signal. +10% movement speed and 25% faster reloads.',
@@ -40,6 +43,8 @@ export const CHARACTERS: Character[] = [
     title: 'The Wall',
     lore: 'Walked through a building collapse once. The building lost.',
     meteorQuip: 'Good. Something to hit back.',
+    portraitSource: null,
+    accentColor: '#888888',
     passive: {
       ...BASE_PASSIVE,
       description: 'Ironclad frame. +80 max HP.',
@@ -59,6 +64,8 @@ export const CHARACTERS: Character[] = [
     title: 'The Solar',
     lore: 'Channelled solar energy into her biology. Warm to the touch. Lethal at range.',
     meteorQuip: 'A core. Finally. Stay back — it\'s mine.',
+    portraitSource: null,
+    accentColor: '#ffaa00',
     passive: {
       ...BASE_PASSIVE,
       description: 'Solar resilience. Starts each match with 75 shield.',
@@ -78,6 +85,8 @@ export const CHARACTERS: Character[] = [
     title: 'The Tracker',
     lore: 'Never loses a mark. Patience measured in days. Mercy measured in zero.',
     meteorQuip: 'Sky just did my job for me.',
+    portraitSource: null,
+    accentColor: '#cc6633',
     passive: {
       ...BASE_PASSIVE,
       description: 'Efficient hunter. Each elimination restores 15 HP.',
@@ -97,6 +106,8 @@ export const CHARACTERS: Character[] = [
     title: 'The Fracture',
     lore: 'Psy-ops operator. Convinced three people they were somewhere else simultaneously.',
     meteorQuip: 'Controlled impact. Someone aimed that.',
+    portraitSource: null,
+    accentColor: '#cc44aa',
     passive: {
       ...BASE_PASSIVE,
       description: 'Misdirection mastery. 15% of all incoming damage is deflected.',
@@ -116,6 +127,8 @@ export const CHARACTERS: Character[] = [
     title: 'The Smoke',
     lore: 'Tactical specialist. Controls terrain. The smoke is never random.',
     meteorQuip: 'New cover. Adapt.',
+    portraitSource: null,
+    accentColor: '#446688',
     passive: {
       ...BASE_PASSIVE,
       description: 'Prepared entry. +20 max HP and +20 max shield.',
@@ -136,6 +149,8 @@ export const CHARACTERS: Character[] = [
     title: 'The Predator',
     lore: 'Apex hunter from a collapsed nation. Tracks by sound. Closes in silence.',
     meteorQuip: 'Flushed them right out. Efficient.',
+    portraitSource: null,
+    accentColor: '#882222',
     passive: {
       ...BASE_PASSIVE,
       description: 'Predator instinct. All weapons deal +15% damage.',
@@ -155,6 +170,8 @@ export const CHARACTERS: Character[] = [
     title: 'The Surgeon',
     lore: 'Field surgeon who operates on himself between engagements. The stitches are self-dissolving.',
     meteorQuip: 'Triage priority just changed.',
+    portraitSource: null,
+    accentColor: '#4488ff',
     passive: {
       ...BASE_PASSIVE,
       description: 'Biological optimization. +25 max HP and starts with 50 shield.',
@@ -175,6 +192,8 @@ export const CHARACTERS: Character[] = [
     title: 'The Tether',
     lore: 'Former intelligence broker. Knows that information shared is pain shared.',
     meteorQuip: 'Accelerated evolution. The weak are being selected out.',
+    portraitSource: null,
+    accentColor: '#9933cc',
     passive: {
       ...BASE_PASSIVE,
       description: 'Precision focus. Weapon reloads 20% faster.',
@@ -194,6 +213,8 @@ export const CHARACTERS: Character[] = [
     title: 'The Salvager',
     lore: 'Built his first weapon from a vending machine and a door hinge. Still uses it.',
     meteorQuip: 'Free parts. I\'ll take it.',
+    portraitSource: null,
+    accentColor: '#cc8800',
     passive: {
       ...BASE_PASSIVE,
       description: 'Resource specialist. Starts with triple building materials.',
@@ -213,6 +234,8 @@ export const CHARACTERS: Character[] = [
     title: 'The Resonance',
     lore: 'Sound engineer turned soldier. The blast radius is calculated, not accidental.',
     meteorQuip: 'Beautiful resonance. Terrible timing.',
+    portraitSource: null,
+    accentColor: '#44ccaa',
     passive: {
       ...BASE_PASSIVE,
       description: 'Sonic amplification. All weapons deal +20% damage.',
@@ -232,6 +255,8 @@ export const CHARACTERS: Character[] = [
     title: 'The Gravity',
     lore: 'Physicist who discovered the practical applications of his research. Immediately regretted it.',
     meteorQuip: 'This is my fault. Again.',
+    portraitSource: null,
+    accentColor: '#6644ff',
     passive: {
       ...BASE_PASSIVE,
       description: 'Gravitational mass. +25% weapon damage, -10% movement speed.',
@@ -252,6 +277,8 @@ export const CHARACTERS: Character[] = [
     title: 'The Glacier',
     lore: 'Cryogenic containment specialist. The "containment" part is optional.',
     meteorQuip: 'Heat. I despise heat.',
+    portraitSource: null,
+    accentColor: '#44ddff',
     passive: {
       ...BASE_PASSIVE,
       description: 'Ice armor. 20% of all incoming damage is deflected.',
@@ -271,6 +298,8 @@ export const CHARACTERS: Character[] = [
     title: 'The Overclocked',
     lore: 'Neural augmentations pushed past rated limits. The tremor in his hands is from the speed, not the fear.',
     meteorQuip: 'HA. Let\'s go again.',
+    portraitSource: null,
+    accentColor: '#ff4400',
     passive: {
       ...BASE_PASSIVE,
       description: 'Overclocked systems. +25% movement speed.',
@@ -290,6 +319,8 @@ export const CHARACTERS: Character[] = [
     title: 'The Void',
     lore: 'Emerged from a void experiment intact. Mostly. The parts that changed are the useful parts.',
     meteorQuip: 'The void remembers this energy.',
+    portraitSource: null,
+    accentColor: '#220044',
     passive: {
       ...BASE_PASSIVE,
       description: 'Void-touched. 15% damage resistance and 20% faster reloads.',

@@ -34,6 +34,9 @@ export type Character = {
   title: string;
   lore: string;
   meteorQuip: string; // what the character says when a meteor strikes nearby
+  // Visual identity — local asset require() or remote URL. Null = use color placeholder.
+  portraitSource: number | string | null;
+  accentColor: string; // hex — drives card border, ability tag, and HUD accent
   passive: CharacterPassive;
   ability: CharacterAbility;
 };
