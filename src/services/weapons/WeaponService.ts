@@ -93,11 +93,42 @@ export function computeAimPoint(
   weapon: Weapon,
 ): { x: number; y: number } {
   const spread: Record<Weapon['type'], number> = {
-    assault_rifle: 15,
-    smg: 25,
-    shotgun: 30,
-    sniper: 5,
+    // Melee
     pickaxe: 0,
+    // Pistols
+    pistol: 20,
+    revolver: 8,
+    hand_cannon: 12,
+    burst_pistol: 18,
+    // SMGs
+    smg: 25,
+    compact_smg: 30,
+    suppressed_smg: 20,
+    // Assault Rifles
+    assault_rifle: 15,
+    burst_ar: 12,
+    heavy_ar: 10,
+    thermal_ar: 8,
+    // Shotguns
+    shotgun: 30,
+    tactical_shotgun: 35,
+    heavy_shotgun: 25,
+    drum_shotgun: 40,
+    // Sniper Rifles
+    sniper: 5,
+    semi_sniper: 7,
+    heavy_sniper: 3,
+    hunting_rifle: 10,
+    // Marksman / DMR
+    marksman_rifle: 6,
+    // LMGs
+    lmg: 20,
+    // Explosives
+    rocket_launcher: 5,
+    // Special / Exotic
+    crossbow: 3,
+    minigun: 35,
+    rail_gun: 2,
   };
   const s = spread[weapon.type];
   return {

@@ -13,11 +13,42 @@ type Props = {
 };
 
 const WEAPON_LABELS: Record<WeaponType, string> = {
-  assault_rifle: 'AR',
-  shotgun: 'SG',
-  sniper: 'SN',
-  smg: 'SM',
+  // Melee
   pickaxe: 'AXE',
+  // Pistols
+  pistol: 'PISTOL',
+  revolver: 'REVLVR',
+  hand_cannon: 'HCNON',
+  burst_pistol: 'B-PST',
+  // SMGs
+  smg: 'SMG',
+  compact_smg: 'CSMG',
+  suppressed_smg: 'SSMG',
+  // Assault Rifles
+  assault_rifle: 'AR',
+  burst_ar: 'B-AR',
+  heavy_ar: 'H-AR',
+  thermal_ar: 'T-AR',
+  // Shotguns
+  shotgun: 'SG',
+  tactical_shotgun: 'TSG',
+  heavy_shotgun: 'HSG',
+  drum_shotgun: 'DSG',
+  // Sniper Rifles
+  sniper: 'SNP',
+  semi_sniper: 'SSNP',
+  heavy_sniper: 'HSNP',
+  hunting_rifle: 'HUNT',
+  // Marksman / DMR
+  marksman_rifle: 'DMR',
+  // LMGs
+  lmg: 'LMG',
+  // Explosives
+  rocket_launcher: 'RPG',
+  // Special / Exotic
+  crossbow: 'XBOW',
+  minigun: 'MINI',
+  rail_gun: 'RAIL',
 };
 
 export const HUD: React.FC<Props> = ({

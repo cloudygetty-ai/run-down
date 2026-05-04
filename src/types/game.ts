@@ -5,7 +5,43 @@ export type Vector2 = {
   y: number;
 };
 
-export type WeaponType = 'assault_rifle' | 'shotgun' | 'sniper' | 'smg' | 'pickaxe';
+export type WeaponType =
+  // Melee
+  | 'pickaxe'
+  // Pistols
+  | 'pistol'
+  | 'revolver'
+  | 'hand_cannon'
+  | 'burst_pistol'
+  // SMGs
+  | 'smg'
+  | 'compact_smg'
+  | 'suppressed_smg'
+  // Assault Rifles
+  | 'assault_rifle'
+  | 'burst_ar'
+  | 'heavy_ar'
+  | 'thermal_ar'
+  // Shotguns
+  | 'shotgun'
+  | 'tactical_shotgun'
+  | 'heavy_shotgun'
+  | 'drum_shotgun'
+  // Sniper Rifles
+  | 'sniper'
+  | 'semi_sniper'
+  | 'heavy_sniper'
+  | 'hunting_rifle'
+  // Marksman / DMR
+  | 'marksman_rifle'
+  // LMGs
+  | 'lmg'
+  // Explosives
+  | 'rocket_launcher'
+  // Special / Exotic
+  | 'crossbow'
+  | 'minigun'
+  | 'rail_gun';
 
 export type Rarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
 

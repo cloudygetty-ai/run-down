@@ -25,30 +25,51 @@ const BOT_COUNT = 99;
 
 function makeWeapon(type: WeaponType, rarity: Rarity): Weapon {
   const base: Record<WeaponType, Omit<Weapon, 'id' | 'type' | 'rarity' | 'isReloading'>> = {
-    assault_rifle: {
-      damage: 35,
-      fireRate: 5,
-      magazineSize: 30,
-      currentAmmo: 30,
-      range: 400,
+    // ── Melee ────────────────────────────────────────────────────────────────
+    pickaxe: {
+      damage: 20,
+      fireRate: 0.9,
+      magazineSize: Infinity,
+      currentAmmo: Infinity,
+      range: 60,
+      reloadTime: 0,
+    },
+
+    // ── Pistols ──────────────────────────────────────────────────────────────
+    pistol: {
+      damage: 25,
+      fireRate: 4,
+      magazineSize: 16,
+      currentAmmo: 16,
+      range: 250,
+      reloadTime: 1500,
+    },
+    revolver: {
+      damage: 55,
+      fireRate: 1.5,
+      magazineSize: 6,
+      currentAmmo: 6,
+      range: 350,
       reloadTime: 2000,
     },
-    shotgun: {
-      damage: 110,
-      fireRate: 0.8,
-      magazineSize: 5,
-      currentAmmo: 5,
-      range: 120,
+    hand_cannon: {
+      damage: 80,
+      fireRate: 0.75,
+      magazineSize: 6,
+      currentAmmo: 6,
+      range: 300,
       reloadTime: 2500,
     },
-    sniper: {
-      damage: 100,
-      fireRate: 0.5,
-      magazineSize: 4,
-      currentAmmo: 4,
-      range: 800,
-      reloadTime: 3000,
+    burst_pistol: {
+      damage: 22,
+      fireRate: 7,
+      magazineSize: 18,
+      currentAmmo: 18,
+      range: 250,
+      reloadTime: 1600,
     },
+
+    // ── SMGs ─────────────────────────────────────────────────────────────────
     smg: {
       damage: 17,
       fireRate: 10,
@@ -57,13 +78,179 @@ function makeWeapon(type: WeaponType, rarity: Rarity): Weapon {
       range: 200,
       reloadTime: 1800,
     },
-    pickaxe: {
-      damage: 20,
-      fireRate: 0.9,
-      magazineSize: Infinity,
-      currentAmmo: Infinity,
-      range: 60,
-      reloadTime: 0,
+    compact_smg: {
+      damage: 14,
+      fireRate: 13,
+      magazineSize: 25,
+      currentAmmo: 25,
+      range: 150,
+      reloadTime: 1400,
+    },
+    suppressed_smg: {
+      damage: 18,
+      fireRate: 9,
+      magazineSize: 30,
+      currentAmmo: 30,
+      range: 220,
+      reloadTime: 1800,
+    },
+
+    // ── Assault Rifles ────────────────────────────────────────────────────────
+    assault_rifle: {
+      damage: 35,
+      fireRate: 5,
+      magazineSize: 30,
+      currentAmmo: 30,
+      range: 400,
+      reloadTime: 2000,
+    },
+    burst_ar: {
+      damage: 32,
+      fireRate: 4,
+      magazineSize: 27,
+      currentAmmo: 27,
+      range: 380,
+      reloadTime: 2000,
+    },
+    heavy_ar: {
+      damage: 45,
+      fireRate: 3,
+      magazineSize: 20,
+      currentAmmo: 20,
+      range: 420,
+      reloadTime: 2200,
+    },
+    thermal_ar: {
+      damage: 38,
+      fireRate: 4.5,
+      magazineSize: 25,
+      currentAmmo: 25,
+      range: 500,
+      reloadTime: 2100,
+    },
+
+    // ── Shotguns ──────────────────────────────────────────────────────────────
+    shotgun: {
+      damage: 110,
+      fireRate: 0.8,
+      magazineSize: 5,
+      currentAmmo: 5,
+      range: 120,
+      reloadTime: 2500,
+    },
+    tactical_shotgun: {
+      damage: 72,
+      fireRate: 1.5,
+      magazineSize: 8,
+      currentAmmo: 8,
+      range: 130,
+      reloadTime: 2000,
+    },
+    heavy_shotgun: {
+      damage: 150,
+      fireRate: 0.5,
+      magazineSize: 2,
+      currentAmmo: 2,
+      range: 110,
+      reloadTime: 3500,
+    },
+    drum_shotgun: {
+      damage: 50,
+      fireRate: 2,
+      magazineSize: 12,
+      currentAmmo: 12,
+      range: 100,
+      reloadTime: 3000,
+    },
+
+    // ── Sniper Rifles ─────────────────────────────────────────────────────────
+    sniper: {
+      damage: 100,
+      fireRate: 0.5,
+      magazineSize: 4,
+      currentAmmo: 4,
+      range: 800,
+      reloadTime: 3000,
+    },
+    semi_sniper: {
+      damage: 70,
+      fireRate: 1.5,
+      magazineSize: 10,
+      currentAmmo: 10,
+      range: 700,
+      reloadTime: 2500,
+    },
+    heavy_sniper: {
+      damage: 150,
+      fireRate: 0.3,
+      magazineSize: 1,
+      currentAmmo: 1,
+      range: 1000,
+      reloadTime: 4000,
+    },
+    hunting_rifle: {
+      damage: 65,
+      fireRate: 1,
+      magazineSize: 8,
+      currentAmmo: 8,
+      range: 550,
+      reloadTime: 2000,
+    },
+
+    // ── Marksman / DMR ────────────────────────────────────────────────────────
+    marksman_rifle: {
+      damage: 55,
+      fireRate: 2,
+      magazineSize: 12,
+      currentAmmo: 12,
+      range: 500,
+      reloadTime: 2200,
+    },
+
+    // ── LMGs ─────────────────────────────────────────────────────────────────
+    lmg: {
+      damage: 25,
+      fireRate: 8,
+      magazineSize: 100,
+      currentAmmo: 100,
+      range: 350,
+      reloadTime: 4500,
+    },
+
+    // ── Explosives ────────────────────────────────────────────────────────────
+    rocket_launcher: {
+      damage: 300,
+      fireRate: 0.2,
+      magazineSize: 1,
+      currentAmmo: 1,
+      range: 500,
+      reloadTime: 5000,
+    },
+
+    // ── Special / Exotic ──────────────────────────────────────────────────────
+    crossbow: {
+      damage: 95,
+      fireRate: 0.7,
+      magazineSize: 6,
+      currentAmmo: 6,
+      range: 600,
+      reloadTime: 2800,
+    },
+    minigun: {
+      damage: 18,
+      fireRate: 20,
+      magazineSize: 200,
+      currentAmmo: 200,
+      range: 300,
+      reloadTime: 6000,
+    },
+    rail_gun: {
+      damage: 200,
+      fireRate: 0.25,
+      magazineSize: 3,
+      currentAmmo: 3,
+      range: 1200,
+      reloadTime: 5000,
     },
   };
   const rarityMult: Record<Rarity, number> = {
@@ -112,7 +299,33 @@ function makePlayer(id: string, name: string, isHuman: boolean, position: Vector
 }
 
 function scatterLoot(count: number): LootDrop[] {
-  const types: WeaponType[] = ['assault_rifle', 'shotgun', 'sniper', 'smg'];
+  const types: WeaponType[] = [
+    'pistol',
+    'revolver',
+    'hand_cannon',
+    'burst_pistol',
+    'smg',
+    'compact_smg',
+    'suppressed_smg',
+    'assault_rifle',
+    'burst_ar',
+    'heavy_ar',
+    'thermal_ar',
+    'shotgun',
+    'tactical_shotgun',
+    'heavy_shotgun',
+    'drum_shotgun',
+    'sniper',
+    'semi_sniper',
+    'heavy_sniper',
+    'hunting_rifle',
+    'marksman_rifle',
+    'lmg',
+    'rocket_launcher',
+    'crossbow',
+    'minigun',
+    'rail_gun',
+  ];
   const rarities: Rarity[] = ['common', 'common', 'uncommon', 'rare', 'epic', 'legendary'];
 
   return Array.from({ length: count }, (_, i) => ({
