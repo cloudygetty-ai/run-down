@@ -43,6 +43,17 @@ function makePlayer(overrides: Partial<Player> = {}): Player {
     isBuilding: false,
     selectedBuildPiece: 'wall',
     selectedBuildMaterial: 'wood',
+    characterId: 'vex',
+    damageMult: 1,
+    damageResistance: 0,
+    killHealAmount: 0,
+    speedMult: 1,
+    reloadMult: 1,
+    abilityChargeMs: 0,
+    abilityActiveMs: 0,
+    activeAbilityEffect: 'none' as const,
+    heldCoreEffect: null,
+    corruptionDps: 0,
     ...overrides,
   };
 }

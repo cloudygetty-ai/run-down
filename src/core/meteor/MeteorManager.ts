@@ -1,4 +1,4 @@
-import { Bombardment, BombardmentPhase, MeteorImpact, Vector2 } from '../../types';
+import { Bombardment, BombardmentPhase, MeteorImpact, MeteorType, Vector2 } from '../../types';
 import { lerpVec2, lerp, randomInRange, isInsideCircle } from '../../utils';
 
 const METEOR_BLAST_RADIUS = 45;
@@ -138,6 +138,14 @@ function tickImpacts(impacts: MeteorImpact[], deltaMs: number): MeteorImpact[] {
   return impacts.map((i) => ({ ...i, age: i.age + deltaMs })).filter((i) => i.age < i.maxAge);
 }
 
+// WHY: 5% echo, 15% gravity, 80% explosive — chaos is calibrated, not random.
+function pickMeteorType(): MeteorType {
+  const roll = Math.random();
+  if (roll < 0.05) return 'echo';
+  if (roll < 0.20) return 'gravity';
+  return 'explosive';
+}
+
 // Returns the updated Bombardment state and a list of NEW impacts this tick
 // (the engine reads these to apply damage to nearby players).
 export function tickBombardment(
@@ -186,12 +194,14 @@ export function tickBombardment(
   b.timeUntilNextImpact -= deltaMs;
   while (b.timeUntilNextImpact <= 0) {
     const pos = spawnImpactPosition(b.shelterCenter, b.shelterRadius, mapWidth, mapHeight);
+    const meteorType = pickMeteorType();
     const impact: MeteorImpact = {
       id: `meteor_${Date.now()}_${Math.random().toString(36).slice(2)}`,
       position: pos,
       blastRadius: METEOR_BLAST_RADIUS,
       age: 0,
       maxAge: IMPACT_MAX_AGE_MS,
+      meteorType,
     };
     newImpacts.push(impact);
     b.activeImpacts = [...b.activeImpacts, impact];

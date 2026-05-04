@@ -22,7 +22,7 @@ type Props = {
 };
 
 export const GameScreen: React.FC<Props> = ({ onGameOver }) => {
-  const { gameState } = useGameStore();
+  const { gameState, triggerAbility } = useGameStore();
   const inputRef = useRef<InputState>({
     moveVector: { x: 0, y: 0 },
     aimVector: { x: 1, y: 0 },
@@ -228,10 +228,13 @@ export const GameScreen: React.FC<Props> = ({ onGameOver }) => {
         player={human}
         bombardment={gameState.bombardment}
         alivePlayers={gameState.alivePlayers}
+        bountyPlayerId={gameState.bountyPlayerId}
+        activeQuip={gameState.activeQuip}
         onShoot={human.isBuilding ? handlePlaceBuild : handleShoot}
         onReload={handleReload}
         onBuildToggle={handleBuildToggle}
         onWeaponSwitch={handleWeaponSwitch}
+        onAbility={triggerAbility}
       />
     </View>
   );

@@ -102,6 +102,7 @@ describe('MeteorManager', () => {
             blastRadius: 45,
             age: 2400,
             maxAge: 2500,
+            meteorType: 'explosive' as const,
           },
         ],
       };

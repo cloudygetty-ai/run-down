@@ -40,6 +40,17 @@ function makePlayer(overrides: Partial<Player> = {}): Player {
     isBuilding: false,
     selectedBuildPiece: 'wall',
     selectedBuildMaterial: 'wood',
+    characterId: 'vex',
+    damageMult: 1,
+    damageResistance: 0,
+    killHealAmount: 0,
+    speedMult: 1,
+    reloadMult: 1,
+    abilityChargeMs: 0,
+    abilityActiveMs: 0,
+    activeAbilityEffect: 'none' as const,
+    heldCoreEffect: null,
+    corruptionDps: 0,
     ...overrides,
   };
 }
@@ -47,6 +58,7 @@ function makePlayer(overrides: Partial<Player> = {}): Player {
 function makeGameState(overrides: Partial<GameState> = {}): GameState {
   return {
     phase: 'playing',
+    selectedCharacterId: 'vex',
     players: [makePlayer()],
     buildPieces: [],
     lootDrops: [],
@@ -57,6 +69,15 @@ function makeGameState(overrides: Partial<GameState> = {}): GameState {
     startTime: Date.now(),
     result: null,
     alivePlayers: 1,
+    fractureCores: [],
+    gravityZones: [],
+    timeEchoZones: [],
+    helixRelays: [],
+    supplyDrops: [],
+    nextSupplyDropMs: 180_000,
+    bountyPlayerId: null,
+    activeQuip: null,
+    quipTtlMs: 0,
     ...overrides,
   };
 }

@@ -9,8 +9,10 @@ import {
   Rarity,
   BuildingMaterial,
   Vector2,
+  HelixRelay,
 } from '../../types';
 import { createInitialBombardment } from '../../core/meteor';
+import { getCharacter, DEFAULT_CHARACTER_ID } from '../../core/characters';
 import { randomInRange, randomInt } from '../../utils';
 // WHY: resetGame must clean up both weapon timers and bot brain state
 // to prevent stale callbacks firing into a fresh game.
@@ -275,7 +277,19 @@ function makeMaterials(): Record<BuildingMaterial, number> {
   return { wood: 100, stone: 50, metal: 25 };
 }
 
-function makePlayer(id: string, name: string, isHuman: boolean, position: Vector2): Player {
+function makePlayer(
+  id: string,
+  name: string,
+  isHuman: boolean,
+  position: Vector2,
+  characterId = DEFAULT_CHARACTER_ID,
+): Player {
+  const character = getCharacter(characterId);
+  const p = character.passive;
+  const maxHealth = 100 + p.maxHealthBonus;
+  const maxShield = 100 + p.maxShieldBonus;
+  const startingShield = isHuman ? Math.min(maxShield, p.startingShield) : 0;
+  const baseMaterials = isHuman ? 100 + p.materialsBonus : 100;
   return {
     id,
     name,
@@ -283,18 +297,29 @@ function makePlayer(id: string, name: string, isHuman: boolean, position: Vector
     position,
     velocity: { x: 0, y: 0 },
     rotation: 0,
-    health: 100,
-    maxHealth: 100,
-    shield: 0,
-    maxShield: 100,
+    health: maxHealth,
+    maxHealth,
+    shield: startingShield,
+    maxShield,
     status: 'alive',
     weapons: [makeWeapon('pickaxe', 'common'), null, null],
     activeWeaponSlot: 0,
-    materials: makeMaterials(),
+    materials: { wood: baseMaterials, stone: 50 + (isHuman ? p.materialsBonus : 0), metal: 25 + (isHuman ? p.materialsBonus : 0) },
     kills: 0,
     isBuilding: false,
     selectedBuildPiece: 'wall',
     selectedBuildMaterial: 'wood',
+    characterId,
+    damageMult: p.damageMult,
+    damageResistance: p.damageResistance,
+    killHealAmount: p.killHealAmount,
+    speedMult: p.speedMult,
+    reloadMult: p.reloadMult,
+    abilityChargeMs: 0,
+    abilityActiveMs: 0,
+    activeAbilityEffect: 'none',
+    heldCoreEffect: null,
+    corruptionDps: 0,
   };
 }
 
@@ -349,11 +374,30 @@ function scatterLoot(count: number): LootDrop[] {
   }));
 }
 
-function buildInitialState(): GameState {
+function buildHelixRelays(mapWidth: number, mapHeight: number): HelixRelay[] {
+  // Place 5 relays at fixed strategic positions across the map
+  const positions: Vector2[] = [
+    { x: mapWidth * 0.25, y: mapHeight * 0.25 },
+    { x: mapWidth * 0.75, y: mapHeight * 0.25 },
+    { x: mapWidth * 0.5,  y: mapHeight * 0.5  },
+    { x: mapWidth * 0.25, y: mapHeight * 0.75 },
+    { x: mapWidth * 0.75, y: mapHeight * 0.75 },
+  ];
+  return positions.map((pos, i) => ({
+    id: `relay_${i}`,
+    position: pos,
+    captureRadius: 80,
+    captureProgress: 0,
+    capturedById: null,
+    rewardCooldownMs: 0,
+  }));
+}
+
+function buildInitialState(characterId = DEFAULT_CHARACTER_ID): GameState {
   const human = makePlayer('human', 'You', true, {
     x: MAP_WIDTH / 2,
     y: MAP_HEIGHT / 2,
-  });
+  }, characterId);
   const bots: Player[] = Array.from({ length: BOT_COUNT }, (_, i) =>
     makePlayer(`bot_${i}`, `Bot${i + 1}`, false, {
       x: randomInRange(100, MAP_WIDTH - 100),
@@ -364,6 +408,7 @@ function buildInitialState(): GameState {
 
   return {
     phase: 'lobby',
+    selectedCharacterId: characterId,
     players: allPlayers,
     buildPieces: [],
     lootDrops: scatterLoot(200),
@@ -375,6 +420,19 @@ function buildInitialState(): GameState {
     result: null,
     // WHY: derived directly from players array — not hardcoded — so it's always accurate
     alivePlayers: allPlayers.filter((p) => p.status === 'alive').length,
+    // Meteor event objects (empty at start — populated during play)
+    fractureCores: [],
+    gravityZones: [],
+    timeEchoZones: [],
+    // Mid-match objectives
+    helixRelays: buildHelixRelays(MAP_WIDTH, MAP_HEIGHT),
+    supplyDrops: [],
+    nextSupplyDropMs: 3 * 60 * 1000, // first drop at 3 minutes
+    // Comeback mechanic
+    bountyPlayerId: null,
+    // Character quips
+    activeQuip: null,
+    quipTtlMs: 0,
   };
 }
 
@@ -387,6 +445,8 @@ type GameStore = {
   updateGameState: (next: GameState) => void;
   pickUpLoot: (playerId: string, lootId: string) => void;
   placeBuildPiece: (piece: BuildPiece) => void;
+  selectCharacter: (characterId: string) => void;
+  triggerAbility: () => void;
 };
 
 export const useGameStore = create<GameStore>((set, get) => ({
@@ -399,11 +459,94 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   resetGame: () => {
-    // Cancel any in-flight weapon reload timers before building fresh state
     cancelAllReloads();
-    // Clear bot AI memory so bots start fresh (no stale wander targets or fire times)
     clearBotBrains();
-    set({ gameState: buildInitialState() });
+    const { gameState } = get();
+    set({ gameState: buildInitialState(gameState.selectedCharacterId) });
+  },
+
+  selectCharacter: (characterId: string) => {
+    set((s) => ({
+      gameState: { ...s.gameState, selectedCharacterId: characterId },
+    }));
+  },
+
+  triggerAbility: () => {
+    const { gameState } = get();
+    const humanIndex = gameState.players.findIndex((p) => p.isHuman && p.status === 'alive');
+    if (humanIndex === -1) {
+      return;
+    }
+    const human = gameState.players[humanIndex];
+    if (human.abilityChargeMs > 0) {
+      return; // still on cooldown
+    }
+
+    const character = getCharacter(human.characterId);
+    const { ability } = character;
+    let updated = { ...human, abilityChargeMs: ability.cooldownMs };
+
+    // Apply instant effects by character id
+    if (ability.durationMs === 0) {
+      switch (character.id) {
+        case 'vex': {
+          // Phase Skip: teleport forward 250 units in facing direction
+          const rad = (human.rotation * Math.PI) / 180;
+          updated = {
+            ...updated,
+            position: {
+              x: Math.max(0, Math.min(gameState.mapWidth, human.position.x + Math.cos(rad) * 250)),
+              y: Math.max(0, Math.min(gameState.mapHeight, human.position.y + Math.sin(rad) * 250)),
+            },
+          };
+          break;
+        }
+        case 'voss':
+          // Bio Surge: restore 80 HP
+          updated = { ...updated, health: Math.min(updated.maxHealth, updated.health + 80) };
+          break;
+        case 'orin':
+          // Junk Fortress: +100 each material
+          updated = {
+            ...updated,
+            materials: {
+              wood: updated.materials.wood + 100,
+              stone: updated.materials.stone + 100,
+              metal: updated.materials.metal + 100,
+            },
+          };
+          break;
+        default:
+          break;
+      }
+    } else {
+      // Timed effect: set active effect and duration
+      updated = {
+        ...updated,
+        abilityActiveMs: ability.durationMs,
+        activeAbilityEffect: ability.effectType,
+      };
+
+      // Nyra's Solar Bloom also heals instantly before the damage boost kicks in
+      if (character.id === 'nyra') {
+        updated = { ...updated, health: Math.min(updated.maxHealth, updated.health + 60) };
+      }
+      // Talon's Predator Leap also teleports forward
+      if (character.id === 'talon') {
+        const rad = (human.rotation * Math.PI) / 180;
+        updated = {
+          ...updated,
+          position: {
+            x: Math.max(0, Math.min(gameState.mapWidth, human.position.x + Math.cos(rad) * 200)),
+            y: Math.max(0, Math.min(gameState.mapHeight, human.position.y + Math.sin(rad) * 200)),
+          },
+        };
+      }
+    }
+
+    const players = [...gameState.players];
+    players[humanIndex] = updated;
+    set({ gameState: { ...gameState, players } });
   },
 
   updateGameState: (next: GameState) => {

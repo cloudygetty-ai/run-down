@@ -1,15 +1,18 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Player, Bombardment, WeaponType } from '../types';
+import { Player, Bombardment, WeaponType, GameState } from '../types';
 
 type Props = {
   player: Player;
   bombardment: Bombardment;
   alivePlayers: number;
+  bountyPlayerId: string | null;
+  activeQuip: string | null;
   onShoot: () => void;
   onReload: () => void;
   onBuildToggle: () => void;
   onWeaponSwitch: (slot: 0 | 1 | 2) => void;
+  onAbility: () => void;
 };
 
 const WEAPON_LABELS: Record<WeaponType, string> = {
@@ -51,23 +54,36 @@ const WEAPON_LABELS: Record<WeaponType, string> = {
   rail_gun: 'RAIL',
 };
 
+const CORE_EFFECT_LABELS: Record<string, string> = {
+  cooldown_reduction: 'CDR',
+  damage_amp: '+DMG',
+  ability_mutation: 'MUTATE',
+};
+
 export const HUD: React.FC<Props> = ({
   player,
   bombardment,
   alivePlayers,
+  bountyPlayerId,
+  activeQuip,
   onShoot,
   onReload,
   onBuildToggle,
   onWeaponSwitch,
+  onAbility,
 }) => {
   const activeWeapon = player.weapons[player.activeWeaponSlot];
   const phaseSeconds = Math.ceil(bombardment.timeUntilNextPhase / 1000);
   const impactSeconds = Math.ceil(bombardment.timeUntilNextImpact / 1000);
   const incomingMeteor = bombardment.timeUntilNextImpact < 2000;
+  const abilityCooldownPct = player.abilityChargeMs > 0 ? 1 : 0;
+  const abilityReady = player.abilityChargeMs === 0;
+  const isCorrupted = player.corruptionDps > 0;
+  const isBounty = bountyPlayerId === player.id;
 
   return (
     <View style={styles.container} pointerEvents="box-none">
-      {/* Top bar: alive count + meteor timer */}
+      {/* Top bar: alive count + meteor timer + kills */}
       <View style={styles.topBar}>
         <View style={styles.aliveChip}>
           <Text style={styles.aliveText}>{alivePlayers} alive</Text>
@@ -87,13 +103,34 @@ export const HUD: React.FC<Props> = ({
               : `Zone: ${phaseSeconds}s`}
           </Text>
         </View>
-        <View style={styles.killsChip}>
-          <Text style={styles.killsText}>{player.kills} kills</Text>
+        <View style={[styles.killsChip, isBounty && styles.killsChipBounty]}>
+          <Text style={[styles.killsText, isBounty && styles.killsTextBounty]}>
+            {isBounty ? `🎯 ${player.kills}` : `${player.kills} kills`}
+          </Text>
         </View>
       </View>
 
-      {/* Bottom left: health/shield bars */}
+      {/* Character quip banner */}
+      {activeQuip && (
+        <View style={styles.quipBanner}>
+          <Text style={styles.quipText}>"{activeQuip}"</Text>
+        </View>
+      )}
+
+      {/* Bottom left: health/shield + corruption + core indicator */}
       <View style={styles.bottomLeft}>
+        {/* Corruption indicator */}
+        {isCorrupted && (
+          <View style={styles.coreRow}>
+            <View style={[styles.coreChip, styles.coreChipActive]}>
+              <Text style={styles.coreChipText}>
+                CORE: {player.heldCoreEffect ? CORE_EFFECT_LABELS[player.heldCoreEffect] ?? player.heldCoreEffect : '?'}
+                {'  '}
+                <Text style={styles.corruptText}>-{player.corruptionDps.toFixed(0)} HP/s</Text>
+              </Text>
+            </View>
+          </View>
+        )}
         {/* Shield bar */}
         <View style={styles.barRow}>
           <Text style={styles.barLabel}>SH</Text>
@@ -102,7 +139,7 @@ export const HUD: React.FC<Props> = ({
               style={[styles.shieldFill, { width: `${(player.shield / player.maxShield) * 100}%` }]}
             />
           </View>
-          <Text style={styles.barValue}>{player.shield}</Text>
+          <Text style={styles.barValue}>{Math.ceil(player.shield)}</Text>
         </View>
         {/* Health bar */}
         <View style={styles.barRow}>
@@ -113,10 +150,13 @@ export const HUD: React.FC<Props> = ({
                 styles.healthFill,
                 { width: `${(player.health / player.maxHealth) * 100}%` },
                 player.health < 30 && styles.healthFillLow,
+                isCorrupted && styles.healthFillCorrupted,
               ]}
             />
           </View>
-          <Text style={styles.barValue}>{player.health}</Text>
+          <Text style={[styles.barValue, isCorrupted && styles.corruptText]}>
+            {Math.ceil(player.health)}
+          </Text>
         </View>
         {/* Materials */}
         <View style={styles.materialsRow}>
@@ -150,7 +190,7 @@ export const HUD: React.FC<Props> = ({
         })}
       </View>
 
-      {/* Bottom right: action buttons */}
+      {/* Bottom right: action buttons + ability */}
       <View style={styles.actionButtons}>
         <TouchableOpacity
           style={[styles.buildBtn, player.isBuilding && styles.buildBtnActive]}
@@ -160,6 +200,25 @@ export const HUD: React.FC<Props> = ({
         </TouchableOpacity>
         <TouchableOpacity style={styles.reloadBtn} onPress={onReload}>
           <Text style={styles.btnText}>RELOAD</Text>
+        </TouchableOpacity>
+        {/* Ability button */}
+        <TouchableOpacity
+          style={[
+            styles.abilityBtn,
+            abilityReady && styles.abilityBtnReady,
+            !abilityReady && styles.abilityBtnCooldown,
+            player.abilityActiveMs > 0 && styles.abilityBtnActive,
+          ]}
+          onPress={onAbility}
+          disabled={!abilityReady}
+        >
+          <Text style={styles.abilityBtnText}>
+            {player.abilityActiveMs > 0
+              ? `ACTIVE\n${(player.abilityActiveMs / 1000).toFixed(1)}s`
+              : abilityReady
+              ? 'ABILITY'
+              : `${(player.abilityChargeMs / 1000).toFixed(0)}s`}
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.shootBtn, !activeWeapon && styles.btnDisabled]}
@@ -207,14 +266,39 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 12,
   },
+  killsChipBounty: { backgroundColor: 'rgba(180,30,0,0.85)', borderWidth: 1, borderColor: '#ff4400' },
   killsText: { color: '#ffcc00', fontWeight: 'bold', fontSize: 13 },
+  killsTextBounty: { color: '#ff6633' },
+
+  quipBanner: {
+    alignSelf: 'center',
+    backgroundColor: 'rgba(0,0,0,0.72)',
+    paddingHorizontal: 18,
+    paddingVertical: 7,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255,150,0,0.3)',
+    maxWidth: '80%',
+  },
+  quipText: { color: '#ffcc88', fontSize: 13, fontStyle: 'italic', textAlign: 'center' },
 
   bottomLeft: {
     position: 'absolute',
     bottom: 20,
     left: 20,
-    minWidth: 180,
+    minWidth: 190,
   },
+  coreRow: { marginBottom: 5 },
+  coreChip: {
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    alignSelf: 'flex-start',
+  },
+  coreChipActive: { backgroundColor: 'rgba(180,0,200,0.55)', borderWidth: 1, borderColor: '#cc44ff' },
+  coreChipText: { color: '#ee88ff', fontSize: 10, fontWeight: 'bold' },
+  corruptText: { color: '#ff4488' },
+
   barRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -234,12 +318,13 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   healthFillLow: { backgroundColor: '#ff4444' },
+  healthFillCorrupted: { backgroundColor: '#cc44ff' },
   shieldFill: {
     height: '100%',
     backgroundColor: '#44aaff',
     borderRadius: 6,
   },
-  barValue: { color: '#fff', fontSize: 11, width: 28, textAlign: 'right' },
+  barValue: { color: '#fff', fontSize: 11, width: 30, textAlign: 'right' },
   materialsRow: {
     flexDirection: 'row',
     gap: 8,
@@ -276,14 +361,14 @@ const styles = StyleSheet.create({
     bottom: 20,
     right: 20,
     flexDirection: 'row',
-    gap: 10,
+    gap: 8,
     alignItems: 'flex-end',
   },
   buildBtn: {
-    width: 64,
-    height: 64,
+    width: 60,
+    height: 60,
     backgroundColor: 'rgba(100,60,0,0.7)',
-    borderRadius: 32,
+    borderRadius: 30,
     borderWidth: 2,
     borderColor: '#aa6600',
     alignItems: 'center',
@@ -294,15 +379,36 @@ const styles = StyleSheet.create({
     borderColor: '#ffaa00',
   },
   reloadBtn: {
-    width: 64,
-    height: 64,
+    width: 60,
+    height: 60,
     backgroundColor: 'rgba(0,80,0,0.7)',
-    borderRadius: 32,
+    borderRadius: 30,
     borderWidth: 2,
     borderColor: '#00aa00',
     alignItems: 'center',
     justifyContent: 'center',
   },
+  abilityBtn: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  abilityBtnReady: {
+    backgroundColor: 'rgba(0,100,200,0.85)',
+    borderColor: '#44aaff',
+  },
+  abilityBtnCooldown: {
+    backgroundColor: 'rgba(30,30,30,0.7)',
+    borderColor: 'rgba(80,80,80,0.5)',
+  },
+  abilityBtnActive: {
+    backgroundColor: 'rgba(100,0,200,0.9)',
+    borderColor: '#cc44ff',
+  },
+  abilityBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 11, textAlign: 'center' },
   shootBtn: {
     width: 88,
     height: 88,
