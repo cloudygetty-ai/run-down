@@ -1,0 +1,6 @@
+{
+  "name": "run-down",
+  "rewrites": [
+    { "source": "/", "destination": "/demo.html" }
+  ]
+}
