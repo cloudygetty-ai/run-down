@@ -255,12 +255,20 @@ function tickHelixRelays(state: GameState, deltaMs: number): GameState {
           {
             id: `relay_loot_${relay.id}_${Date.now()}`,
             position: {
-              x: relay.position.x + randomInRange(-HELIX_RELAY_REWARD_LOOT_RADIUS, HELIX_RELAY_REWARD_LOOT_RADIUS),
-              y: relay.position.y + randomInRange(-HELIX_RELAY_REWARD_LOOT_RADIUS, HELIX_RELAY_REWARD_LOOT_RADIUS),
+              x:
+                relay.position.x +
+                randomInRange(-HELIX_RELAY_REWARD_LOOT_RADIUS, HELIX_RELAY_REWARD_LOOT_RADIUS),
+              y:
+                relay.position.y +
+                randomInRange(-HELIX_RELAY_REWARD_LOOT_RADIUS, HELIX_RELAY_REWARD_LOOT_RADIUS),
             },
             weapon: null,
             ammo: randomInt(60, 120),
-            materials: { wood: randomInt(40, 80), stone: randomInt(30, 60), metal: randomInt(20, 40) },
+            materials: {
+              wood: randomInt(40, 80),
+              stone: randomInt(30, 60),
+              metal: randomInt(20, 40),
+            },
             shield: 100,
             health: 50,
           },
@@ -347,7 +355,14 @@ function tickSupplyDrops(state: GameState, deltaMs: number): GameState {
 }
 
 function spawnSupplyDrop(mapWidth: number, mapHeight: number): SupplyDrop {
-  const epicWeapons: WeaponType[] = ['sniper', 'heavy_sniper', 'rail_gun', 'minigun', 'rocket_launcher', 'heavy_ar'];
+  const epicWeapons: WeaponType[] = [
+    'sniper',
+    'heavy_sniper',
+    'rail_gun',
+    'minigun',
+    'rocket_launcher',
+    'heavy_ar',
+  ];
   const rarities: Rarity[] = ['epic', 'legendary'];
   return {
     id: `supply_${Date.now()}_${Math.random().toString(36).slice(2)}`,
@@ -408,7 +423,11 @@ function moveHumanPlayer(state: GameState, input: InputState, deltaMs: number): 
   const gravitySpeedMult = inGravityZone ? 0.6 : 1;
 
   const speed =
-    PLAYER_SPEED * player.speedMult * abilitySpeedMult * gravitySpeedMult * (deltaMs / TICK_RATE_MS);
+    PLAYER_SPEED *
+    player.speedMult *
+    abilitySpeedMult *
+    gravitySpeedMult *
+    (deltaMs / TICK_RATE_MS);
   const dir = normalize(input.moveVector);
 
   const rawNext: Vector2 = {
@@ -487,7 +506,11 @@ function spawnMeteorEffects(state: GameState, newImpacts: MeteorImpact[]): GameS
 
   for (const impact of newImpacts) {
     if (impact.meteorType === 'explosive') {
-      const effects: FractureCoreEffect[] = ['cooldown_reduction', 'damage_amp', 'ability_mutation'];
+      const effects: FractureCoreEffect[] = [
+        'cooldown_reduction',
+        'damage_amp',
+        'ability_mutation',
+      ];
       fractureCores = [
         ...fractureCores,
         {
@@ -602,7 +625,8 @@ export function fireShot(state: GameState, shooterId: string, targetPos: Vector2
     }
 
     // Outgoing multipliers: passive × ability × Fracture Core damage_amp
-    const abilityDamageMult = players[shooterIndex].activeAbilityEffect === 'damage_boost' ? 1.5 : 1;
+    const abilityDamageMult =
+      players[shooterIndex].activeAbilityEffect === 'damage_boost' ? 1.5 : 1;
     const coreDamageMult = players[shooterIndex].heldCoreEffect === 'damage_amp' ? 1.4 : 1;
     const rawDmg = Math.round(
       weapon.damage * players[shooterIndex].damageMult * abilityDamageMult * coreDamageMult,
