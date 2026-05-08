@@ -142,7 +142,7 @@ function tickImpacts(impacts: MeteorImpact[], deltaMs: number): MeteorImpact[] {
 function pickMeteorType(): MeteorType {
   const roll = Math.random();
   if (roll < 0.05) return 'echo';
-  if (roll < 0.20) return 'gravity';
+  if (roll < 0.2) return 'gravity';
   return 'explosive';
 }
 
