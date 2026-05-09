@@ -1,3 +1,15 @@
+// Mock portraits so require() returns numbers (matching Metro's production behavior)
+// rather than the { testUri } objects that Jest's asset transformer produces.
+jest.mock('./portraits', () => {
+  const ids = [
+    'vex','brutus','nyra','kade','iris','rook','talon','voss',
+    'sable','orin','lyric','magnus','eira','jax','kael',
+  ];
+  const PORTRAITS: Record<string, number> = {};
+  ids.forEach((id, i) => { PORTRAITS[id] = i + 1; });
+  return { PORTRAITS };
+});
+
 import { CHARACTERS, getCharacter, DEFAULT_CHARACTER_ID } from './characters';
 
 describe('character roster', () => {
@@ -13,6 +25,25 @@ describe('character roster', () => {
       expect(c.title.length).toBeGreaterThan(0);
       expect(c.lore.length).toBeGreaterThan(0);
       expect(c.meteorQuip.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('every character has a valid 6-digit hex accentColor', () => {
+    const hexColor = /^#[0-9a-f]{6}$/i;
+    for (const c of CHARACTERS) {
+      expect(c.accentColor).toMatch(hexColor);
+    }
+  });
+
+  it('all accentColors are unique across the roster', () => {
+    const colors = CHARACTERS.map((c) => c.accentColor.toLowerCase());
+    expect(new Set(colors).size).toBe(CHARACTERS.length);
+  });
+
+  it('portraitSource is a number (local asset) or null', () => {
+    for (const c of CHARACTERS) {
+      const valid = c.portraitSource === null || typeof c.portraitSource === 'number';
+      expect(valid).toBe(true);
     }
   });
 
