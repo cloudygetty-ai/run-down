@@ -28,7 +28,7 @@ export function startReload(player: Player, onComplete: (updated: Player) => voi
     reloadTimers.delete(weaponId);
     const updated = completeReload(player);
     onComplete(updated);
-  }, weapon.reloadTime);
+  }, weapon.reloadTime * player.reloadMult);
 
   reloadTimers.set(weaponId, timer);
 

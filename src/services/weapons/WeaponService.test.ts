@@ -269,4 +269,40 @@ describe('WeaponService.startReload', () => {
     startReload(player, callback);
     expect(callback).not.toHaveBeenCalled();
   });
+
+  it('reloadMult < 1 completes reload faster than baseline', (done) => {
+    // Weapon reloads in 400ms base. With reloadMult=0.5 it should finish in ~200ms.
+    // We check that it completes before 350ms — well inside the baseline window.
+    const weapon = makeWeapon({ id: 'fast', currentAmmo: 0, reloadTime: 400 });
+    const fast = makePlayer({ weapons: [weapon, null, null], reloadMult: 0.5 });
+    const slow = makePlayer({
+      weapons: [makeWeapon({ id: 'slow', currentAmmo: 0, reloadTime: 400 }), null, null],
+      reloadMult: 1,
+    });
+
+    let fastDone = false;
+    let slowDone = false;
+
+    const start = Date.now();
+
+    startReload(fast, (updated) => {
+      if (!updated.weapons[0]?.isReloading) {
+        fastDone = true;
+        const elapsed = Date.now() - start;
+        // Fast reload should complete well before the 400ms baseline
+        expect(elapsed).toBeLessThan(350);
+        if (slowDone) done();
+      }
+    });
+
+    startReload(slow, (updated) => {
+      if (!updated.weapons[0]?.isReloading) {
+        slowDone = true;
+        // Slow (1×) reload should take at least 350ms
+        const elapsed = Date.now() - start;
+        expect(elapsed).toBeGreaterThanOrEqual(350);
+        if (fastDone) done();
+      }
+    });
+  }, 2000);
 });
