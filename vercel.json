@@ -1,0 +1,6 @@
+{
+  "installCommand": "mkdir -p public",
+  "buildCommand": "cp demo.html public/index.html",
+  "outputDirectory": "public",
+  "regions": ["iad1"]
+}
