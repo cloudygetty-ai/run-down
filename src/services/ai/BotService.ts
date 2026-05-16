@@ -2,12 +2,13 @@ import { GameState, Player, Vector2 } from '../../types';
 import { fireShot } from '../../core/gameEngine';
 import { distance, normalize, isInsideCircle, clamp, randomInRange } from '../../utils';
 import { computeAimPoint, canFire } from '../weapons';
-
-const BOT_SPEED = 2.5; // units per tick
-const BOT_SHOOT_RANGE = 300;
-const BOT_AGGRO_RANGE = 400;
-const BOT_LOOT_RANGE = 60;
-const TICK_MS = 50;
+import {
+  BOT_SPEED,
+  BOT_AGGRO_RANGE,
+  BOT_SHOOT_RANGE,
+  BOT_LOOT_RANGE,
+  TICK_RATE_MS,
+} from '../../core/balance';
 
 // Per-bot mutable state (intentionally outside pure game state — AI is ephemeral)
 type BotBrain = {
@@ -105,7 +106,7 @@ function moveBot(state: GameState, bot: Player, target: Vector2, deltaMs: number
     x: target.x - bot.position.x,
     y: target.y - bot.position.y,
   });
-  const speed = BOT_SPEED * (deltaMs / TICK_MS);
+  const speed = BOT_SPEED * bot.speedMult * (deltaMs / TICK_RATE_MS);
   const dist = distance(bot.position, target);
 
   if (dist < speed) {

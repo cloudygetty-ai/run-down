@@ -37,6 +37,7 @@ export const ECHO_ZONE_SPEED_MULT = 0.85;         // movement inside zone
 // ── Character abilities ───────────────────────────────────────────────────────
 export const JAX_HP_DRAIN_DPS = 5;               // HP drained per second during Adrenal Override
 export const ABILITY_DAMAGE_BOOST_MULT = 1.5;    // outgoing damage while damage_boost active
+export const ABILITY_SPEED_BOOST_MULT = 2;       // movement speed while speed_boost active
 
 // ── Helix Relay ───────────────────────────────────────────────────────────────
 export const HELIX_RELAY_CAPTURE_RATE = 1 / 5000;   // progress per ms (captures in 5s)
@@ -58,3 +59,9 @@ export const QUIP_DISPLAY_MS = 3500; // ms a character quip remains on screen
 export const MAP_WIDTH = 1600;
 export const MAP_HEIGHT = 1600;
 export const BOT_COUNT = 99;
+
+// ── Bot AI ────────────────────────────────────────────────────────────────────
+export const BOT_SPEED = 3;          // units per tick — ~75% of base PLAYER_SPEED, threatening but beatable
+export const BOT_AGGRO_RANGE = 400;  // units — bot notices and chases enemies within this distance
+export const BOT_SHOOT_RANGE = 300;  // units — bot fires when target is closer than this
+export const BOT_LOOT_RANGE = 60;    // units — bot auto-picks up loot within this radius

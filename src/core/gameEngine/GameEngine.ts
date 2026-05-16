@@ -35,7 +35,13 @@ import {
   QUIP_DISPLAY_MS,
   ECHO_ZONE_CHARGE_RATE_MULT,
   ECHO_ZONE_SPEED_MULT,
+  ECHO_ZONE_RADIUS,
+  ECHO_ZONE_MAX_AGE_MS,
   GRAVITY_ZONE_SPEED_MULT,
+  GRAVITY_ZONE_RADIUS,
+  GRAVITY_ZONE_PULL_STRENGTH,
+  GRAVITY_ZONE_MAX_AGE_MS,
+  ABILITY_SPEED_BOOST_MULT,
 } from '../balance';
 
 export type InputState = {
@@ -406,7 +412,7 @@ function moveHumanPlayer(state: GameState, input: InputState, deltaMs: number): 
   if (humanIndex === -1) return state;
 
   const player = state.players[humanIndex];
-  const abilitySpeedMult = player.activeAbilityEffect === 'speed_boost' ? 2 : 1;
+  const abilitySpeedMult = player.activeAbilityEffect === 'speed_boost' ? ABILITY_SPEED_BOOST_MULT : 1;
 
   const inGravityZone = state.gravityZones.some(
     (z) => distance(player.position, z.position) <= z.radius,
@@ -508,11 +514,11 @@ function spawnMeteorEffects(state: GameState, newImpacts: MeteorImpact[]): GameS
         {
           id: `gzone_${impact.id}`,
           position: impact.position,
-          radius: 180,
-          pullStrength: GRAVITY_ZONE_SPEED_MULT * 100, // derived from constant
+          radius: GRAVITY_ZONE_RADIUS,
+          pullStrength: GRAVITY_ZONE_PULL_STRENGTH,
           speedMult: GRAVITY_ZONE_SPEED_MULT,
           age: 0,
-          maxAge: 30_000,
+          maxAge: GRAVITY_ZONE_MAX_AGE_MS,
         },
       ];
     } else {
@@ -521,9 +527,9 @@ function spawnMeteorEffects(state: GameState, newImpacts: MeteorImpact[]): GameS
         {
           id: `echo_${impact.id}`,
           position: impact.position,
-          radius: 200,
+          radius: ECHO_ZONE_RADIUS,
           age: 0,
-          maxAge: 20_000,
+          maxAge: ECHO_ZONE_MAX_AGE_MS,
         },
       ];
     }
