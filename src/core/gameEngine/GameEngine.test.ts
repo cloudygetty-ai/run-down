@@ -2,6 +2,21 @@ import { tickGame, fireShot, InputState } from './GameEngine';
 import { GameState, Player } from '../../types';
 import { createInitialBombardment } from '../meteor';
 
+// Run tickGame N times and return the final state.
+function simulateTicks(
+  state: GameState,
+  input: InputState,
+  ticks: number,
+  deltaMs = 50,
+): GameState {
+  let s = state;
+  for (let i = 0; i < ticks; i++) {
+    s = tickGame(s, input, deltaMs);
+    if (s.phase !== 'playing') break;
+  }
+  return s;
+}
+
 const MAP_W = 1600;
 const MAP_H = 1600;
 
@@ -78,6 +93,7 @@ function makeGameState(overrides: Partial<GameState> = {}): GameState {
     bountyPlayerId: null,
     activeQuip: null,
     quipTtlMs: 0,
+    incomingMeteors: [],
     ...overrides,
   };
 }
@@ -223,5 +239,100 @@ describe('GameEngine.fireShot', () => {
     const next = fireShot(state, 'human', { x: 900, y: 800 });
     const updatedShooter = next.players.find((p) => p.id === 'human')!;
     expect(updatedShooter.weapons[0]?.currentAmmo).toBe(0);
+  });
+});
+
+// ─── Simulation tests ─────────────────────────────────────────────────────────
+
+describe('GameEngine simulation (multi-tick)', () => {
+  const noInput: InputState = {
+    moveVector: { x: 0, y: 0 },
+    aimVector: { x: 1, y: 0 },
+    isShooting: false,
+    isBuilding: false,
+    buildPieceType: 'wall',
+    buildPosition: null,
+    wantsReload: false,
+  };
+
+  it('survives 200 ticks (10s) without throwing or corrupting tickCount', () => {
+    const bot = makePlayer({ id: 'bot', isHuman: false, position: { x: 400, y: 400 } });
+    const state = makeGameState({ players: [makePlayer(), bot], alivePlayers: 2 });
+    const final = simulateTicks(state, noInput, 200);
+    expect(final.tickCount).toBe(200);
+  });
+
+  it('bountyPlayerId is null when no player has 3+ kills', () => {
+    const state = makeGameState();
+    const final = simulateTicks(state, noInput, 20);
+    expect(final.bountyPlayerId).toBeNull();
+  });
+
+  it('bountyPlayerId is set to the player with the most kills once threshold is met', () => {
+    const highKiller = makePlayer({ id: 'killer', kills: 5, isHuman: false });
+    const human = makePlayer({ id: 'human', kills: 0, isHuman: true });
+    const state = makeGameState({ players: [human, highKiller], alivePlayers: 2 });
+    const final = simulateTicks(state, noInput, 1);
+    expect(final.bountyPlayerId).toBe('killer');
+  });
+
+  it('supply drop position stays within map bounds', () => {
+    // Force a supply drop to spawn immediately
+    const state = makeGameState({ nextSupplyDropMs: 10 });
+    const final = simulateTicks(state, noInput, 5);
+    for (const drop of final.supplyDrops) {
+      expect(drop.position.x).toBeGreaterThanOrEqual(0);
+      expect(drop.position.x).toBeLessThanOrEqual(MAP_W);
+      expect(drop.position.y).toBeGreaterThanOrEqual(0);
+      expect(drop.position.y).toBeLessThanOrEqual(MAP_H);
+    }
+  });
+
+  it('Fracture Core corruption never kills the holder (floor at 1 HP)', () => {
+    const player = makePlayer({
+      id: 'human',
+      health: 10,
+      heldCoreEffect: 'damage_amp',
+      corruptionDps: 100, // extreme drain
+    });
+    const state = makeGameState({ players: [player] });
+    // Run for 5 full seconds — enough for 500 HP of drain
+    const final = simulateTicks(state, noInput, 100);
+    const h = final.players.find((p) => p.id === 'human')!;
+    expect(h.health).toBeGreaterThanOrEqual(1);
+    expect(h.status).toBe('alive');
+  });
+
+  it('Helix Relay reward does not fire again before cooldown expires', () => {
+    const relay = {
+      id: 'r1',
+      position: { x: 800, y: 800 },
+      captureRadius: 500, // enormous — human always inside
+      captureProgress: 0,
+      capturedById: null,
+      rewardCooldownMs: 0,
+    };
+    const state = makeGameState({ helixRelays: [relay] });
+
+    // Run long enough to trigger first capture reward (5s = 100 ticks)
+    const afterCapture = simulateTicks(state, noInput, 100);
+    const initialLootCount = afterCapture.lootDrops.length;
+
+    // Run one more tick immediately — cooldown is 60s, no second reward yet
+    const afterExtra = simulateTicks(afterCapture, noInput, 1);
+    expect(afterExtra.lootDrops.length).toBe(initialLootCount);
+  });
+
+  it('second Fracture Core pickup is blocked while player already holds one', () => {
+    const core1 = { id: 'c1', position: { x: 800, y: 800 }, effect: 'damage_amp' as const, corruptionDps: 5 };
+    const core2 = { id: 'c2', position: { x: 800, y: 800 }, effect: 'cooldown_reduction' as const, corruptionDps: 5 };
+    const player = makePlayer({ position: { x: 800, y: 800 } });
+    const state = makeGameState({ players: [player], fractureCores: [core1, core2] });
+    const final = simulateTicks(state, noInput, 1);
+    const h = final.players.find((p) => p.id === 'human')!;
+    // Player should hold exactly one core — no double-stacking
+    expect(h.heldCoreEffect).not.toBeNull();
+    // At least one core should remain unclaimed (can't hold both)
+    expect(final.fractureCores.length).toBeGreaterThanOrEqual(1);
   });
 });

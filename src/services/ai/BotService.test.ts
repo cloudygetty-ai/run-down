@@ -82,6 +82,7 @@ function makeState(overrides: Partial<GameState> = {}): GameState {
     bountyPlayerId: null,
     activeQuip: null,
     quipTtlMs: 0,
+    incomingMeteors: [],
     ...overrides,
   };
 }

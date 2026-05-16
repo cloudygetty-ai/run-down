@@ -56,6 +56,7 @@ export const GameMap: React.FC<Props> = ({ state, viewportX, viewportY, viewport
       {/* Meteor bombardment zone */}
       <MeteorZoneOverlay
         bombardment={state.bombardment}
+        incomingMeteors={state.incomingMeteors}
         viewportX={viewportX}
         viewportY={viewportY}
         viewportW={viewportW}

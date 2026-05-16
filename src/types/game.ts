@@ -165,6 +165,14 @@ export type MeteorType =
   | 'gravity'   // bends space — creates a Gravity Distortion Field, no AoE damage
   | 'echo';     // rare — creates a Time Echo Zone, no AoE damage
 
+// A meteor still descending — shown as a warning ring before it lands.
+export type IncomingMeteor = {
+  id: string;
+  position: Vector2;
+  timeUntilImpactMs: number; // counts down to 0, then converts to a real MeteorImpact
+  meteorType: MeteorType;
+};
+
 // A single meteor impact crater — shown briefly on the map after a strike
 export type MeteorImpact = {
   id: string;
@@ -300,4 +308,6 @@ export type GameState = {
   // Active character quip (displayed briefly after a nearby meteor strike)
   activeQuip: string | null;
   quipTtlMs: number; // ms remaining before quip clears
+  // Incoming meteors — warning phase before they land
+  incomingMeteors: IncomingMeteor[];
 };

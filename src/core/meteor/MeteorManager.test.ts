@@ -1,4 +1,5 @@
-import { createInitialBombardment, tickBombardment } from './MeteorManager';
+import { createInitialBombardment, tickBombardment, tickIncomingMeteors } from './MeteorManager';
+import { METEOR_WARNING_MS } from '../balance';
 
 const MAP_W = 1600;
 const MAP_H = 1600;
@@ -61,21 +62,27 @@ describe('MeteorManager', () => {
       expect(mid.shelterRadius).toBeLessThan(initialRadius);
     });
 
-    it('spawns a meteor impact when impact timer expires', () => {
+    it('spawns an IncomingMeteor (not an instant impact) when timer expires', () => {
       const b = createInitialBombardment(MAP_W, MAP_H);
-      // Force the timer to fire on the next tick
       const earlyImpact = { ...b, timeUntilNextImpact: 10 };
-      const { newImpacts } = tickBombardment(earlyImpact, 50, MAP_W, MAP_H);
-      expect(newImpacts.length).toBeGreaterThan(0);
+      const { newIncoming } = tickBombardment(earlyImpact, 50, MAP_W, MAP_H);
+      expect(newIncoming.length).toBeGreaterThan(0);
     });
 
-    it('spawns impact OUTSIDE the shelter zone', () => {
+    it('incoming meteor has a warning countdown equal to METEOR_WARNING_MS', () => {
       const b = createInitialBombardment(MAP_W, MAP_H);
       const earlyImpact = { ...b, timeUntilNextImpact: 10 };
-      const { newImpacts, bombardment } = tickBombardment(earlyImpact, 50, MAP_W, MAP_H);
-      for (const impact of newImpacts) {
-        const dx = impact.position.x - bombardment.shelterCenter.x;
-        const dy = impact.position.y - bombardment.shelterCenter.y;
+      const { newIncoming } = tickBombardment(earlyImpact, 50, MAP_W, MAP_H);
+      expect(newIncoming[0].timeUntilImpactMs).toBe(METEOR_WARNING_MS);
+    });
+
+    it('incoming meteor spawns OUTSIDE the shelter zone', () => {
+      const b = createInitialBombardment(MAP_W, MAP_H);
+      const earlyImpact = { ...b, timeUntilNextImpact: 10 };
+      const { newIncoming, bombardment } = tickBombardment(earlyImpact, 50, MAP_W, MAP_H);
+      for (const m of newIncoming) {
+        const dx = m.position.x - bombardment.shelterCenter.x;
+        const dy = m.position.y - bombardment.shelterCenter.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
         expect(dist).toBeGreaterThan(bombardment.shelterRadius);
       }
@@ -83,31 +90,49 @@ describe('MeteorManager', () => {
 
     it('ages existing impacts on each tick', () => {
       const b = createInitialBombardment(MAP_W, MAP_H);
-      const earlyImpact = { ...b, timeUntilNextImpact: 10 };
-      const { bombardment: after1 } = tickBombardment(earlyImpact, 50, MAP_W, MAP_H);
-      const { bombardment: after2 } = tickBombardment(after1, 500, MAP_W, MAP_H);
-      if (after2.activeImpacts.length > 0) {
-        expect(after2.activeImpacts[0].age).toBeGreaterThan(0);
-      }
+      const withImpact = {
+        ...b,
+        activeImpacts: [{ id: 'i1', position: { x: 0, y: 0 }, blastRadius: 45, age: 0, maxAge: 2500, meteorType: 'explosive' as const }],
+      };
+      const { bombardment: after } = tickBombardment(withImpact, 500, MAP_W, MAP_H);
+      expect(after.activeImpacts[0].age).toBe(500);
     });
 
     it('removes impacts that have exceeded maxAge', () => {
       const b = createInitialBombardment(MAP_W, MAP_H);
       const withOldImpact = {
         ...b,
-        activeImpacts: [
-          {
-            id: 'old',
-            position: { x: 0, y: 0 },
-            blastRadius: 45,
-            age: 2400,
-            maxAge: 2500,
-            meteorType: 'explosive' as const,
-          },
-        ],
+        activeImpacts: [{ id: 'old', position: { x: 0, y: 0 }, blastRadius: 45, age: 2400, maxAge: 2500, meteorType: 'explosive' as const }],
       };
       const { bombardment } = tickBombardment(withOldImpact, 200, MAP_W, MAP_H);
       expect(bombardment.activeImpacts.find((i) => i.id === 'old')).toBeUndefined();
+    });
+  });
+
+  describe('tickIncomingMeteors', () => {
+    it('keeps meteors with remaining countdown in stillPending', () => {
+      const incoming = [{ id: 'm1', position: { x: 100, y: 100 }, timeUntilImpactMs: 1000, meteorType: 'explosive' as const }];
+      const { stillPending, newImpacts } = tickIncomingMeteors(incoming, 500);
+      expect(stillPending).toHaveLength(1);
+      expect(stillPending[0].timeUntilImpactMs).toBe(500);
+      expect(newImpacts).toHaveLength(0);
+    });
+
+    it('graduates meteors whose countdown hits 0 into newImpacts', () => {
+      const incoming = [{ id: 'm2', position: { x: 200, y: 300 }, timeUntilImpactMs: 100, meteorType: 'gravity' as const }];
+      const { stillPending, newImpacts } = tickIncomingMeteors(incoming, 200);
+      expect(stillPending).toHaveLength(0);
+      expect(newImpacts).toHaveLength(1);
+      expect(newImpacts[0].id).toBe('m2');
+      expect(newImpacts[0].meteorType).toBe('gravity');
+    });
+
+    it('preserves position and meteorType through graduation', () => {
+      const pos = { x: 777, y: 888 };
+      const incoming = [{ id: 'mx', position: pos, timeUntilImpactMs: 50, meteorType: 'echo' as const }];
+      const { newImpacts } = tickIncomingMeteors(incoming, 100);
+      expect(newImpacts[0].position).toEqual(pos);
+      expect(newImpacts[0].meteorType).toBe('echo');
     });
   });
 });

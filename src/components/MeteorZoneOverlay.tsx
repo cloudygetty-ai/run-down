@@ -1,9 +1,11 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Bombardment } from '../types';
+import { Bombardment, IncomingMeteor } from '../types';
+import { METEOR_BLAST_RADIUS, METEOR_WARNING_MS } from '../core/balance';
 
 type Props = {
   bombardment: Bombardment;
+  incomingMeteors: IncomingMeteor[];
   viewportX: number;
   viewportY: number;
   viewportW: number;
@@ -17,6 +19,7 @@ type Props = {
 
 export const MeteorZoneOverlay: React.FC<Props> = ({
   bombardment,
+  incomingMeteors,
   viewportX,
   viewportY,
   viewportW,
@@ -26,7 +29,6 @@ export const MeteorZoneOverlay: React.FC<Props> = ({
   const cy = bombardment.shelterCenter.y - viewportY;
   const r = bombardment.shelterRadius;
 
-  // Bounding box of the safe circle (clamped to viewport)
   const safeLeft = Math.max(0, cx - r);
   const safeRight = Math.min(viewportW, cx + r);
   const safeTop = Math.max(0, cy - r);
@@ -38,64 +40,28 @@ export const MeteorZoneOverlay: React.FC<Props> = ({
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      {/* Top danger strip — above the safe circle */}
+      {/* Top danger strip */}
       {safeTop > 0 && (
         <View style={[styles.danger, { top: 0, left: 0, width: viewportW, height: safeTop }]} />
       )}
       {/* Bottom danger strip */}
       {safeBottom < viewportH && (
-        <View
-          style={[
-            styles.danger,
-            {
-              top: safeBottom,
-              left: 0,
-              width: viewportW,
-              height: viewportH - safeBottom,
-            },
-          ]}
-        />
+        <View style={[styles.danger, { top: safeBottom, left: 0, width: viewportW, height: viewportH - safeBottom }]} />
       )}
-      {/* Left danger strip (between top/bottom strips) */}
+      {/* Left danger strip */}
       {safeLeft > 0 && (
-        <View
-          style={[
-            styles.danger,
-            {
-              top: safeTop,
-              left: 0,
-              width: safeLeft,
-              height: safeBottom - safeTop,
-            },
-          ]}
-        />
+        <View style={[styles.danger, { top: safeTop, left: 0, width: safeLeft, height: safeBottom - safeTop }]} />
       )}
       {/* Right danger strip */}
       {safeRight < viewportW && (
-        <View
-          style={[
-            styles.danger,
-            {
-              top: safeTop,
-              left: safeRight,
-              width: viewportW - safeRight,
-              height: safeBottom - safeTop,
-            },
-          ]}
-        />
+        <View style={[styles.danger, { top: safeTop, left: safeRight, width: viewportW - safeRight, height: safeBottom - safeTop }]} />
       )}
 
-      {/* Shelter boundary ring — glowing fire ring */}
+      {/* Shelter boundary ring */}
       <View
         style={[
           styles.shelterRing,
-          {
-            width: r * 2 + 6,
-            height: r * 2 + 6,
-            borderRadius: r + 3,
-            left: cx - r - 3,
-            top: cy - r - 3,
-          },
+          { width: r * 2 + 6, height: r * 2 + 6, borderRadius: r + 3, left: cx - r - 3, top: cy - r - 3 },
         ]}
       />
 
@@ -103,15 +69,41 @@ export const MeteorZoneOverlay: React.FC<Props> = ({
       <View
         style={[
           styles.nextZoneIndicator,
-          {
-            width: nextR * 2,
-            height: nextR * 2,
-            borderRadius: nextR,
-            left: nextCx - nextR,
-            top: nextCy - nextR,
-          },
+          { width: nextR * 2, height: nextR * 2, borderRadius: nextR, left: nextCx - nextR, top: nextCy - nextR },
         ]}
       />
+
+      {/* Incoming meteor warning rings — shrink toward impact as countdown ticks down */}
+      {incomingMeteors.map((m) => {
+        const screenX = m.position.x - viewportX;
+        const screenY = m.position.y - viewportY;
+
+        // progress: 0 = just spawned (big ring), 1 = about to land (ring = blast radius)
+        const progress = 1 - m.timeUntilImpactMs / METEOR_WARNING_MS;
+        const maxRingRadius = METEOR_BLAST_RADIUS * 4;
+        const ringRadius = maxRingRadius - (maxRingRadius - METEOR_BLAST_RADIUS) * progress;
+
+        // Colour shifts orange → red in the final 500ms
+        const isFinal = m.timeUntilImpactMs < 500;
+        const ringColor = isFinal ? 'rgba(255, 30, 0, 0.85)' : 'rgba(255, 140, 0, 0.60)';
+
+        return (
+          <View
+            key={m.id}
+            style={[
+              styles.warningRing,
+              {
+                width: ringRadius * 2,
+                height: ringRadius * 2,
+                borderRadius: ringRadius,
+                left: screenX - ringRadius,
+                top: screenY - ringRadius,
+                borderColor: ringColor,
+              },
+            ]}
+          />
+        );
+      })}
 
       {/* Meteor impact craters */}
       {bombardment.activeImpacts.map((impact) => {
@@ -157,6 +149,11 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'rgba(255, 200, 100, 0.5)',
     borderStyle: 'dashed',
+    backgroundColor: 'transparent',
+  },
+  warningRing: {
+    position: 'absolute',
+    borderWidth: 2,
     backgroundColor: 'transparent',
   },
   crater: {

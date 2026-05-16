@@ -13,15 +13,13 @@ import {
 } from '../../types';
 import { createInitialBombardment } from '../../core/meteor';
 import { getCharacter, DEFAULT_CHARACTER_ID } from '../../core/characters';
+import { MAP_WIDTH, MAP_HEIGHT, BOT_COUNT } from '../../core/balance';
 import { randomInRange, randomInt } from '../../utils';
 // WHY: resetGame must clean up both weapon timers and bot brain state
 // to prevent stale callbacks firing into a fresh game.
 import { cancelAllReloads } from '../weapons';
 import { clearBotBrains } from '../ai';
 
-const MAP_WIDTH = 1600;
-const MAP_HEIGHT = 1600;
-const BOT_COUNT = 99;
 
 // --- Weapon templates ---
 
@@ -433,6 +431,8 @@ function buildInitialState(characterId = DEFAULT_CHARACTER_ID): GameState {
     // Character quips
     activeQuip: null,
     quipTtlMs: 0,
+    // Incoming meteor warnings
+    incomingMeteors: [],
   };
 }
 

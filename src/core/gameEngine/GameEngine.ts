@@ -12,24 +12,31 @@ import {
   WeaponType,
   Rarity,
 } from '../../types';
-import { tickBombardment } from '../meteor';
+import { tickBombardment, tickIncomingMeteors } from '../meteor';
 import { resolvePlayerWallCollision, isPlayerHitByBullet, checkBulletHit } from '../physics';
 import { distance, clamp, normalize, randomInRange, randomInt } from '../../utils';
 import { logger } from '../../utils';
 import { getCharacter } from '../characters';
-
-const TICK_RATE_MS = 50; // 20 ticks per second
-const PLAYER_SPEED = 4; // units per tick at full joystick
-
-const FRACTURE_CORE_PICKUP_RANGE = 60;
-const HELIX_RELAY_CAPTURE_RATE = 1 / 5000; // progress per ms (captures in 5s)
-const HELIX_RELAY_DECAY_RATE = 1 / 10000; // progress lost per ms when unoccupied
-const HELIX_RELAY_REWARD_LOOT_RADIUS = 80;
-const SUPPLY_DROP_INTERVAL_MS = 3 * 60 * 1000; // one drop every 3 minutes
-const SUPPLY_DROP_LAND_DELAY_MS = 8000; // 8 seconds of descent
-const SUPPLY_DROP_PICKUP_RADIUS = 100;
-const BOUNTY_KILL_THRESHOLD = 3; // player needs ≥ 3 kills to become bounty target
-const QUIP_DISPLAY_MS = 3500; // how long a character quip stays on screen
+import {
+  TICK_RATE_MS,
+  PLAYER_SPEED,
+  FRACTURE_CORE_PICKUP_RANGE,
+  FRACTURE_CORE_DAMAGE_AMP,
+  FRACTURE_CORE_CDR_CHARGE_RATE,
+  JAX_HP_DRAIN_DPS,
+  ABILITY_DAMAGE_BOOST_MULT,
+  HELIX_RELAY_CAPTURE_RATE,
+  HELIX_RELAY_DECAY_RATE,
+  HELIX_RELAY_REWARD_LOOT_RADIUS,
+  SUPPLY_DROP_INTERVAL_MS,
+  SUPPLY_DROP_LAND_DELAY_MS,
+  SUPPLY_DROP_PICKUP_RADIUS,
+  BOUNTY_KILL_THRESHOLD,
+  QUIP_DISPLAY_MS,
+  ECHO_ZONE_CHARGE_RATE_MULT,
+  ECHO_ZONE_SPEED_MULT,
+  GRAVITY_ZONE_SPEED_MULT,
+} from '../balance';
 
 export type InputState = {
   moveVector: Vector2; // normalized joystick direction (-1..1 on each axis)
@@ -64,17 +71,38 @@ export function tickGame(state: GameState, humanInput: InputState, deltaMs: numb
     next = tickQuip(next, deltaMs);
     next = moveHumanPlayer(next, humanInput, deltaMs);
 
-    // Tick the bombardment and apply any new meteor strikes
-    const { bombardment, newImpacts } = tickBombardment(
+    // Tick incoming warning meteors — graduate those that reach 0 into real impacts
+    const { stillPending, newImpacts: graduatedImpacts } = tickIncomingMeteors(
+      next.incomingMeteors,
+      deltaMs,
+    );
+    next = { ...next, incomingMeteors: stillPending };
+
+    // Tick the bombardment — spawns new IncomingMeteors (not yet landed)
+    const { bombardment, newIncoming } = tickBombardment(
       next.bombardment,
       deltaMs,
       next.mapWidth,
       next.mapHeight,
     );
-    next = { ...next, bombardment };
-    next = applyMeteorDamage(next, newImpacts);
-    next = spawnMeteorEffects(next, newImpacts);
-    next = triggerMeteorQuip(next, newImpacts);
+    next = {
+      ...next,
+      bombardment,
+      incomingMeteors: [...next.incomingMeteors, ...newIncoming],
+    };
+
+    // Add graduated impacts to the visual crater list
+    next = {
+      ...next,
+      bombardment: {
+        ...next.bombardment,
+        activeImpacts: [...next.bombardment.activeImpacts, ...graduatedImpacts],
+      },
+    };
+
+    next = applyMeteorDamage(next, graduatedImpacts);
+    next = spawnMeteorEffects(next, graduatedImpacts);
+    next = triggerMeteorQuip(next, graduatedImpacts);
 
     next = updateBounty(next);
     next = { ...next, tickCount: next.tickCount + 1 };
@@ -89,14 +117,19 @@ export function tickGame(state: GameState, humanInput: InputState, deltaMs: numb
 }
 
 // Tick down ability cooldown and active-effect timers for every player.
-// Also applies Jax's HP drain and Fracture Core cooldown-reduction acceleration.
+// Also applies Jax's HP drain, CDR acceleration, and Echo Zone ability stutter.
 function tickAbilityTimers(state: GameState, deltaMs: number): GameState {
   const players = state.players.map((p) => {
     let updated = { ...p };
 
     if (updated.abilityChargeMs > 0) {
-      // cooldown_reduction core charges ability 2× faster
-      const chargeRate = updated.heldCoreEffect === 'cooldown_reduction' ? 2 : 1;
+      const inEchoZone = state.timeEchoZones.some(
+        (z) => distance(updated.position, z.position) <= z.radius,
+      );
+      // CDR core charges 2× faster; Echo Zone halves charge rate (stutter effect)
+      const chargeRate =
+        (updated.heldCoreEffect === 'cooldown_reduction' ? FRACTURE_CORE_CDR_CHARGE_RATE : 1) *
+        (inEchoZone ? ECHO_ZONE_CHARGE_RATE_MULT : 1);
       updated = {
         ...updated,
         abilityChargeMs: Math.max(0, updated.abilityChargeMs - deltaMs * chargeRate),
@@ -114,7 +147,7 @@ function tickAbilityTimers(state: GameState, deltaMs: number): GameState {
       // WHY: Jax's Adrenal Override uniquely drains HP during the active window
       const character = getCharacter(updated.characterId);
       if (character.id === 'jax' && updated.abilityActiveMs > 0 && updated.status === 'alive') {
-        const drain = (5 / 1000) * deltaMs; // 5 HP per second
+        const drain = (JAX_HP_DRAIN_DPS / 1000) * deltaMs;
         const newHp = Math.max(1, updated.health - drain); // floor at 1 — can't self-eliminate
         updated = { ...updated, health: newHp };
       }
@@ -127,6 +160,7 @@ function tickAbilityTimers(state: GameState, deltaMs: number): GameState {
 }
 
 // Auto-pick up nearby Fracture Cores and apply their corruption drain each tick.
+// Anti-stacking rule: a player can only hold ONE core at a time.
 function tickFractureCores(state: GameState, deltaMs: number): GameState {
   let fractureCores = [...state.fractureCores];
 
@@ -143,9 +177,14 @@ function tickFractureCores(state: GameState, deltaMs: number): GameState {
       updated = { ...updated, health: Math.max(1, updated.health - drain) };
     }
 
-    // Check if player is standing on an unclaimed core
+    // WHY: one core per player — holding multiple would make corruption unbalanceable.
+    // Player must lose their current core (via corruption attrition) before picking up another.
+    if (updated.heldCoreEffect !== null) {
+      return updated;
+    }
+
     const coreIndex = fractureCores.findIndex(
-      (c) => distance(p.position, c.position) <= FRACTURE_CORE_PICKUP_RANGE,
+      (c) => distance(updated.position, c.position) <= FRACTURE_CORE_PICKUP_RANGE,
     );
     if (coreIndex === -1) {
       return updated;
@@ -153,8 +192,6 @@ function tickFractureCores(state: GameState, deltaMs: number): GameState {
 
     const core = fractureCores[coreIndex];
     fractureCores = fractureCores.filter((_, i) => i !== coreIndex);
-
-    // Apply the core's immediate effect
     updated = applyCorePick(updated, core);
 
     return updated;
@@ -171,7 +208,6 @@ function applyCorePick(player: Player, core: FractureCore): Player {
   };
 
   if (core.effect === 'cooldown_reduction') {
-    // Instantly halve the current ability cooldown
     updated = { ...updated, abilityChargeMs: Math.floor(updated.abilityChargeMs / 2) };
   }
 
@@ -220,7 +256,8 @@ function tickGravityZones(state: GameState, deltaMs: number): GameState {
   return { ...state, gravityZones, players };
 }
 
-// Age time echo zones and remove expired ones. Effect is primarily visual.
+// Age time echo zones and remove expired ones.
+// Effect: players inside charge abilities slower and move slightly slower ("reality stutters").
 function tickTimeEchoZones(state: GameState, deltaMs: number): GameState {
   const timeEchoZones = state.timeEchoZones
     .map((z) => ({ ...z, age: z.age + deltaMs }))
@@ -249,7 +286,6 @@ function tickHelixRelays(state: GameState, deltaMs: number): GameState {
       };
 
       if (updated.captureProgress >= 1 && updated.rewardCooldownMs === 0) {
-        // Grant a loot cache at the relay position
         lootDrops = [
           ...lootDrops,
           {
@@ -268,7 +304,6 @@ function tickHelixRelays(state: GameState, deltaMs: number): GameState {
         updated = { ...updated, captureProgress: 0, rewardCooldownMs: 60_000 };
       }
     } else {
-      // Uncaptured relay slowly loses progress
       updated = {
         ...updated,
         captureProgress: Math.max(0, updated.captureProgress - HELIX_RELAY_DECAY_RATE * deltaMs),
@@ -287,43 +322,29 @@ function tickSupplyDrops(state: GameState, deltaMs: number): GameState {
   let nextSupplyDropMs = state.nextSupplyDropMs - deltaMs;
   let supplyDrops = [...state.supplyDrops];
 
-  // Spawn a new drop when timer expires
   if (nextSupplyDropMs <= 0) {
     const drop = spawnSupplyDrop(state.mapWidth, state.mapHeight);
     supplyDrops = [...supplyDrops, drop];
     nextSupplyDropMs = SUPPLY_DROP_INTERVAL_MS;
   }
 
-  // Age existing drops, land them, handle player pickup
   const landedIds = new Set<string>();
   supplyDrops = supplyDrops.map((drop) => {
-    if (drop.isLanded) {
-      return drop;
-    }
+    if (drop.isLanded) return drop;
     const remaining = drop.landInMs - deltaMs;
     return { ...drop, landInMs: Math.max(0, remaining), isLanded: remaining <= 0 };
   });
 
-  // Apply pickups for landed drops
   supplyDrops = supplyDrops.filter((drop) => {
-    if (!drop.isLanded) {
-      return true;
-    }
+    if (!drop.isLanded) return true;
     const nearbyPlayer = players.find(
       (p) => p.status === 'alive' && distance(p.position, drop.position) <= drop.pickupRadius,
     );
-    if (!nearbyPlayer) {
-      return true;
-    }
-    // Give the player the weapon from the drop
+    if (!nearbyPlayer) return true;
     players = players.map((p) => {
-      if (p.id !== nearbyPlayer.id) {
-        return p;
-      }
+      if (p.id !== nearbyPlayer.id) return p;
       const emptySlot = p.weapons.findIndex((w, i) => i > 0 && w === null) as 0 | 1 | 2 | -1;
-      if (emptySlot === -1) {
-        return p;
-      }
+      if (emptySlot === -1) return p;
       const weapons = [...p.weapons] as Player['weapons'];
       weapons[emptySlot] = {
         id: `supply_${drop.id}`,
@@ -363,52 +384,45 @@ function spawnSupplyDrop(mapWidth: number, mapHeight: number): SupplyDrop {
   };
 }
 
-// Tick the active quip countdown and clear it when expired.
 function tickQuip(state: GameState, deltaMs: number): GameState {
-  if (!state.activeQuip) {
-    return state;
-  }
+  if (!state.activeQuip) return state;
   const quipTtlMs = state.quipTtlMs - deltaMs;
-  if (quipTtlMs <= 0) {
-    return { ...state, activeQuip: null, quipTtlMs: 0 };
-  }
+  if (quipTtlMs <= 0) return { ...state, activeQuip: null, quipTtlMs: 0 };
   return { ...state, quipTtlMs };
 }
 
-// Show the human player's character quip when a meteor lands within 300 units.
 function triggerMeteorQuip(state: GameState, newImpacts: MeteorImpact[]): GameState {
-  if (newImpacts.length === 0 || state.activeQuip) {
-    return state;
-  }
+  if (newImpacts.length === 0 || state.activeQuip) return state;
   const human = state.players.find((p) => p.isHuman && p.status === 'alive');
-  if (!human) {
-    return state;
-  }
+  if (!human) return state;
   const nearbyImpact = newImpacts.find((i) => distance(human.position, i.position) < 300);
-  if (!nearbyImpact) {
-    return state;
-  }
+  if (!nearbyImpact) return state;
   const character = getCharacter(human.characterId);
   return { ...state, activeQuip: character.meteorQuip, quipTtlMs: QUIP_DISPLAY_MS };
 }
 
 function moveHumanPlayer(state: GameState, input: InputState, deltaMs: number): GameState {
   const humanIndex = state.players.findIndex((p) => p.isHuman && p.status === 'alive');
-  if (humanIndex === -1) {
-    return state;
-  }
+  if (humanIndex === -1) return state;
 
   const player = state.players[humanIndex];
   const abilitySpeedMult = player.activeAbilityEffect === 'speed_boost' ? 2 : 1;
 
-  // Inside a gravity zone players move slower
   const inGravityZone = state.gravityZones.some(
     (z) => distance(player.position, z.position) <= z.radius,
   );
-  const gravitySpeedMult = inGravityZone ? 0.6 : 1;
+  const inEchoZone = state.timeEchoZones.some(
+    (z) => distance(player.position, z.position) <= z.radius,
+  );
 
   const speed =
-    PLAYER_SPEED * player.speedMult * abilitySpeedMult * gravitySpeedMult * (deltaMs / TICK_RATE_MS);
+    PLAYER_SPEED *
+    player.speedMult *
+    abilitySpeedMult *
+    (inGravityZone ? GRAVITY_ZONE_SPEED_MULT : 1) *
+    (inEchoZone ? ECHO_ZONE_SPEED_MULT : 1) *
+    (deltaMs / TICK_RATE_MS);
+
   const dir = normalize(input.moveVector);
 
   const rawNext: Vector2 = {
@@ -438,20 +452,15 @@ function moveHumanPlayer(state: GameState, input: InputState, deltaMs: number): 
   return { ...state, players };
 }
 
-// Apply damage from freshly spawned EXPLOSIVE meteor impacts only.
+// Apply damage from freshly landed EXPLOSIVE impacts only.
+// WHY: damage_immunity blocks meteor hits — that's the counterplay for Iris, Rook, Kael, etc.
 function applyMeteorDamage(state: GameState, newImpacts: MeteorImpact[]): GameState {
   const explosiveImpacts = newImpacts.filter((i) => i.meteorType === 'explosive');
-  if (explosiveImpacts.length === 0) {
-    return state;
-  }
+  if (explosiveImpacts.length === 0) return state;
 
   const players = state.players.map((p) => {
-    if (p.status !== 'alive') {
-      return p;
-    }
-    if (p.activeAbilityEffect === 'damage_immunity') {
-      return p;
-    }
+    if (p.status !== 'alive') return p;
+    if (p.activeAbilityEffect === 'damage_immunity') return p;
 
     let totalDmg = 0;
     for (const impact of explosiveImpacts) {
@@ -459,9 +468,7 @@ function applyMeteorDamage(state: GameState, newImpacts: MeteorImpact[]): GameSt
         totalDmg += state.bombardment.impactDamage;
       }
     }
-    if (totalDmg === 0) {
-      return p;
-    }
+    if (totalDmg === 0) return p;
 
     const effectiveDmg = Math.round(totalDmg * (1 - p.damageResistance));
     let shield = p.shield;
@@ -479,9 +486,7 @@ function applyMeteorDamage(state: GameState, newImpacts: MeteorImpact[]): GameSt
 
 // Spawn Fracture Cores, Gravity Zones, and Time Echo Zones based on impact type.
 function spawnMeteorEffects(state: GameState, newImpacts: MeteorImpact[]): GameState {
-  if (newImpacts.length === 0) {
-    return state;
-  }
+  if (newImpacts.length === 0) return state;
 
   let { fractureCores, gravityZones, timeEchoZones } = state;
 
@@ -504,14 +509,13 @@ function spawnMeteorEffects(state: GameState, newImpacts: MeteorImpact[]): GameS
           id: `gzone_${impact.id}`,
           position: impact.position,
           radius: 180,
-          pullStrength: 60, // units per second pulled toward center
-          speedMult: 0.6,
+          pullStrength: GRAVITY_ZONE_SPEED_MULT * 100, // derived from constant
+          speedMult: GRAVITY_ZONE_SPEED_MULT,
           age: 0,
-          maxAge: 30_000, // 30 seconds
+          maxAge: 30_000,
         },
       ];
     } else {
-      // echo
       timeEchoZones = [
         ...timeEchoZones,
         {
@@ -519,7 +523,7 @@ function spawnMeteorEffects(state: GameState, newImpacts: MeteorImpact[]): GameS
           position: impact.position,
           radius: 200,
           age: 0,
-          maxAge: 20_000, // 20 seconds
+          maxAge: 20_000,
         },
       ];
     }
@@ -528,7 +532,6 @@ function spawnMeteorEffects(state: GameState, newImpacts: MeteorImpact[]): GameS
   return { ...state, fractureCores, gravityZones, timeEchoZones };
 }
 
-// Update bountyPlayerId to track the highest-kill alive player.
 function updateBounty(state: GameState): GameState {
   const eligible = state.players.filter(
     (p) => p.status === 'alive' && p.kills >= BOUNTY_KILL_THRESHOLD,
@@ -543,30 +546,20 @@ function updateBounty(state: GameState): GameState {
 // Fire a shot from the shooter toward the target position.
 export function fireShot(state: GameState, shooterId: string, targetPos: Vector2): GameState {
   const shooterIndex = state.players.findIndex((p) => p.id === shooterId);
-  if (shooterIndex === -1) {
-    return state;
-  }
+  if (shooterIndex === -1) return state;
 
   const shooter = state.players[shooterIndex];
-  if (shooter.status !== 'alive') {
-    return state;
-  }
+  if (shooter.status !== 'alive') return state;
 
   const weapon = shooter.weapons[shooter.activeWeaponSlot];
-  if (!weapon || weapon.currentAmmo <= 0 || weapon.isReloading) {
-    return state;
-  }
+  if (!weapon || weapon.currentAmmo <= 0 || weapon.isReloading) return state;
 
-  // Check for build piece hit first (bullets stop at walls)
   const hitPiece = checkBulletHit(shooter.position, targetPos, state.buildPieces);
   if (hitPiece) {
     const buildPieces = state.buildPieces
       .map((bp) => {
-        if (bp.id !== hitPiece.id) {
-          return bp;
-        }
-        const newHealth = Math.max(0, bp.health - weapon.damage);
-        return { ...bp, health: newHealth };
+        if (bp.id !== hitPiece.id) return bp;
+        return { ...bp, health: Math.max(0, bp.health - weapon.damage) };
       })
       .filter((bp) => bp.health > 0);
 
@@ -580,7 +573,6 @@ export function fireShot(state: GameState, shooterId: string, targetPos: Vector2
     return { ...state, players, buildPieces };
   }
 
-  // Check for player hits
   let players = [...state.players];
   players[shooterIndex] = {
     ...shooter,
@@ -591,19 +583,15 @@ export function fireShot(state: GameState, shooterId: string, targetPos: Vector2
 
   for (let i = 0; i < players.length; i++) {
     const target = players[i];
-    if (target.id === shooterId || target.status !== 'alive') {
-      continue;
-    }
-    if (!isPlayerHitByBullet(shooter.position, targetPos, target)) {
-      continue;
-    }
-    if (target.activeAbilityEffect === 'damage_immunity') {
-      break;
-    }
+    if (target.id === shooterId || target.status !== 'alive') continue;
+    if (!isPlayerHitByBullet(shooter.position, targetPos, target)) continue;
+    if (target.activeAbilityEffect === 'damage_immunity') break;
 
     // Outgoing multipliers: passive × ability × Fracture Core damage_amp
-    const abilityDamageMult = players[shooterIndex].activeAbilityEffect === 'damage_boost' ? 1.5 : 1;
-    const coreDamageMult = players[shooterIndex].heldCoreEffect === 'damage_amp' ? 1.4 : 1;
+    const abilityDamageMult =
+      players[shooterIndex].activeAbilityEffect === 'damage_boost' ? ABILITY_DAMAGE_BOOST_MULT : 1;
+    const coreDamageMult =
+      players[shooterIndex].heldCoreEffect === 'damage_amp' ? FRACTURE_CORE_DAMAGE_AMP : 1;
     const rawDmg = Math.round(
       weapon.damage * players[shooterIndex].damageMult * abilityDamageMult * coreDamageMult,
     );
@@ -629,7 +617,6 @@ export function fireShot(state: GameState, shooterId: string, targetPos: Vector2
         players[shooterIndex].health + players[shooterIndex].killHealAmount,
       );
 
-      // Bounty bonus: killing the bounty target drops extra loot (handled via lootDrops)
       let lootDrops = state.lootDrops;
       if (target.id === state.bountyPlayerId) {
         lootDrops = [
@@ -651,7 +638,7 @@ export function fireShot(state: GameState, shooterId: string, targetPos: Vector2
         return { ...state, players, lootDrops };
       }
     }
-    break; // bullet hits one target
+    break;
   }
 
   return { ...state, players };
@@ -681,9 +668,7 @@ function checkWinCondition(state: GameState): GameState {
 
 function calculatePlacement(players: Player[]): number {
   const human = players.find((p) => p.isHuman);
-  if (!human) {
-    return players.length;
-  }
+  if (!human) return players.length;
   const survivedLonger = players.filter((p) => !p.isHuman && p.status === 'alive').length;
   return survivedLonger + 1;
 }
