@@ -165,6 +165,28 @@ kbd{background:#1a1a1a;border:1px solid #333;border-radius:3px;padding:1px 5px;c
   border-left:2px solid #ff3300;padding-left:16px;text-align:left;
 }
 #goStats{display:flex;gap:14px}
+
+/* ── Audio Engine Panel ─────────────────────────────────────────── */
+.audio-panel{
+  background:rgba(0,0,0,.75);border:1px solid #1a1a1a;border-radius:8px;
+  padding:12px 18px;max-width:440px;width:100%;pointer-events:all;
+}
+.audio-panel h3{color:#666;font-size:10px;letter-spacing:3px;margin-bottom:8px}
+.ae-row{display:flex;justify-content:space-between;align-items:center;padding:3px 0}
+.ae-lbl{color:#555;font-size:11px;letter-spacing:1px}
+.ae-val{color:#888;font-size:11px}
+.sv{font-size:10px;letter-spacing:2px;padding:2px 8px;border-radius:3px;background:#1a1a1a;color:#555}
+.sv.g{background:rgba(0,80,0,.6);color:#44ff44}
+.sv.r{background:rgba(80,0,0,.6);color:#ff4444}
+.ae-btns{display:flex;gap:8px;margin-top:8px}
+.ae-btn{
+  background:transparent;color:#888;border:1px solid #333;font-family:'Courier New',monospace;
+  padding:4px 12px;font-size:10px;letter-spacing:2px;border-radius:4px;cursor:pointer;
+  transition:all .15s;
+}
+.ae-btn:hover{color:#fff;border-color:#666}
+.ae-btn:disabled{opacity:.35;cursor:default;pointer-events:none}
+.ae-error{color:#ff4444;font-size:10px;margin-top:4px;display:none;word-break:break-word}
 </style>
 </head>
 <body>
@@ -215,6 +237,22 @@ kbd{background:#1a1a1a;border:1px solid #333;border-radius:3px;padding:1px 5px;c
     <div class="key-row"><span class="key-lbl">Reload</span><span class="key-val"><kbd>R</kbd></span></div>
     <div class="key-row"><span class="key-lbl">Build mode</span><span class="key-val"><kbd>B</kbd></span></div>
     <div class="key-row"><span class="key-lbl">Switch weapon</span><span class="key-val"><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></span></div>
+  </div>
+  <div class="audio-panel">
+    <h3>AUDIO ENGINE</h3>
+    <div class="ae-row">
+      <span class="ae-lbl">STATUS</span>
+      <span class="ae-val" id="engineStatus">OFFLINE</span>
+    </div>
+    <div class="ae-row">
+      <span class="ae-lbl">NOISE GATE</span>
+      <span class="sv" id="ngGV">OFFLINE</span>
+    </div>
+    <div class="ae-error" id="engineError"></div>
+    <div class="ae-btns">
+      <button class="ae-btn" id="toggleEngageBtn">ENGAGE AUDIO</button>
+      <button class="ae-btn" id="recalBtn" disabled>RECALIBRATE</button>
+    </div>
   </div>
   <button class="primary-btn" id="lobbyPlayBtn">DROP IN</button>
 </div>
@@ -796,7 +834,7 @@ function updateHUD(h,alive){
     sl.className='wslot'+(i===h.slot?' active':'');
     sl.querySelector('.wname').textContent=w?w.label:'—';
     sl.querySelector('.wname').style.color=w?RARITY_CLR[w.rarity]:'#555';
-    sl.querySelector('.wammo').textContent=w?(w.reloading?'RLD':`${w.ammo===Infinity?'∞':w.ammo}/${w.mag===Infinity?'∞':w.mag}`):'';
+    sl.querySelector('.wammo').textContent=w?(w.reloading?'RLD':`${w.ammo===Infinity?'∞':w.ammo}/${w.mag===Infinity?'∞':w.mag}`):''
     sl.querySelector('.wrar').textContent=w?w.rarity:'';
     sl.querySelector('.wrar').style.color=w?RARITY_CLR[w.rarity]:'transparent';
   });
@@ -846,7 +884,6 @@ function render(){
   // ── Meteor trails (streaking in)
   meteorTrails.forEach(m=>{
     const cx2=lerp(m.sx,m.tx,m.prog), cy2=lerp(m.sy,m.ty,m.prog);
-    const tLen=120*(1-m.prog);
     const tailX=lerp(m.sx,m.tx,Math.max(0,m.prog-.25));
     const tailY=lerp(m.sy,m.ty,Math.max(0,m.prog-.25));
     const trailGrad=ctx.createLinearGradient(tailX,tailY,cx2,cy2);
@@ -884,9 +921,8 @@ function render(){
   // ── Loot drops
   G.loot.forEach(l=>{
     const px=l.x-vx,py=l.y-vy;
-    if(px<-30||px>CW+30||py<-30||py>CH+30) return; // (already offset, skip offscreen fast)
+    if(px<-30||px>CW+30||py<-30||py>CH+30) return;
     const wClr=l.weapon?RARITY_CLR[l.weapon.rarity]:'#fff';
-    // Glow
     ctx.shadowColor=wClr; ctx.shadowBlur=14;
     ctx.fillStyle='rgba(0,0,0,.7)';
     ctx.beginPath(); ctx.roundRect(l.x-14,l.y-8,28,16,4); ctx.fill();
@@ -1062,5 +1098,191 @@ window.addEventListener('resize',()=>{if(G) resizeCanvas();});
 resizeCanvas();
 show('storyScreen');
 </script>
+
+<!-- ══ AUDIO ENGINE — Noise Gate Pipeline ════════════════ -->
+<script>
+(function AudioEngine() {
+  'use strict';
+
+  // All variables prefixed with _ to avoid any collision with the game scope
+  var _audioCtx = null;
+  var _stream = null;
+  var _sourceNode = null;
+  var _hpFilter = null;
+  var _gateComp = null;
+  var _outputGain = null;
+  var _animId = null;
+  var _calibCleanup = null;
+
+  var _isActive = false;
+  var _isCalibrating = false;
+  var _isCalibrated = false;
+  var _thresholdDb = -45;
+
+  var el = {
+    status:    document.getElementById('engineStatus'),
+    gateVis:   document.getElementById('ngGV'),
+    error:     document.getElementById('engineError'),
+    toggleBtn: document.getElementById('toggleEngageBtn'),
+    recalBtn:  document.getElementById('recalBtn'),
+  };
+
+  function updateAudioUI(statusText, errorMsg) {
+    if (el.status)    el.status.textContent = statusText;
+    if (el.error) {
+      el.error.textContent = errorMsg || '';
+      el.error.style.display = errorMsg ? 'block' : 'none';
+    }
+    if (el.toggleBtn) el.toggleBtn.textContent = _isActive ? 'DISENGAGE AUDIO' : 'ENGAGE AUDIO';
+    if (el.recalBtn)  el.recalBtn.disabled = !_isActive || _isCalibrating;
+  }
+
+  async function engage() {
+    if (_isActive) { stop(); return; }
+
+    updateAudioUI('CONNECTING...');
+
+    try {
+      if (!_audioCtx) {
+        var AC = window.AudioContext || window.webkitAudioContext;
+        _audioCtx = new AC({ latencyHint: 'interactive', sampleRate: 44100 });
+      }
+      if (_audioCtx.state === 'suspended') await _audioCtx.resume();
+
+      _stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 }
+      });
+
+      _sourceNode = _audioCtx.createMediaStreamSource(_stream);
+
+      _hpFilter = _audioCtx.createBiquadFilter();
+      _hpFilter.type = 'highpass';
+      _hpFilter.frequency.setValueAtTime(80, _audioCtx.currentTime);
+
+      // Hard-knee compressor acts as noise gate: 20:1 ratio + knee 0
+      _gateComp = _audioCtx.createDynamicsCompressor();
+      _gateComp.threshold.setValueAtTime(_thresholdDb, _audioCtx.currentTime);
+      _gateComp.knee.setValueAtTime(0, _audioCtx.currentTime);
+      _gateComp.ratio.setValueAtTime(20, _audioCtx.currentTime);
+      _gateComp.attack.setValueAtTime(0.005, _audioCtx.currentTime);
+      _gateComp.release.setValueAtTime(0.1, _audioCtx.currentTime);
+
+      _outputGain = _audioCtx.createGain();
+      _outputGain.gain.setValueAtTime(1.0, _audioCtx.currentTime);
+
+      _sourceNode.connect(_hpFilter);
+      _hpFilter.connect(_gateComp);
+      _gateComp.connect(_outputGain);
+      _outputGain.connect(_audioCtx.destination);
+
+      _isActive = true;
+      updateAudioUI('ACTIVE');
+      startVizLoop();
+
+      if (!_isCalibrated) calibrate();
+    } catch (err) {
+      stop();
+      updateAudioUI('ERROR', err.message);
+    }
+  }
+
+  function stop() {
+    _isActive = false;
+    _isCalibrating = false;
+
+    if (_calibCleanup) { _calibCleanup(); _calibCleanup = null; }
+    if (_animId !== null) { cancelAnimationFrame(_animId); _animId = null; }
+    if (_stream) { _stream.getTracks().forEach(function(t){ t.stop(); }); _stream = null; }
+
+    if (_sourceNode) { _sourceNode.disconnect(); _sourceNode = null; }
+    if (_hpFilter)   { _hpFilter.disconnect();   _hpFilter   = null; }
+    if (_gateComp)   { _gateComp.disconnect();   _gateComp   = null; }
+    if (_outputGain) { _outputGain.disconnect(); _outputGain = null; }
+
+    _isCalibrated = false;
+    if (el.gateVis) { el.gateVis.textContent = 'OFFLINE'; el.gateVis.className = 'sv'; }
+    updateAudioUI('OFFLINE');
+  }
+
+  function calibrate() {
+    if (!_isActive || _isCalibrating || !_audioCtx || !_hpFilter || !_gateComp) return;
+
+    _isCalibrating = true;
+    _isCalibrated = false;
+    updateAudioUI('CALIBRATING...');
+
+    // Lower threshold so compressor passes all signal during measurement
+    _gateComp.threshold.setValueAtTime(-100, _audioCtx.currentTime);
+
+    var analyser = _audioCtx.createAnalyser();
+    analyser.fftSize = 256;
+    _hpFilter.connect(analyser);
+
+    var data = new Float32Array(analyser.frequencyBinCount);
+    var totalDb = 0, iters = 0;
+    var maxIters = 30; // 1500 ms / 50 ms
+
+    var finish = function() {
+      analyser.disconnect();
+      _isCalibrating = false;
+      _calibCleanup = null;
+    };
+
+    var id = setInterval(function() {
+      if (!_isActive) { clearInterval(id); finish(); return; }
+
+      analyser.getFloatFrequencyData(data);
+      var peak = -Infinity;
+      for (var i = 0; i < data.length; i++) if (data[i] > peak) peak = data[i];
+      if (peak !== -Infinity) { totalDb += peak; iters++; }
+
+      if (iters >= maxIters) {
+        clearInterval(id);
+        // +12 dB safety buffer above noise floor, clamped to [-70, -20]
+        _thresholdDb = Math.min(Math.max((totalDb / iters) + 12, -70), -20);
+        if (_gateComp) _gateComp.threshold.setValueAtTime(_thresholdDb, _audioCtx.currentTime);
+        finish();
+        _isCalibrated = true;
+        updateAudioUI('ACTIVE');
+      }
+    }, 50);
+
+    _calibCleanup = function() { clearInterval(id); finish(); };
+  }
+
+  function startVizLoop() {
+    if (_animId !== null) cancelAnimationFrame(_animId);
+    if (!_audioCtx || !_outputGain) return;
+
+    var analyser = _audioCtx.createAnalyser();
+    analyser.fftSize = 32;
+    var data = new Uint8Array(analyser.frequencyBinCount);
+    _outputGain.connect(analyser);
+
+    function tick() {
+      if (!_isActive) return;
+      analyser.getByteFrequencyData(data);
+      var sum = 0;
+      for (var i = 0; i < data.length; i++) sum += data[i];
+      var open = (sum / data.length) > 2;
+      if (el.gateVis) {
+        el.gateVis.textContent = open ? 'OPEN' : 'CLOSED';
+        el.gateVis.className = open ? 'sv g' : 'sv r';
+      }
+      _animId = requestAnimationFrame(tick);
+    }
+    tick();
+  }
+
+  // Wire up controls
+  if (el.toggleBtn) el.toggleBtn.addEventListener('click', engage);
+  if (el.recalBtn)  el.recalBtn.addEventListener('click', function() {
+    if (_isActive && !_isCalibrating) calibrate();
+  });
+
+  updateAudioUI('OFFLINE');
+}());
+</script>
+
 </body>
 </html>
