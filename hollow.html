@@ -1,0 +1,1453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HOLLOW</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background:#000;
+  color:#c8c8c8;
+  font-family:'Courier New',monospace;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+}
+
+#game-wrap {
+  width:100%;
+  max-width:780px;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  padding:20px;
+  position:relative;
+}
+
+#title-screen {
+  position:fixed;
+  inset:0;
+  background:#000;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  z-index:100;
+  cursor:pointer;
+}
+
+.title-text {
+  font-size:clamp(48px,10vw,96px);
+  letter-spacing:0.3em;
+  color:#fff;
+  text-shadow:0 0 60px rgba(255,255,255,0.15);
+  animation:titlePulse 4s ease-in-out infinite;
+}
+
+.title-sub {
+  font-size:13px;
+  color:#333;
+  letter-spacing:0.25em;
+  margin-top:16px;
+  opacity:0;
+  animation:fadeIn 2s ease forwards;
+  animation-delay:1.5s;
+}
+
+.title-start {
+  font-size:11px;
+  color:#222;
+  letter-spacing:0.3em;
+  margin-top:60px;
+  opacity:0;
+  animation:blinkIn 1s step-end infinite;
+  animation-delay:3.5s;
+}
+
+@keyframes titlePulse { 0%,100%{opacity:0.7} 50%{opacity:1} }
+@keyframes fadeIn { to{opacity:1} }
+@keyframes blinkIn { 0%,100%{opacity:0} 50%{opacity:1} }
+
+#scene-art {
+  font-size:10px;
+  line-height:1.25;
+  color:#222;
+  white-space:pre;
+  text-align:center;
+  margin:12px 0;
+  min-height:110px;
+  transition:color 1.5s;
+  font-family:monospace;
+  overflow:hidden;
+}
+
+#clock {
+  text-align:right;
+  font-size:11px;
+  color:#1e1e1e;
+  letter-spacing:0.15em;
+  margin-bottom:6px;
+  transition:color 2s;
+}
+
+#room-title {
+  font-size:16px;
+  letter-spacing:0.25em;
+  color:#666;
+  border-bottom:1px solid #111;
+  padding-bottom:6px;
+  margin-bottom:12px;
+  text-transform:uppercase;
+  transition:color 1s;
+}
+
+#output {
+  flex:1;
+  min-height:200px;
+  max-height:300px;
+  overflow-y:auto;
+  margin-bottom:14px;
+  padding-right:6px;
+  scrollbar-width:thin;
+  scrollbar-color:#111 #000;
+}
+
+#output::-webkit-scrollbar { width:3px; }
+#output::-webkit-scrollbar-track { background:#000; }
+#output::-webkit-scrollbar-thumb { background:#111; }
+
+.msg {
+  font-size:13px;
+  line-height:1.75;
+  margin-bottom:10px;
+  opacity:0;
+  animation:msgIn 0.6s forwards;
+}
+.msg.horror { color:#6b0000; }
+.msg.system { color:#1e1e1e; font-size:11px; }
+.msg.whisper { color:#171717; font-style:italic; font-size:11px; }
+.msg.revelation { color:#900; font-size:14px; letter-spacing:0.04em; }
+
+@keyframes msgIn { from{opacity:0;transform:translateY(3px)} to{opacity:1;transform:none} }
+
+#actions {
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-bottom:14px;
+}
+
+.action-btn {
+  background:none;
+  border:1px solid #181818;
+  color:#444;
+  font-family:'Courier New',monospace;
+  font-size:12px;
+  padding:5px 11px;
+  cursor:pointer;
+  letter-spacing:0.1em;
+  transition:all 0.2s;
+  text-transform:lowercase;
+}
+.action-btn:hover { border-color:#444; color:#999; background:#080808; }
+
+#exits {
+  border-top:1px solid #0d0d0d;
+  padding-top:10px;
+}
+
+.exit-label {
+  font-size:9px;
+  color:#1a1a1a;
+  letter-spacing:0.2em;
+  text-transform:uppercase;
+  margin-bottom:5px;
+}
+
+#exit-btns { display:flex; flex-wrap:wrap; gap:6px; }
+
+.exit-btn {
+  background:none;
+  border:none;
+  color:#2a2a2a;
+  font-family:'Courier New',monospace;
+  font-size:12px;
+  cursor:pointer;
+  padding:3px 0;
+  letter-spacing:0.1em;
+  transition:color 0.2s;
+  text-decoration:underline;
+  text-decoration-color:#141414;
+}
+.exit-btn:hover { color:#666; }
+
+#glitch-overlay {
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  z-index:50;
+  opacity:0;
+  background:repeating-linear-gradient(
+    0deg,transparent,transparent 2px,
+    rgba(0,0,0,0.04) 2px,rgba(0,0,0,0.04) 4px
+  );
+}
+.glitch-active {
+  animation:glitchFlash 0.12s steps(1) forwards;
+}
+@keyframes glitchFlash {
+  0%   { opacity:1; transform:translate(-3px,0); filter:hue-rotate(90deg) brightness(1.5); }
+  25%  { transform:translate(3px,-1px); filter:hue-rotate(-90deg); }
+  50%  { transform:translate(-1px,2px); filter:brightness(0.5); }
+  75%  { transform:translate(2px,-2px); filter:hue-rotate(180deg); }
+  100% { opacity:0; transform:translate(0,0); filter:none; }
+}
+
+#sanity-bar {
+  position:fixed;
+  top:0; left:0;
+  height:2px;
+  background:#5a0000;
+  transition:width 2s ease,background 2s;
+  z-index:60;
+}
+
+body::after {
+  content:'';
+  position:fixed;
+  inset:0;
+  background:radial-gradient(ellipse at center,transparent 35%,rgba(0,0,0,0.75) 100%);
+  pointer-events:none;
+  z-index:2;
+}
+
+#inventory {
+  font-size:11px;
+  color:#1c1c1c;
+  margin-bottom:10px;
+  letter-spacing:0.1em;
+  min-height:16px;
+}
+
+.inv-item {
+  display:inline-block;
+  border:1px solid #151515;
+  padding:1px 6px;
+  margin-right:4px;
+  cursor:pointer;
+  transition:all 0.2s;
+}
+.inv-item:hover { border-color:#333; color:#555; }
+
+#loop-count {
+  position:fixed;
+  bottom:10px; right:12px;
+  font-size:9px;
+  color:#0e0e0e;
+  letter-spacing:0.15em;
+}
+
+#fade-overlay {
+  position:fixed;
+  inset:0;
+  background:#000;
+  z-index:90;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity 0.8s;
+}
+#fade-overlay.fading { opacity:1; }
+
+#end-screen {
+  position:fixed;
+  inset:0;
+  background:#000;
+  display:none;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  z-index:200;
+  padding:40px;
+  text-align:center;
+}
+
+#end-title {
+  font-size:28px;
+  letter-spacing:0.35em;
+  color:#2a2a2a;
+  margin-bottom:28px;
+}
+
+#end-text {
+  font-size:13px;
+  line-height:2;
+  color:#3a3a3a;
+  max-width:520px;
+  margin-bottom:44px;
+  opacity:0;
+  animation:fadeIn 3s ease forwards;
+  animation-delay:1s;
+}
+
+#restart-btn {
+  background:none;
+  border:1px solid #1a1a1a;
+  color:#282828;
+  font-family:monospace;
+  font-size:11px;
+  padding:7px 18px;
+  cursor:pointer;
+  letter-spacing:0.2em;
+  opacity:0;
+  animation:fadeIn 1s ease forwards;
+  animation-delay:4s;
+}
+#restart-btn:hover { border-color:#444; color:#555; }
+</style>
+</head>
+<body>
+
+<div id="title-screen">
+  <div class="title-text">HOLLOW</div>
+  <div class="title-sub">a game about coming home</div>
+  <div class="title-start">[ click anywhere to begin ]</div>
+</div>
+
+<div id="fade-overlay"></div>
+<div id="glitch-overlay"></div>
+<div id="sanity-bar" style="width:100%"></div>
+<div id="loop-count"></div>
+
+<div id="end-screen">
+  <div id="end-title"></div>
+  <div id="end-text"></div>
+  <button id="restart-btn" onclick="location.reload()">[ play again ]</button>
+</div>
+
+<div id="game-wrap" style="z-index:10;position:relative;">
+  <div id="clock">11:47 PM</div>
+  <div id="scene-art"></div>
+  <div id="room-title">—</div>
+  <div id="inventory"></div>
+  <div id="output"></div>
+  <div id="actions"></div>
+  <div id="exits">
+    <div class="exit-label">move to</div>
+    <div id="exit-btns"></div>
+  </div>
+</div>
+
+<script>
+// ─── AUDIO ENGINE ────────────────────────────────────────────────
+const Audio = (() => {
+  let ctx, masterGain, droneGain, droneOsc, droneOsc2;
+  let heartbeatInterval = null;
+
+  function init() {
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    masterGain = ctx.createGain();
+    masterGain.gain.value = 0.35;
+    masterGain.connect(ctx.destination);
+    startDrone();
+  }
+
+  function startDrone() {
+    droneGain = ctx.createGain();
+    droneGain.gain.value = 0;
+    droneGain.connect(masterGain);
+
+    droneOsc = ctx.createOscillator();
+    droneOsc.type = 'sine';
+    droneOsc.frequency.value = 55;
+    droneOsc.connect(droneGain);
+
+    droneOsc2 = ctx.createOscillator();
+    droneOsc2.type = 'sine';
+    droneOsc2.frequency.value = 55.5;
+    droneOsc2.connect(droneGain);
+
+    droneOsc.start();
+    droneOsc2.start();
+    droneGain.gain.linearRampToValueAtTime(0.12, ctx.currentTime + 5);
+  }
+
+  function setDroneIntensity(level) {
+    if (!ctx) return;
+    droneGain.gain.linearRampToValueAtTime(Math.min(0.4, level * 0.35), ctx.currentTime + 2);
+    droneOsc2.frequency.linearRampToValueAtTime(55 + level * 2.5, ctx.currentTime + 2);
+  }
+
+  function playStatic(dur = 0.3) {
+    if (!ctx) return;
+    const len = Math.floor(ctx.sampleRate * dur);
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * 0.25;
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const gain = ctx.createGain();
+    gain.gain.value = 0.18;
+    const filt = ctx.createBiquadFilter();
+    filt.type = 'bandpass';
+    filt.frequency.value = 1000 + Math.random() * 1500;
+    src.connect(filt);
+    filt.connect(gain);
+    gain.connect(masterGain);
+    src.start();
+    src.stop(ctx.currentTime + dur);
+  }
+
+  function playBeat() {
+    if (!ctx) return;
+    const t = ctx.currentTime;
+    const beat = (offset) => {
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = 'sine';
+      o.frequency.value = 75;
+      g.gain.setValueAtTime(0, t + offset);
+      g.gain.linearRampToValueAtTime(0.5, t + offset + 0.04);
+      g.gain.exponentialRampToValueAtTime(0.001, t + offset + 0.25);
+      o.connect(g); g.connect(masterGain);
+      o.start(t + offset);
+      o.stop(t + offset + 0.3);
+    };
+    beat(0); beat(0.22);
+  }
+
+  function startHeartbeat(bpm = 60) {
+    stopHeartbeat();
+    heartbeatInterval = setInterval(playBeat, 60000 / bpm);
+  }
+
+  function stopHeartbeat() {
+    if (heartbeatInterval) { clearInterval(heartbeatInterval); heartbeatInterval = null; }
+  }
+
+  function playCreak() {
+    if (!ctx) return;
+    const dur = 0.7 + Math.random() * 0.5;
+    const o = ctx.createOscillator();
+    o.type = 'sawtooth';
+    const g = ctx.createGain();
+    const f = ctx.createBiquadFilter();
+    f.type = 'lowpass';
+    f.frequency.value = 350;
+    o.frequency.setValueAtTime(180 + Math.random() * 80, ctx.currentTime);
+    o.frequency.linearRampToValueAtTime(120, ctx.currentTime + dur);
+    g.gain.setValueAtTime(0, ctx.currentTime);
+    g.gain.linearRampToValueAtTime(0.08, ctx.currentTime + 0.08);
+    g.gain.linearRampToValueAtTime(0, ctx.currentTime + dur);
+    o.connect(f); f.connect(g); g.connect(masterGain);
+    o.start(); o.stop(ctx.currentTime + dur + 0.1);
+  }
+
+  function playChime(freq = 440, vol = 0.25) {
+    if (!ctx) return;
+    const o = ctx.createOscillator();
+    o.type = 'sine';
+    o.frequency.value = freq;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(vol, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 3.5);
+    o.connect(g); g.connect(masterGain);
+    o.start(); o.stop(ctx.currentTime + 3.6);
+  }
+
+  function playMusicBox() {
+    if (!ctx) return;
+    const melody = [523,659,784,659,784,880,784,659,523,392,440,523,392,330,392,523];
+    melody.forEach((f, i) => setTimeout(() => playChime(f * 0.5, 0.3), i * 380));
+  }
+
+  function playWhisper() {
+    if (!ctx) return;
+    [0, 70, 160].forEach(d => setTimeout(() => playStatic(0.06 + Math.random() * 0.04), d));
+  }
+
+  function fadeOut(dur = 3) {
+    if (!ctx) return;
+    masterGain.gain.linearRampToValueAtTime(0, ctx.currentTime + dur);
+  }
+
+  return { init, setDroneIntensity, playStatic, startHeartbeat, stopHeartbeat, playCreak, playChime, playMusicBox, playWhisper, fadeOut };
+})();
+
+
+// ─── GLITCH ENGINE ───────────────────────────────────────────────
+const Glitch = {
+  el: null,
+  _timer: null,
+  init() { this.el = document.getElementById('glitch-overlay'); },
+  trigger(intensity = 1) {
+    this.el.classList.remove('glitch-active');
+    void this.el.offsetWidth;
+    this.el.classList.add('glitch-active');
+    if (intensity >= 2) {
+      document.body.style.transform = `translate(${(Math.random()-0.5)*5}px,${(Math.random()-0.5)*3}px)`;
+      setTimeout(() => document.body.style.transform = '', 110);
+    }
+    Audio.playStatic(0.08);
+  },
+  startRandom(sanity) {
+    if (this._timer) clearInterval(this._timer);
+    if (sanity <= 0) return;
+    const base = Math.max(4000, 25000 * sanity);
+    this._timer = setInterval(() => {
+      if (Math.random() < 0.35) this.trigger(sanity < 0.45 ? 2 : 1);
+    }, base);
+  }
+};
+
+
+// ─── STATE ───────────────────────────────────────────────────────
+const S = {
+  loop: 0,
+  sanity: 1.0,
+  room: 'driveway',
+  inventory: [],
+  examined: new Set(),
+  seenRooms: new Set(),
+  flags: {},
+  clockH: 23,
+  clockM: 47,
+  clockTimer: null,
+};
+
+
+// ─── ROOMS ───────────────────────────────────────────────────────
+const ROOMS = {
+  driveway: {
+    title: 'The Driveway',
+    art:
+`       ___________
+      |           |
+      |     ■     |
+      |___________|
+     /             \
+    /_______________\
+   |    [dark]       |
+   |    . . . . .   |
+   |_________________|`,
+    desc: [
+`You pull up in your car and kill the engine. The house is dark save for a light in the upstairs bedroom window — your old room. You haven't been here in sixteen years.
+
+The attorney's letter said only: *come home. there are things you need to see.*
+
+The driveway gravel is familiar under your feet. It's quiet. Wrongly quiet. No crickets. No wind.`,
+`You're in the driveway again. The engine is already off, as though you never drove here at all.
+
+The light in your old bedroom window is back. Was it on when you left? You don't remember leaving.`,
+`Driveway. Car. House. The light.
+
+You've been here before — you know you have. Your hands look thin. When you hold them up in the dark, you can almost see the gravel through your palms. Almost.`,
+`You know this place. Every stone. Every crack. You died here, twenty years ago, or twenty minutes ago — time doesn't work the same way when you're hollow.
+
+Your father is inside. He's been waiting very patiently.`
+    ],
+    actions: [
+      { label: 'look at car', key: 'car', desc: [
+`A rental, silver. The GPS is still running. Estimated arrival: 11:47 PM.`,
+`The GPS: departure 11:47 PM, arrival 11:47 PM. You must have misread it.`,
+`Departure: 11:47. Arrival: 11:47. All the same moment, looping over itself.
+
+The windshield is fogged from the inside. Someone drew in the condensation: your name.`,
+null
+      ]},
+      { label: 'look at windows', key: 'windows', desc: [
+`Most dark. Your old bedroom window glows amber — a lamp, or a fire contained in a small space.`,
+`The bedroom window. And now the kitchen window too: a silhouette, standing at the sink. Your father died three weeks ago.`,
+`The kitchen and bedroom windows are dark. Only the attic, at the very top, shows a pale grey glow. Like a television. Or moonlight through broken glass.`,
+`All windows are dark. All except the attic. The glass there has been broken for twenty years.`
+      ]},
+    ],
+    exits: [{ label: 'front porch', to: 'porch' }],
+  },
+
+  porch: {
+    title: 'Front Porch',
+    art:
+` ___________________
+ |  | | | | | | |  |
+ |  |_|_|_|_|_|_|  |
+ |___________________|
+ |                   |
+ |    [ d o o r ]   |
+ |                   |
+ |___________________|
+ [ w e l c o m e   ]`,
+    desc: [
+`The porch boards groan underfoot. A wreath of dried flowers on the door — funeral blooms, black ribbon. The welcome mat reads WELCOME.
+
+The front door is unlocked.`,
+`The dead wreath. The door, still unlocked.
+
+The mat reads WELCOME HOME, ELLIE.
+
+Your childhood name. Nobody has called you that in sixteen years. The letters are faded, as if they've always been there.`,
+`WELCOME HOME, ELLIE.
+
+You study the mat. Underneath it — a dried marigold. The kind your mother grew. She's been dead for thirty years.
+
+There are small handprints on the frosted glass panel beside the door. A child's hands. Pressing from inside.`,
+`YOU CANNOT LEAVE, ELLIE.
+
+The mat has changed again. Or it was always this way and you only now can read it.
+
+Your father is inside.`
+    ],
+    actions: [
+      { label: 'read welcome mat', key: 'mat', desc: [
+`WELCOME.`,
+`WELCOME HOME, ELLIE.
+
+The marigold beneath it is perfectly preserved. That should not be possible.`,
+`WELCOME HOME, ELLIE.
+
+You turn the marigold over. Your mother planted these in the year before she died. She planted them everywhere — along the porch, in the garden, around the base of the oak tree. She said they kept bad things away.
+
+She was wrong about that.`,
+`YOU CANNOT LEAVE, ELLIE.
+
+You already know.`
+      ]},
+      { label: 'examine wreath', key: 'wreath', desc: [
+`Dried lavender and baby's breath, faded black ribbon. Funeral flowers. Your father never took it down after your mother's death.`,
+`You realize: this wreath has been on this door since before you were born. Thirty years. The flowers should be dust.`,
+`The flowers aren't just dried. They're ash. Something is holding the ash in the shape of flowers. Something that does not want things to change here.`,
+null
+      ]},
+    ],
+    exits: [
+      { label: 'driveway', to: 'driveway' },
+      { label: 'foyer', to: 'foyer' },
+    ],
+  },
+
+  foyer: {
+    title: 'Foyer',
+    art:
+`  [ ph ]  |   |  [ ph ]
+           | ↑ |
+           |___|  stairs
+    ____   |   |   ____
+   |    |  |   |  |    |
+   | LR |  |   |  | KI |
+   |____|         |____|`,
+    desc: [
+`Dim foyer. A coat rack with your father's old tweed jacket. A gilt mirror reflecting back the room. Family photographs line the staircase wall. The house smells of old paper and something sweet and wrong.`,
+`The photographs on the stairs. Family portraits — wedding day, Christmases, your father in the garden. A gap near the middle: a removed frame. Lighter paint where it hung. A ghost rectangle.`,
+`The gap is not the only one. Every photograph that contained *you* has been removed. You count seven pale rectangles on the yellowed wallpaper. Seven years of your life, erased.
+
+You look in the mirror. Your reflection is a half-second slow.`,
+`The mirror.
+
+Your reflection does not move when you move. It stands facing you, perfectly still, wearing a child's white nightgown.
+
+It looks like you at eight years old.`
+    ],
+    actions: [
+      { label: 'look in mirror', key: 'mirror', desc: [
+`Ordinary reflection. Behind you, the dark foyer. You notice movement at the edge of the glass — you spin around. Nothing.`,
+`Your reflection. You raise your right hand. The reflection raises its hand a full half-second after you.
+
+You lower your hand and walk away from the mirror.`,
+`The reflection does not move when you move. It stands still, both hands at its sides, watching you.
+
+The face is yours. But younger. Much younger.`,
+`You don't look in the mirror.`
+      ]},
+      { label: 'examine photographs', key: 'photos', desc: [
+`Wedding, holidays, your father growing older and lonelier through the decades. The gap on the wall: one frame removed, nail still in place.`,
+`The gap. You trace the shape of the missing frame with your finger. Large. Maybe 11x14. In the very bottom corner of the pale rectangle — a fingerprint in the dust. Small. A child's.`,
+`Seven missing frames. Seven missing years of you.
+
+But you can read the remaining photos now: your father's eyes, in every single one, have something behind them. Something that never healed. He smiled anyway. He smiled every day for the camera.`,
+`Your father left one photograph. It's in his bedroom. He wanted to look at your face before he died.`
+      ]},
+    ],
+    exits: [
+      { label: 'porch', to: 'porch' },
+      { label: 'living room', to: 'living_room' },
+      { label: 'kitchen', to: 'kitchen' },
+      { label: 'upstairs hall', to: 'upstairs' },
+    ],
+  },
+
+  living_room: {
+    title: 'Living Room',
+    art:
+` ___________     ___
+|           |   |   |
+| [ T V ]   |   | b |
+|___________|   | o |
+     :::        | o |
+  ___________   |___|
+ |           |
+ |   sofa    |
+ |___________|`,
+    desc: [
+`The living room is a museum of your father's solitude. Same slipcovers. Same bookshelves. The boxy television off, reflecting the grey window. On the coffee table: two mugs, both holding dried residue of old tea.`,
+`Two mugs. Your father lived alone.
+
+The television is off but not dark — a faint grey light from somewhere inside. You press your ear against the glass. Static. And beneath it, a voice.`,
+`The voice is clearer now. You press your ear to the cold screen.
+
+*"Ellie. Baby. Can you hear me?"
+
+Your father's voice. From inside the television.`,
+`Two mugs. He got the second one out every single night — every anniversary, every birthday, every just-because — and poured you a cup and left it on the table.
+
+He knew you were here. He always knew.`
+    ],
+    actions: [
+      { label: 'examine mugs', key: 'mugs', desc: [
+`Blue mugs with white flowers. Your mother bought them. Both show dried tea residue. Odd that there are two.`,
+`The residue in the mugs — it's not years old. Days, maybe. Someone made tea here recently.
+
+Or something, unable to drink, went through the motions anyway.`,
+`You reach for one mug.
+
+The rim is warm.`,
+null
+      ]},
+      { label: 'look at bookshelves', key: 'books', desc: [
+`Classics, histories, botany texts — he loved his garden. On the bottom shelf, a row of journals dated by year. You count sixteen of them. One for every year since you left.`,
+`The most recent journal falls open to its last entry:
+
+*"She came again last night. Stood at the foot of the stairs and looked up at her room. She doesn't know. God help her, she still doesn't know."*`,
+`You've read all sixteen journals. Every week for sixteen years. He wrote to you. He kept the lamp on. He left the mat out.
+
+The last line of the last entry: *"I think if I go to her, she'll finally be free to follow."*
+
+He died to come find you.`,
+null
+      ]},
+      { label: 'turn on television', key: 'tv', desc: [
+`Static. Then for one frame — a child's bedroom, familiar — then black.`,
+`Static. Shapes resolve in the noise: a staircase, a window, a small figure standing in dark. Then black.`,
+`Static. Your father's voice, clear and close:
+
+*"Ellie. Go up to your room. You have to remember."*
+
+The screen goes dark.`,
+null
+      ]},
+    ],
+    exits: [{ label: 'foyer', to: 'foyer' }],
+  },
+
+  kitchen: {
+    title: 'Kitchen',
+    art:
+` _________   _________
+|         | |  ____   |
+| counter | | |    |  |
+|_________| | |sink|  |
+    ___     | |____|  |
+   | T |    |_________|
+   |___|      [keys]
+  [  table  ]`,
+    desc: [
+`Mild disarray — a plate with the remains of a meal, a pan in the sink, a half-full kettle. A key rack by the back door. One hook is empty. The label beneath it reads: *basement.*`,
+`The meal on the table. The food shouldn't be this fresh — your father died three weeks ago. The bread hasn't hardened. The butter is soft.
+
+On the refrigerator: a photograph, face-down, held by a magnet.`,
+`The face-down photograph. You reach for it.
+
+Your hand passes through it.
+
+You stand there with your arm inside the refrigerator and you understand, somewhere quiet and deep, what you are.`,
+`The photograph is still face-down. You can turn it over now. You are ready.`
+    ],
+    actions: [
+      { label: 'check key rack', key: 'keyRack', desc: [
+`Car keys, spare house key, and one empty hook labeled: *basement.* The key is missing.`,
+`Taped to the underside of the key rack — a spare. You take it.`,
+null,
+null
+      ], give: { item: 'basement key', check: (s) => s.loop >= 1 && !s.inventory.includes('basement key') }},
+      { label: 'look at refrigerator', key: 'fridge', desc: [
+`Leftovers, condiments, milk that has not expired — though your father died weeks ago. A photograph on the door, face-down.`,
+`The face-down photograph. Your hand hovers over it.
+
+Not yet. You're not ready.`,
+`Your hand passes through the photograph. You are not entirely here. You've never been entirely here.
+
+But you can feel it. Barely. Cold paper.`,
+`You turn it over.
+
+Your family. Father, mother, eight-year-old you, in the front yard. Dated August 14th, twenty years ago. The photo is glossy, new — reprinted within the last month.
+
+He wanted to look at your face before he died.`
+      ]},
+      { label: 'open back door', key: 'backDoor', desc: [
+`The door opens onto the patio. But there is no night air, no garden smell. Beyond the threshold: a wall of pure darkness, as solid as stone.
+
+You close the door quickly.`,
+`You don't open the back door again.`,
+null,
+null
+      ]},
+    ],
+    exits: [
+      { label: 'foyer', to: 'foyer' },
+      { label: 'basement', to: 'basement', condition: (s) => s.inventory.includes('basement key') },
+    ],
+  },
+
+  basement: {
+    title: 'The Basement',
+    art:
+`   _ _ _ _ _ _ _ _ _
+  |                 |
+  |  [  furnace  ]  |
+  |  ___________    |
+  | |             | |
+  | |  old trunk  | |
+  | |_____________| |
+  |_________________|`,
+    desc: [
+`The stairs creak sharply. Unfinished — exposed pipes, a furnace, shelves of old preserves. A bare amber bulb. In the corner, a steamer trunk. Your name is on it in your mother's handwriting.`,
+`The trunk. Your mother's handwriting. She died when you were two — you barely remember her voice.
+
+The furnace ticks and settles. The trunk is unlocked.`,
+`You've read what's inside the trunk. The letters. The clipping.
+
+You know: you fell from the attic window. You know your father found you in the garden and held you for hours before he called anyone, just talking to you, telling you it was okay to go, that your mother was waiting.
+
+You didn't go. You couldn't leave him.`,
+`The trunk is open. You've read everything. You're ready to go upstairs.`
+    ],
+    actions: [
+      { label: 'open trunk', key: 'trunk', desc: [
+`Inside: sixty-three letters bound with twine, a stack of children's drawings, a small music box, and a folded newspaper clipping. You take the music box.
+
+The clipping's headline catches your eye before you can look away: LOCAL GIRL, 8, FALLS FROM WINDOW.`,
+`You read the letters. All of them. Your father's handwriting in sixty-three envelopes addressed: *Ellie. The House. Still Here.*
+
+He knew. He always knew you were here.
+
+You sit on the cold concrete floor and read until your legs go numb.`,
+null,
+null
+      ], give: { item: 'music box', check: (s) => !s.inventory.includes('music box') && !s.flags.trunkOpened }},
+    ],
+    exits: [{ label: 'kitchen', to: 'kitchen' }],
+  },
+
+  upstairs: {
+    title: 'Upstairs Hall',
+    art:
+` [your room]      [father]
+      |                |
+      |                |
+ ===========================
+         h a l l
+ ===========================
+              |
+         [ attic ]`,
+    desc: [
+`Three doors. Your old bedroom, your father's room, and the attic hatch at the far end, pull-cord hanging loose. The hall feels narrower than you remember. Probably nothing.`,
+`The hallway is definitely narrower. You can feel the wallpaper against your shoulders.
+
+Your bedroom door is ajar. Orange lamplight spills through the crack. You turned that lamp off when you were ten. You never came back.`,
+`The walls are breathing.
+
+Very slowly, very faintly: the wallpaper rises and falls. The house is alive around you. It has been keeping you here, and it does not want to let you go.`,
+`The attic. You know what you have to do.
+
+Your father's voice, from somewhere above: *"I'm here, baby. I've been here."*`
+    ],
+    actions: [
+      { label: 'listen at attic hatch', key: 'atticListen', desc: [
+`You press your palm to the hatch. Cold. You can hear — very faint — music. A music box tune.`,
+`Music. But your music box is in your pocket. The same melody, playing from above, a few bars *ahead* of where the box would be.
+
+As if someone up there has been playing it longer.`,
+`Your father is in the attic. You can feel the weight of him directly above you, patient and still.
+
+The lullaby your mother sang. He remembered every note.`,
+null
+      ]},
+    ],
+    exits: [
+      { label: 'foyer', to: 'foyer' },
+      { label: 'your bedroom', to: 'your_room' },
+      { label: "father's bedroom", to: 'master_room' },
+      { label: 'attic', to: 'attic', condition: (s) => s.loop >= 2 },
+    ],
+  },
+
+  your_room: {
+    title: 'Your Bedroom',
+    art:
+`  _____________________
+ |                     |
+ | [ w i n d o w ]    |
+ |         *           |
+ |  _______________    |
+ | |     bed       |   |
+ | |_______________|   |
+ |   desk  [lamp]      |
+ |_____________________|`,
+    desc: [
+`Your childhood bedroom, preserved perfectly. Your quilt — flowers and stars. The small pink desk lamp.
+
+The lamp is on. You never plugged it in. You left when you were ten and it was never plugged in.
+
+It's on.`,
+`The lamp. The window — it faces the garden. The window is open. No screen.
+
+You used to climb out this window onto the porch roof. You used to sit up there and look at the stars.`,
+`The open window. Twenty years of summer nights flowing through.
+
+You climbed out one night to reach the attic from outside — the interior hatch was swollen shut from summer heat. You were going to surprise your father.
+
+The shingles were wet from afternoon rain. Your foot slipped.
+
+You almost remember the rest.`,
+`Your room. Your window.
+
+Your father's voice, very distant: *"It's okay, baby. You can come find me now."*`
+    ],
+    actions: [
+      { label: 'sit on bed', key: 'bed', desc: [
+`The quilt is soft, faded. The stuffed bear propped against the pillow has your name embroidered on it: ELLIE.
+
+You feel a heaviness here. The comfortable weight of belonging.`,
+`You pick up the stuffed bear. It's warm. Like someone has been holding it.
+
+You sit for a long time. The lamp flickers once, twice. You don't move.`,
+`You lie on the bed and look up at the ceiling you painted glow-in-the-dark constellations on when you were six. Your father helped you reach the high parts. He let you choose every star.
+
+They still glow. Twenty years, still faintly luminous, waiting for someone to see them.`,
+null
+      ]},
+      { label: 'look out window', key: 'yourWindow', desc: [
+`The dark garden below. The oak tree. Your father's vegetable beds. Quiet.
+
+Then you see it: on the paving stones directly below the window, a circle of marigolds growing from bare stone. Your mother's flowers.`,
+`The marigolds below. And footprints in the soft garden bed — leading out from the house toward the marigolds. Small footprints. Bare feet.
+
+A child's footprints, leading out of the house, over and over, the same path worn into the mud. Going to the flowers. Going home.`,
+`You look down at the stones. You don't need to calculate the distance. You already know what it felt like.
+
+The wet shingles. Your hands scrabbling. The night opening up beneath you.
+
+You remember.`,
+null
+      ]},
+    ],
+    exits: [{ label: 'hallway', to: 'upstairs' }],
+  },
+
+  master_room: {
+    title: "Father's Bedroom",
+    art:
+`  _____________________
+ | _______________      |
+ ||     bed       |     |
+ ||_______________|     |
+ |                      |
+ | [photo]  [journal]   |
+ |    ___               |
+ |   | C |  (chair)     |
+ |   |___|              |
+ |_____________________|`,
+    desc: [
+`Immaculate. A man who made his bed every morning. The bedside table holds a photograph and a worn journal. His reading chair by the window, a book left open on the arm.
+
+The room smells of old books and pipe tobacco, though he quit before you were born. Some smells outlive their causes.`,
+`The chair by the window. Long years of sitting have shaped the cushion to him. He sat here watching the garden — the same garden where the marigolds grow.`,
+`He sat in that chair every night for twenty years and watched over the place where you fell.
+
+He never stopped watching.`,
+`He's not here. He's in the attic, where the house is thinnest — where you can slip through.
+
+Go to the attic.`
+    ],
+    actions: [
+      { label: 'read journal', key: 'journal', desc: [
+`You open to a random page:
+
+*"August 14. Another year. I left her door open and the lamp on. I know she's here. I talk to the house sometimes, at night. She wouldn't leave while I'm here. That's my girl."*`,
+`The first entry:
+
+*"She's still here. Some mornings the lamp in her room is on when I know I turned it off. Small handprints on the kitchen window. Inside the kitchen. I am not mad. She is here and she needs me and I will not leave her."*`,
+`The last entry:
+
+*"I've arranged everything. The attorney will bring Ellie — the grown-up Ellie, from the world where she survived — to come see the house. She won't remember at first. She never does. But maybe this time she'll go to the attic. And remember. And we can finally go together.
+
+I am not afraid. She'll be waiting.
+
+I love you, baby. — Dad"*`,
+null
+      ]},
+      { label: 'look at photograph', key: 'dadPhoto', desc: [
+`You and your father on the porch steps. You're maybe six, making a face at the camera. He's grinning. Neither of you knows what's coming.
+
+On the back, his handwriting: *"My Ellie. August, always August."*`,
+`The same photograph. But you look at his eyes in every picture after this one — there's something behind the smile. Something that never fully healed. He kept smiling anyway.`,
+`You hold the photograph for a long time.
+
+You put it in your pocket.`,
+null
+      ]},
+    ],
+    exits: [{ label: 'hallway', to: 'upstairs' }],
+  },
+
+  attic: {
+    title: 'The Attic',
+    art:
+`          /\
+         /  \
+        / ■■ \
+       /______\
+      |        |
+      |  Dad   |
+      | [chair]|
+      |  _box_ |
+      |________|`,
+    desc: [
+`Dust and old timber. Moonlight through the broken window. Boxes, sheet-covered furniture, your childhood bicycle.
+
+And in the center of the room, in a chair he must have brought up himself: your father.
+
+His eyes are closed. His hands rest on his knees. He is very still.`,
+`He looks peaceful. Like he simply sat down and closed his eyes and waited for exactly as long as it took.
+
+The broken window. The window you fell from.`,
+`Your father opens his eyes.
+
+He can see you. He is the first person in twenty years who can see you.
+
+"Ellie," he says, and his voice is exactly right. "Baby. I've been waiting."`,
+null
+    ],
+    actions: [
+      { label: 'approach father', key: 'approachDad', desc: [
+`You take a step. The floorboards hold you, barely.
+
+He opens his eyes. He sees you. He has always seen you.`,
+`"Ellie." His voice is steady. "You know now, don't you."
+
+Not a question.
+
+"It's okay," he says. "Your mother has been waiting too. She's very patient. Takes after you."
+
+"I'm sorry," you say, and your voice sounds like static, like wind.
+
+"Don't," he says. "Not for a single thing. I just didn't want you to be alone anymore."`,
+null,
+null
+      ], condition: (s) => s.loop >= 2 },
+      { label: 'look at broken window', key: 'atticWindow', desc: [
+`The frame split, the glass long gone. The night air flows through freely.
+
+You stand at the edge and look down at the garden. The circle of marigolds seems to glow, softly, from within.`,
+`The broken window. The garden below.
+
+You were eight years old and invincible and completely unafraid. You were going to surprise your father. Climb in the attic window and jump out at him.
+
+The shingles were wet from rain.`,
+`The window. The marigolds below. Flowers your mother planted growing on the spot where you landed, every year since, your father watering them and talking to them because he knew — he *knew* — you were still there in the roots, in the house, in everything.
+
+He was right.`,
+null
+      ]},
+      { label: 'play music box', key: 'playMusicBox', desc: [
+`You take out the music box and wind the key.
+
+From deep in the house — or everywhere in the house at once — the same melody plays back, in perfect harmony. Not an echo. A duet.
+
+Your father stands up. He reaches out his hand. He is smiling the real smile, the one without the weight behind it. The one you'd been trying to remember for twenty years.
+
+"She always loved that song," he says. "Are you ready?"`,
+null,
+null,
+null
+      ], condition: (s) => s.inventory.includes('music box') },
+    ],
+    exits: [
+      { label: 'hallway', to: 'upstairs', condition: (s) => !s.flags.ending },
+    ],
+  },
+};
+
+
+// ─── UI ──────────────────────────────────────────────────────────
+const UI = {
+  init() {
+    this.output = document.getElementById('output');
+    this.roomTitle = document.getElementById('room-title');
+    this.sceneArt = document.getElementById('scene-art');
+    this.actionsEl = document.getElementById('actions');
+    this.exitBtns = document.getElementById('exit-btns');
+    this.clockEl = document.getElementById('clock');
+    this.inventoryEl = document.getElementById('inventory');
+    this.sanityBar = document.getElementById('sanity-bar');
+    this.loopCount = document.getElementById('loop-count');
+    this.fade = document.getElementById('fade-overlay');
+    this.endScreen = document.getElementById('end-screen');
+  },
+
+  print(text, cls = '') {
+    const el = document.createElement('div');
+    el.className = `msg${cls ? ' ' + cls : ''}`;
+    el.innerHTML = text.replace(/\n/g, '<br>').replace(/\*(.*?)\*/g, '<em>$1</em>');
+    this.output.appendChild(el);
+    this.output.scrollTop = this.output.scrollHeight;
+  },
+
+  clear() { this.output.innerHTML = ''; },
+
+  setRoom(title, art) {
+    this.roomTitle.textContent = title;
+    this.sceneArt.textContent = art;
+  },
+
+  setClock(h, m, sanity) {
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const h12 = h > 12 ? h - 12 : (h === 0 ? 12 : h);
+    this.clockEl.textContent = `${String(h12).padStart(2,'0')}:${String(m).padStart(2,'0')} ${ampm}`;
+    const r = Math.round(180 * (1 - sanity));
+    this.clockEl.style.color = `rgb(${r},${Math.round(r*0.15)},${Math.round(r*0.15)})`;
+  },
+
+  setActions(btns) {
+    this.actionsEl.innerHTML = '';
+    btns.forEach(b => {
+      const el = document.createElement('button');
+      el.className = 'action-btn';
+      el.textContent = b.label;
+      el.onclick = b.fn;
+      this.actionsEl.appendChild(el);
+    });
+  },
+
+  setExits(exits) {
+    this.exitBtns.innerHTML = '';
+    exits.forEach(e => {
+      const el = document.createElement('button');
+      el.className = 'exit-btn';
+      el.textContent = e.label;
+      el.onclick = e.fn;
+      this.exitBtns.appendChild(el);
+    });
+  },
+
+  updateInventory(items) {
+    if (!items.length) { this.inventoryEl.textContent = ''; return; }
+    this.inventoryEl.innerHTML = items.map(i =>
+      `<span class="inv-item">${i}</span>`
+    ).join('');
+    Array.from(this.inventoryEl.querySelectorAll('.inv-item')).forEach((el, i) => {
+      el.onclick = () => Game.examineItem(items[i]);
+    });
+  },
+
+  updateSanity(s) {
+    this.sanityBar.style.width = `${Math.round(s * 100)}%`;
+    this.sanityBar.style.background = `hsl(0,75%,${10 + s * 20}%)`;
+    this.sceneArt.style.color = `rgba(200,200,200,${0.12 + s * 0.18})`;
+  },
+
+  updateLoop(n) {
+    this.loopCount.textContent = n > 0 ? `night ${n + 1}` : '';
+  },
+
+  fadeIn(cb, dur = 800) {
+    this.fade.classList.add('fading');
+    setTimeout(() => { if (cb) cb(); this.fade.classList.remove('fading'); }, dur);
+  },
+
+  fadeOut(cb, dur = 700) {
+    this.fade.classList.remove('fading');
+    void this.fade.offsetWidth;
+    this.fade.classList.add('fading');
+    setTimeout(() => { if (cb) cb(); }, dur);
+  },
+
+  showEnding(title, text) {
+    this.endScreen.style.display = 'flex';
+    document.getElementById('end-title').textContent = title;
+    document.getElementById('end-text').innerHTML = text.replace(/\n/g, '<br>');
+    Audio.fadeOut(4);
+  },
+};
+
+
+// ─── GAME ────────────────────────────────────────────────────────
+const Game = {
+  init() {
+    Audio.init();
+    Glitch.init();
+    UI.init();
+    this.enterRoom('driveway');
+    this.startClock();
+    Glitch.startRandom(1.0);
+  },
+
+  enterRoom(id) {
+    const room = ROOMS[id];
+    if (!room) return;
+    S.room = id;
+    const firstVisit = !S.seenRooms.has(id);
+    S.seenRooms.add(id);
+
+    UI.clear();
+    UI.setRoom(room.title, room.art);
+
+    const horrorLevel = { basement:0.8, attic:1.0, your_room:0.65, upstairs:0.45 };
+    const level = (horrorLevel[id] || 0.15) * (0.5 + (1 - S.sanity) * 0.5);
+    Audio.setDroneIntensity(level);
+
+    if (id === 'attic' || id === 'basement') {
+      Audio.startHeartbeat(75 + (1 - S.sanity) * 45);
+    } else {
+      Audio.stopHeartbeat();
+    }
+
+    if (['upstairs','your_room','master_room','foyer'].includes(id)) {
+      setTimeout(() => Audio.playCreak(), 600);
+    }
+
+    const descIdx = Math.min(S.loop, room.desc.length - 1);
+    const desc = room.desc[descIdx];
+    if (desc) setTimeout(() => UI.print(desc), 150);
+
+    if (firstVisit && id === 'basement') this.shiftSanity(-0.1);
+    if (id === 'attic' && S.loop >= 2) this.shiftSanity(-0.15);
+
+    this.renderActions(room);
+    this.renderExits(room);
+
+    if (horrorLevel[id] && Math.random() < 0.4) {
+      setTimeout(() => Glitch.trigger(S.sanity < 0.5 ? 2 : 1), 1800 + Math.random() * 2500);
+    }
+
+    if (S.loop >= 2 && Math.random() < 0.25) {
+      setTimeout(() => {
+        Audio.playWhisper();
+        if (Math.random() < 0.4) UI.print('*Something breathes.*', 'whisper');
+      }, 4000 + Math.random() * 6000);
+    }
+
+    UI.updateSanity(S.sanity);
+    UI.setClock(S.clockH, S.clockM, S.sanity);
+  },
+
+  renderActions(room) {
+    const btns = (room.actions || [])
+      .filter(a => !a.condition || a.condition(S))
+      .map(a => ({ label: a.label, fn: () => this.doAction(room, a) }));
+    UI.setActions(btns);
+  },
+
+  renderExits(room) {
+    const exits = (room.exits || []).filter(e => !e.condition || e.condition(S));
+    UI.setExits(exits.map(e => ({
+      label: e.label,
+      fn: () => {
+        Audio.playCreak();
+        UI.fadeOut(() => this.enterRoom(e.to), 400);
+      }
+    })));
+  },
+
+  doAction(room, action) {
+    const idx = Math.min(S.loop, (action.desc || []).length - 1);
+    const desc = action.desc[idx];
+
+    if (action.give) {
+      const g = action.give;
+      if (g.check(S) && desc) {
+        S.inventory.push(g.item);
+        UI.updateInventory(S.inventory);
+        UI.print(desc);
+        Audio.playChime(330);
+        this.renderExits(room);
+        this.renderActions(room);
+        return;
+      }
+    }
+
+    if (!desc) { UI.print('*You already know what is there.*', 'whisper'); return; }
+
+    UI.print(desc);
+
+    if (action.key === 'trunk' && !S.flags.trunkOpened) {
+      S.flags.trunkOpened = true;
+      Audio.playChime(220);
+    }
+    if (action.key === 'tv' && S.loop >= 2) { Audio.playStatic(0.5); Glitch.trigger(2); }
+    if (action.key === 'mirror' && S.loop >= 1) { Glitch.trigger(S.loop >= 2 ? 3 : 2); this.shiftSanity(-0.06); }
+    if (action.key === 'yourWindow' && S.loop >= 1) { this.shiftSanity(-0.08); }
+    if (action.key === 'atticWindow' && S.loop >= 1) { this.shiftSanity(-0.1); }
+    if (action.key === 'journal' && S.loop >= 1) { this.shiftSanity(-0.1); setTimeout(() => Glitch.trigger(1), 2200); }
+    if (action.key === 'approachDad' && S.loop >= 2) { setTimeout(() => this.triggerEnding(), 3500); }
+    if (action.key === 'playMusicBox') {
+      Audio.playMusicBox();
+      S.flags.musicBoxPlayed = true;
+      setTimeout(() => this.triggerEnding(), 7000);
+    }
+
+    UI.updateSanity(S.sanity);
+  },
+
+  examineItem(item) {
+    const info = {
+      'basement key': `A brass key on a paper tag labeled *B*. It's warm to the touch.`,
+      'music box': `A wooden box, painted with faded flowers. The mechanism still works. On the bottom, in your mother's handwriting: *For Ellie. Sweet dreams.*`
+    };
+    UI.print(info[item] || `You examine the ${item}.`);
+  },
+
+  shiftSanity(delta) {
+    S.sanity = Math.max(0.05, Math.min(1, S.sanity + delta));
+    UI.updateSanity(S.sanity);
+    Glitch.startRandom(S.sanity);
+    if (S.sanity < 0.35) Audio.startHeartbeat(95);
+  },
+
+  startClock() {
+    S.clockTimer = setInterval(() => {
+      S.clockM++;
+      if (S.clockM >= 60) { S.clockM = 0; S.clockH++; }
+      if (S.clockH >= 24) S.clockH = 0;
+      if (S.clockH === 0 && S.clockM === 0) this.triggerLoop();
+      UI.setClock(S.clockH, S.clockM, S.sanity);
+    }, 10000); // 10 real seconds = 1 game minute
+  },
+
+  triggerLoop() {
+    S.loop++;
+    if (S.loop >= 5 && !S.flags.ending) { this.triggerEnding(); return; }
+
+    UI.updateLoop(S.loop);
+    Glitch.trigger(3);
+    Audio.playStatic(0.9);
+
+    UI.fadeOut(() => {
+      UI.clear();
+      UI.print('*The clock strikes midnight.*', 'system');
+      UI.print('*You wake up in the driveway.*', 'horror');
+      S.clockH = 23;
+      S.clockM = 47;
+      S.seenRooms.clear();
+      S.sanity = Math.max(0.1, S.sanity - 0.12);
+      setTimeout(() => this.enterRoom('driveway'), 1800);
+    }, 900);
+  },
+
+  triggerEnding() {
+    if (S.flags.ending) return;
+    S.flags.ending = true;
+    clearInterval(S.clockTimer);
+    Audio.stopHeartbeat();
+
+    const trueEnd = S.flags.musicBoxPlayed;
+    const goodEnd = S.flags.trunkOpened && S.loop >= 2;
+    const loopEnd = S.loop >= 3;
+
+    let title, text;
+
+    if (trueEnd) {
+      title = 'LET GO';
+      text = `Your father takes your hand.
+
+His hand is warm. You had forgotten what warm felt like.
+
+"Your mother has been asking about you," he says. He smiles — the real smile, without the weight behind it. The one you had been trying to remember for twenty years.
+
+The attic window fills with something that has no name — early morning or late evening or all the summers you missed compressed into one soft light. The marigolds in the garden below sway, though there is no wind.
+
+You leave through the window.
+
+This time, you do not fall.
+
+—
+
+The house stood empty for six months before the trust sold it. The new owners reported that on warm summer nights, you could smell marigolds in rooms where no flowers grew.
+
+They thought it was charming.
+
+They were right.`;
+    } else if (goodEnd) {
+      title = 'HOLLOW';
+      text = `Your father opens his eyes and you understand everything, all at once.
+
+You are eight years old and you are also everything after eight. You are the lamp that won't go off. You are the handprints on the kitchen window and the warmth in the mug and the marigolds growing from stone.
+
+"I'm here," your father says. "I came to find you."
+
+You reach for his hand. It takes three tries — you have been only barely here for so long.
+
+The fourth time, you hold on.
+
+—
+
+The house was sold the following spring. The new family planted marigolds in the garden, though neither of them could explain why they'd chosen them.`;
+    } else if (loopEnd) {
+      title = 'AGAIN';
+      text = `You don't take his hand.
+
+You stand at the attic window and look down at the garden and think: *not yet. just one more night. just one more look.*
+
+The clock strikes midnight.
+
+You wake up in the driveway.
+
+The house is dark save for a light in your old bedroom window.
+
+—
+
+You have been here before.
+
+You have been here forever.`;
+    } else {
+      title = 'HOLLOW';
+      text = `Your father opens his eyes.
+
+And you understand what you are.
+
+—
+
+The clock strikes midnight.
+
+You wake up in the driveway.
+
+The house is waiting.`;
+    }
+
+    setTimeout(() => {
+      UI.fadeOut(() => setTimeout(() => UI.showEnding(title, text), 600), 2000);
+    }, 1500);
+  },
+};
+
+
+// ─── START ───────────────────────────────────────────────────────
+document.getElementById('title-screen').addEventListener('click', () => {
+  const ts = document.getElementById('title-screen');
+  ts.style.transition = 'opacity 2s ease';
+  ts.style.opacity = '0';
+  ts.style.pointerEvents = 'none';
+  Audio.init();
+  setTimeout(() => Audio.playStatic(0.4), 400);
+  setTimeout(() => Audio.playChime(110, 0.2), 900);
+  setTimeout(() => {
+    ts.style.display = 'none';
+    Game.init();
+  }, 2100);
+});
+</script>
+</body>
+</html>
