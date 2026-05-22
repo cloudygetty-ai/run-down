@@ -7,14 +7,14 @@
     "version": "0.1.0",
     "orientation": "landscape",
     "ios": {
-      "bundleIdentifier": "com.claude.rundown",
+      "bundleIdentifier": "com.cloudygetty.rundown",
       "infoPlist": {
         "UIBackgroundModes": ["fetch", "processing"],
-        "BGTaskSchedulerPermittedIdentifiers": ["com.claude.rundown.refresh"]
+        "BGTaskSchedulerPermittedIdentifiers": ["com.cloudygetty.rundown.refresh"]
       }
     },
     "android": {
-      "package": "com.claude.rundown"
+      "package": "com.cloudygetty.rundown"
     }
   }
 }
