@@ -7,13 +7,12 @@ import { useGameStore } from '../services/state';
 import { tickGame, fireShot, InputState } from '../core/gameEngine';
 import { tickBots } from '../services/ai';
 import { startReload, switchWeaponSlot } from '../services/weapons';
-import { BuildPiece, Player, Vector2 } from '../types';
+import { BuildPiece, Vector2 } from '../types';
 import { distance } from '../utils';
 import { logger } from '../utils';
+import { TICK_RATE_MS, LOOT_PICKUP_RANGE } from '../core/balance';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
-const TICK_MS = 50;
-const LOOT_PICKUP_RANGE = 60;
 const VIEWPORT_W = SCREEN_W;
 const VIEWPORT_H = SCREEN_H;
 
@@ -57,13 +56,36 @@ export const GameScreen: React.FC<Props> = ({ onGameOver }) => {
       }
 
       try {
-        let next = tickGame(state, inputRef.current, TICK_MS);
-        next = tickBots(next, TICK_MS);
+        let next = tickGame(state, inputRef.current, TICK_RATE_MS);
+        next = tickBots(next, TICK_RATE_MS);
 
         if (next.phase === 'game_over') {
           update(next);
           onGameOverRef.current();
           return;
+        }
+
+        // Auto-fire when right joystick is held out (isShooting flag set by joystick)
+        if (inputRef.current.isShooting) {
+          const h = next.players.find((p) => p.isHuman && p.status === 'alive');
+          if (h) {
+            const weapon = h.weapons[h.activeWeaponSlot];
+            if (weapon && !weapon.isReloading && weapon.currentAmmo > 0) {
+              const now = Date.now();
+              if (now - lastFireTimeRef.current >= 1000 / weapon.fireRate) {
+                lastFireTimeRef.current = now;
+                const aim = inputRef.current.aimVector;
+                const mag = Math.sqrt(aim.x * aim.x + aim.y * aim.y);
+                const dir = mag > 0.01
+                  ? aim
+                  : { x: Math.cos(h.rotation * Math.PI / 180), y: Math.sin(h.rotation * Math.PI / 180) };
+                next = fireShot(next, h.id, {
+                  x: h.position.x + dir.x * weapon.range,
+                  y: h.position.y + dir.y * weapon.range,
+                });
+              }
+            }
+          }
         }
 
         // Auto-pickup loot for human — use store action directly (atomic)
@@ -83,7 +105,7 @@ export const GameScreen: React.FC<Props> = ({ onGameOver }) => {
       } catch (err) {
         logger.error('GameScreen', 'game tick error', err);
       }
-    }, TICK_MS);
+    }, TICK_RATE_MS);
 
     return () => {
       if (tickIntervalRef.current) {
@@ -100,50 +122,31 @@ export const GameScreen: React.FC<Props> = ({ onGameOver }) => {
     inputRef.current = { ...inputRef.current, moveVector: { x: 0, y: 0 } };
   }, []);
 
+  // Manual FIRE button — shoots in current aim direction (or player facing if joystick at rest)
   const handleShoot = useCallback(() => {
-    // WHY: read fresh state — this handler may be called many frames after render
     const { gameState: state, updateGameState: update } = useGameStore.getState();
-    const h = state.players.find((p) => p.isHuman);
-    if (!h || h.status !== 'alive') {
-      return;
-    }
-
+    const h = state.players.find((p) => p.isHuman && p.status === 'alive');
+    if (!h) return;
     const weapon = h.weapons[h.activeWeaponSlot];
-    if (!weapon || weapon.isReloading || weapon.currentAmmo <= 0) {
-      return;
-    }
-
+    if (!weapon || weapon.isReloading || weapon.currentAmmo <= 0) return;
     const now = Date.now();
-    const minInterval = 1000 / weapon.fireRate;
-    if (now - lastFireTimeRef.current < minInterval) {
-      return;
-    }
+    if (now - lastFireTimeRef.current < 1000 / weapon.fireRate) return;
     lastFireTimeRef.current = now;
-
-    const enemies = state.players.filter((p) => !p.isHuman && p.status === 'alive');
-    const target = enemies.reduce<Player | null>((best, e) => {
-      if (!best) {
-        return e;
-      }
-      return distance(e.position, h.position) < distance(best.position, h.position) ? e : best;
-    }, null);
-
-    const aimPoint = target
-      ? target.position
-      : {
-          x: h.position.x + Math.cos((h.rotation * Math.PI) / 180) * weapon.range,
-          y: h.position.y + Math.sin((h.rotation * Math.PI) / 180) * weapon.range,
-        };
-
-    update(fireShot(state, h.id, aimPoint));
+    const aim = inputRef.current.aimVector;
+    const mag = Math.sqrt(aim.x * aim.x + aim.y * aim.y);
+    const dir = mag > 0.01
+      ? aim
+      : { x: Math.cos(h.rotation * Math.PI / 180), y: Math.sin(h.rotation * Math.PI / 180) };
+    update(fireShot(state, h.id, {
+      x: h.position.x + dir.x * weapon.range,
+      y: h.position.y + dir.y * weapon.range,
+    }));
   }, []);
 
   const handleReload = useCallback(() => {
     const { gameState: state } = useGameStore.getState();
     const h = state.players.find((p) => p.isHuman);
-    if (!h) {
-      return;
-    }
+    if (!h) return;
     startReload(h, (updated) => {
       const { gameState: s, updateGameState: u } = useGameStore.getState();
       u({ ...s, players: s.players.map((p) => (p.id === h.id ? updated : p)) });
@@ -153,9 +156,7 @@ export const GameScreen: React.FC<Props> = ({ onGameOver }) => {
   const handleBuildToggle = useCallback(() => {
     const { gameState: state, updateGameState: update } = useGameStore.getState();
     const h = state.players.find((p) => p.isHuman);
-    if (!h) {
-      return;
-    }
+    if (!h) return;
     update({
       ...state,
       players: state.players.map((p) => (p.id === h.id ? { ...p, isBuilding: !p.isBuilding } : p)),
@@ -165,9 +166,7 @@ export const GameScreen: React.FC<Props> = ({ onGameOver }) => {
   const handleWeaponSwitch = useCallback((slot: 0 | 1 | 2) => {
     const { gameState: state, updateGameState: update } = useGameStore.getState();
     const h = state.players.find((p) => p.isHuman);
-    if (!h) {
-      return;
-    }
+    if (!h) return;
     update({
       ...state,
       players: state.players.map((p) => (p.id === h.id ? switchWeaponSlot(h, slot) : p)),
@@ -177,9 +176,7 @@ export const GameScreen: React.FC<Props> = ({ onGameOver }) => {
   const handlePlaceBuild = useCallback(() => {
     const { gameState: state, placeBuildPiece } = useGameStore.getState();
     const h = state.players.find((p) => p.isHuman);
-    if (!h || !h.isBuilding) {
-      return;
-    }
+    if (!h || !h.isBuilding) return;
     const piece: BuildPiece = {
       id: `bp_${Date.now()}`,
       type: h.selectedBuildPiece,
@@ -196,9 +193,7 @@ export const GameScreen: React.FC<Props> = ({ onGameOver }) => {
     placeBuildPiece(piece);
   }, []);
 
-  if (!human) {
-    return null;
-  }
+  if (!human) return null;
 
   return (
     <View style={styles.container}>
@@ -214,12 +209,20 @@ export const GameScreen: React.FC<Props> = ({ onGameOver }) => {
         <Joystick onMove={handleMove} onRelease={handleMoveRelease} />
       </View>
 
+      {/* Right joystick: aim + auto-fire when deflected */}
       <View style={styles.joystickRight}>
         <Joystick
           onMove={(v) => {
-            inputRef.current = { ...inputRef.current, aimVector: v };
+            const mag = Math.sqrt(v.x * v.x + v.y * v.y);
+            inputRef.current = {
+              ...inputRef.current,
+              aimVector: v,
+              isShooting: mag > 0.25,
+            };
           }}
-          onRelease={() => {}}
+          onRelease={() => {
+            inputRef.current = { ...inputRef.current, isShooting: false };
+          }}
           size={100}
         />
       </View>
@@ -227,6 +230,8 @@ export const GameScreen: React.FC<Props> = ({ onGameOver }) => {
       <HUD
         player={human}
         bombardment={gameState.bombardment}
+        incomingMeteors={gameState.incomingMeteors}
+        nextSupplyDropMs={gameState.nextSupplyDropMs}
         alivePlayers={gameState.alivePlayers}
         bountyPlayerId={gameState.bountyPlayerId}
         activeQuip={gameState.activeQuip}

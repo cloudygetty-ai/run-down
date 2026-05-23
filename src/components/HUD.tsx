@@ -1,10 +1,12 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Player, Bombardment, WeaponType, GameState } from '../types';
+import { Player, Bombardment, IncomingMeteor, WeaponType } from '../types';
 
 type Props = {
   player: Player;
   bombardment: Bombardment;
+  incomingMeteors: IncomingMeteor[];
+  nextSupplyDropMs: number;
   alivePlayers: number;
   bountyPlayerId: string | null;
   activeQuip: string | null;
@@ -63,6 +65,8 @@ const CORE_EFFECT_LABELS: Record<string, string> = {
 export const HUD: React.FC<Props> = ({
   player,
   bombardment,
+  incomingMeteors,
+  nextSupplyDropMs,
   alivePlayers,
   bountyPlayerId,
   activeQuip,
@@ -74,9 +78,14 @@ export const HUD: React.FC<Props> = ({
 }) => {
   const activeWeapon = player.weapons[player.activeWeaponSlot];
   const phaseSeconds = Math.ceil(bombardment.timeUntilNextPhase / 1000);
-  const impactSeconds = Math.ceil(bombardment.timeUntilNextImpact / 1000);
-  const incomingMeteor = bombardment.timeUntilNextImpact < 2000;
-  const abilityCooldownPct = player.abilityChargeMs > 0 ? 1 : 0;
+  // Nearest incoming meteor gives the most urgent warning
+  const nearestMeteor = incomingMeteors.length > 0
+    ? incomingMeteors.reduce((a, b) => a.timeUntilImpactMs < b.timeUntilImpactMs ? a : b)
+    : null;
+  const impactSeconds = nearestMeteor ? Math.ceil(nearestMeteor.timeUntilImpactMs / 1000) : 0;
+  const incomingMeteor = nearestMeteor !== null;
+  const supplyDropSoon = nextSupplyDropMs < 30_000;
+  const supplyDropSec = Math.ceil(nextSupplyDropMs / 1000);
   const abilityReady = player.abilityChargeMs === 0;
   const isCorrupted = player.corruptionDps > 0;
   const isBounty = bountyPlayerId === player.id;
@@ -103,6 +112,11 @@ export const HUD: React.FC<Props> = ({
               : `Zone: ${phaseSeconds}s`}
           </Text>
         </View>
+        {supplyDropSoon && (
+          <View style={styles.supplyChip}>
+            <Text style={styles.supplyText}>📦 {supplyDropSec}s</Text>
+          </View>
+        )}
         <View style={[styles.killsChip, isBounty && styles.killsChipBounty]}>
           <Text style={[styles.killsText, isBounty && styles.killsTextBounty]}>
             {isBounty ? `🎯 ${player.kills}` : `${player.kills} kills`}
@@ -260,6 +274,15 @@ const styles = StyleSheet.create({
   meteorChipShrinking: { backgroundColor: 'rgba(200,80,0,0.9)' },
   meteorChipIncoming: { backgroundColor: 'rgba(220,0,0,0.95)' },
   meteorText: { color: '#fff', fontWeight: 'bold', fontSize: 13 },
+  supplyChip: {
+    backgroundColor: 'rgba(0,120,60,0.8)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(0,220,100,0.6)',
+  },
+  supplyText: { color: '#aaffcc', fontWeight: 'bold', fontSize: 13 },
   killsChip: {
     backgroundColor: 'rgba(0,0,0,0.6)',
     paddingHorizontal: 10,
