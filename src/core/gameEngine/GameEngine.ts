@@ -624,6 +624,27 @@ export function fireShot(state: GameState, shooterId: string, targetPos: Vector2
       );
 
       let lootDrops = state.lootDrops;
+
+      // Drop all non-pickaxe weapons the eliminated player was carrying
+      target.weapons.forEach((weapon, slot) => {
+        if (!weapon || weapon.type === 'pickaxe') return;
+        lootDrops = [
+          ...lootDrops,
+          {
+            id: `kill_loot_${target.id}_s${slot}_${Date.now()}`,
+            position: {
+              x: target.position.x + (slot - 1) * 18,
+              y: target.position.y + (slot - 1) * 18,
+            },
+            weapon: { ...weapon, currentAmmo: weapon.magazineSize },
+            ammo: 0,
+            materials: { wood: 0, stone: 0, metal: 0 },
+            shield: 0,
+            health: 0,
+          },
+        ];
+      });
+
       if (target.id === state.bountyPlayerId) {
         lootDrops = [
           ...lootDrops,
@@ -640,9 +661,7 @@ export function fireShot(state: GameState, shooterId: string, targetPos: Vector2
       }
 
       players[shooterIndex] = { ...players[shooterIndex], kills, health: healedHp };
-      if (lootDrops !== state.lootDrops) {
-        return { ...state, players, lootDrops };
-      }
+      return { ...state, players, lootDrops };
     }
     break;
   }

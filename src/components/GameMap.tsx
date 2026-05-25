@@ -5,6 +5,7 @@ import { PlayerSprite } from './PlayerSprite';
 import { MeteorZoneOverlay } from './MeteorZoneOverlay';
 import { BuildPieceView } from './BuildPieceView';
 import { LootDropView } from './LootDropView';
+import { SupplyDropView } from './SupplyDropView';
 
 type Props = {
   state: GameState;
@@ -66,6 +67,11 @@ export const GameMap: React.FC<Props> = ({ state, viewportX, viewportY, viewport
       {/* Build pieces */}
       {visiblePieces.map((bp) => (
         <BuildPieceView key={bp.id} piece={bp} viewportX={viewportX} viewportY={viewportY} />
+      ))}
+
+      {/* Supply drops */}
+      {state.supplyDrops.map((drop) => (
+        <SupplyDropView key={drop.id} drop={drop} viewportX={viewportX} viewportY={viewportY} />
       ))}
 
       {/* Loot */}

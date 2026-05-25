@@ -3,6 +3,7 @@ import { View, StyleSheet, Dimensions } from 'react-native';
 import { GameMap } from '../components/GameMap';
 import { HUD } from '../components/HUD';
 import { Joystick } from '../components/Joystick';
+import { Minimap } from '../components/Minimap';
 import { useGameStore } from '../services/state';
 import { tickGame, fireShot, InputState } from '../core/gameEngine';
 import { tickBots } from '../services/ai';
@@ -227,6 +228,18 @@ export const GameScreen: React.FC<Props> = ({ onGameOver }) => {
         />
       </View>
 
+      {/* Minimap — top-right corner overlay */}
+      <View style={styles.minimapOverlay}>
+        <Minimap
+          players={gameState.players}
+          bombardment={gameState.bombardment}
+          supplyDrops={gameState.supplyDrops}
+          incomingMeteors={gameState.incomingMeteors}
+          mapWidth={gameState.mapWidth}
+          mapHeight={gameState.mapHeight}
+        />
+      </View>
+
       <HUD
         player={human}
         bombardment={gameState.bombardment}
@@ -249,4 +262,5 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
   joystickLeft: { position: 'absolute', bottom: 30, left: 30 },
   joystickRight: { position: 'absolute', bottom: 50, right: 160 },
+  minimapOverlay: { position: 'absolute', top: 50, right: 10 },
 });
