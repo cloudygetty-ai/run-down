@@ -1,0 +1,5 @@
+{
+  "installCommand": "echo 'static — skipping install'",
+  "buildCommand": "echo 'static — skipping build'",
+  "outputDirectory": "public"
+}
