@@ -304,7 +304,11 @@ function makePlayer(
     status: 'alive',
     weapons: [makeWeapon('pickaxe', 'common'), null, null],
     activeWeaponSlot: 0,
-    materials: { wood: baseMaterials, stone: 50 + (isHuman ? p.materialsBonus : 0), metal: 25 + (isHuman ? p.materialsBonus : 0) },
+    materials: {
+      wood: baseMaterials,
+      stone: 50 + (isHuman ? p.materialsBonus : 0),
+      metal: 25 + (isHuman ? p.materialsBonus : 0),
+    },
     kills: 0,
     isBuilding: false,
     selectedBuildPiece: 'wall',
@@ -379,7 +383,7 @@ function buildHelixRelays(mapWidth: number, mapHeight: number): HelixRelay[] {
   const positions: Vector2[] = [
     { x: mapWidth * 0.25, y: mapHeight * 0.25 },
     { x: mapWidth * 0.75, y: mapHeight * 0.25 },
-    { x: mapWidth * 0.5,  y: mapHeight * 0.5  },
+    { x: mapWidth * 0.5, y: mapHeight * 0.5 },
     { x: mapWidth * 0.25, y: mapHeight * 0.75 },
     { x: mapWidth * 0.75, y: mapHeight * 0.75 },
   ];
@@ -394,10 +398,16 @@ function buildHelixRelays(mapWidth: number, mapHeight: number): HelixRelay[] {
 }
 
 function buildInitialState(characterId = DEFAULT_CHARACTER_ID): GameState {
-  const human = makePlayer('human', 'You', true, {
-    x: MAP_WIDTH / 2,
-    y: MAP_HEIGHT / 2,
-  }, characterId);
+  const human = makePlayer(
+    'human',
+    'You',
+    true,
+    {
+      x: MAP_WIDTH / 2,
+      y: MAP_HEIGHT / 2,
+    },
+    characterId,
+  );
   const bots: Player[] = Array.from({ length: BOT_COUNT }, (_, i) =>
     makePlayer(`bot_${i}`, `Bot${i + 1}`, false, {
       x: randomInRange(100, MAP_WIDTH - 100),

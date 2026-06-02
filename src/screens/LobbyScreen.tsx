@@ -1,19 +1,13 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  Modal,
-  Image,
-} from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Modal, Image } from 'react-native';
 import { useGameStore } from '../services/state';
+import { useSocialStore } from '../services/state/socialStore';
 import { clearBotBrains } from '../services/ai';
 import { CHARACTERS } from '../core/characters';
 
 export const LobbyScreen: React.FC = () => {
   const { gameState, startGame, selectCharacter } = useGameStore();
+  const { enterSocialMode } = useSocialStore();
   const [detailId, setDetailId] = useState<string | null>(null);
   const selectedId = gameState.selectedCharacterId;
   const detailChar = CHARACTERS.find((c) => c.id === detailId) ?? null;
@@ -74,10 +68,7 @@ export const LobbyScreen: React.FC = () => {
               <Text style={styles.cardTitle}>{c.title}</Text>
 
               <View style={[styles.abilityTag, { backgroundColor: c.accentColor + '28' }]}>
-                <Text
-                  style={[styles.abilityTagText, { color: c.accentColor }]}
-                  numberOfLines={1}
-                >
+                <Text style={[styles.abilityTagText, { color: c.accentColor }]} numberOfLines={1}>
                   {c.ability.name}
                 </Text>
               </View>
@@ -106,8 +97,7 @@ export const LobbyScreen: React.FC = () => {
           >
             <Text style={[styles.sumName, { color: sel.accentColor }]}>{sel.name}</Text>
             <Text style={[styles.sumAbility, { color: sel.accentColor + 'bb' }]}>
-              {sel.ability.name} —{' '}
-              {(sel.ability.cooldownMs / 1000).toFixed(0)}s cd
+              {sel.ability.name} — {(sel.ability.cooldownMs / 1000).toFixed(0)}s cd
               {sel.ability.durationMs > 0
                 ? ` · ${(sel.ability.durationMs / 1000).toFixed(0)}s`
                 : ' · instant'}
@@ -119,9 +109,14 @@ export const LobbyScreen: React.FC = () => {
         );
       })()}
 
-      <TouchableOpacity style={styles.playBtn} onPress={handleStart}>
-        <Text style={styles.playBtnText}>DEPLOY</Text>
-      </TouchableOpacity>
+      <View style={styles.btnRow}>
+        <TouchableOpacity style={styles.socialBtn} onPress={enterSocialMode}>
+          <Text style={styles.socialBtnText}>◉ SOCIAL HUD</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.playBtn} onPress={handleStart}>
+          <Text style={styles.playBtnText}>DEPLOY</Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Detail modal on long-press */}
       <Modal visible={detailChar !== null} transparent animationType="fade">
@@ -131,9 +126,7 @@ export const LobbyScreen: React.FC = () => {
           onPress={() => setDetailId(null)}
         >
           {detailChar && (
-            <View
-              style={[styles.modal, { borderColor: detailChar.accentColor + '44' }]}
-            >
+            <View style={[styles.modal, { borderColor: detailChar.accentColor + '44' }]}>
               {detailChar.portraitSource !== null && (
                 <Image
                   source={
@@ -237,12 +230,29 @@ const styles = StyleSheet.create({
   sumAbility: { fontSize: 11, marginBottom: 2 },
   sumPassive: { fontSize: 10, color: '#555' },
 
+  btnRow: {
+    flexDirection: 'row',
+    marginHorizontal: 20,
+    marginBottom: 28,
+    gap: 10,
+    alignItems: 'stretch',
+  },
+  socialBtn: {
+    backgroundColor: 'rgba(179,136,255,0.12)',
+    borderRadius: 10,
+    paddingVertical: 15,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(179,136,255,0.35)',
+  },
+  socialBtnText: { fontSize: 11, fontWeight: 'bold', color: '#B388FF', letterSpacing: 1.5 },
   playBtn: {
+    flex: 1,
     backgroundColor: '#ffcc00',
     borderRadius: 10,
     paddingVertical: 15,
-    marginHorizontal: 20,
-    marginBottom: 28,
     alignItems: 'center',
   },
   playBtnText: { fontSize: 17, fontWeight: 'bold', color: '#000', letterSpacing: 3 },

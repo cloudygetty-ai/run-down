@@ -2,10 +2,10 @@
 
 export type AbilityEffectType =
   | 'none'
-  | 'damage_immunity'  // take zero damage
-  | 'speed_boost'      // movement speed multiplied
-  | 'rapid_fire'       // fire rate doubled
-  | 'damage_boost';    // outgoing damage multiplied
+  | 'damage_immunity' // take zero damage
+  | 'speed_boost' // movement speed multiplied
+  | 'rapid_fire' // fire rate doubled
+  | 'damage_boost'; // outgoing damage multiplied
 
 export type CharacterAbility = {
   name: string;
@@ -23,9 +23,9 @@ export type CharacterPassive = {
   speedMult: number;
   damageMult: number;
   damageResistance: number; // 0.0–1.0 fraction of incoming damage blocked
-  reloadMult: number;       // multiplied into reloadTime (< 1.0 = faster)
-  killHealAmount: number;   // HP restored per elimination
-  materialsBonus: number;   // extra starting units of each material
+  reloadMult: number; // multiplied into reloadTime (< 1.0 = faster)
+  killHealAmount: number; // HP restored per elimination
+  materialsBonus: number; // extra starting units of each material
 };
 
 export type Character = {
@@ -147,23 +147,23 @@ export type Player = {
   selectedBuildMaterial: BuildingMaterial;
   // Character system
   characterId: string;
-  damageMult: number;          // outgoing damage multiplier from passive
-  damageResistance: number;    // fraction of incoming damage blocked (0.0–1.0)
-  killHealAmount: number;      // HP restored per kill
-  speedMult: number;           // movement speed multiplier from passive
-  reloadMult: number;          // reload time multiplier (< 1.0 = faster)
-  abilityChargeMs: number;     // ms until ability is ready again (0 = ready)
-  abilityActiveMs: number;     // ms remaining on the active timed effect
+  damageMult: number; // outgoing damage multiplier from passive
+  damageResistance: number; // fraction of incoming damage blocked (0.0–1.0)
+  killHealAmount: number; // HP restored per kill
+  speedMult: number; // movement speed multiplier from passive
+  reloadMult: number; // reload time multiplier (< 1.0 = faster)
+  abilityChargeMs: number; // ms until ability is ready again (0 = ready)
+  abilityActiveMs: number; // ms remaining on the active timed effect
   activeAbilityEffect: AbilityEffectType;
   // Fracture Core system
   heldCoreEffect: FractureCoreEffect | null; // buff from a picked-up Fracture Core
-  corruptionDps: number;                     // HP drained per second while holding a core
+  corruptionDps: number; // HP drained per second while holding a core
 };
 
 export type MeteorType =
   | 'explosive' // standard — deals AoE damage, leaves a Fracture Core
-  | 'gravity'   // bends space — creates a Gravity Distortion Field, no AoE damage
-  | 'echo';     // rare — creates a Time Echo Zone, no AoE damage
+  | 'gravity' // bends space — creates a Gravity Distortion Field, no AoE damage
+  | 'echo'; // rare — creates a Time Echo Zone, no AoE damage
 
 // A single meteor impact crater — shown briefly on the map after a strike
 export type MeteorImpact = {
@@ -177,8 +177,8 @@ export type MeteorImpact = {
 
 export type FractureCoreEffect =
   | 'cooldown_reduction' // instantly halves ability cooldown; ongoing: charges faster
-  | 'damage_amp'         // +40% outgoing damage while held
-  | 'ability_mutation';  // triggers a random ability effect for 10s; unpredictable
+  | 'damage_amp' // +40% outgoing damage while held
+  | 'ability_mutation'; // triggers a random ability effect for 10s; unpredictable
 
 // Loot left at explosive impact sites. Strong buff, slow corruption.
 export type FractureCore = {
@@ -194,7 +194,7 @@ export type GravityZone = {
   position: Vector2;
   radius: number;
   pullStrength: number; // units per tick pulled toward center
-  speedMult: number;    // movement speed multiplier inside the zone
+  speedMult: number; // movement speed multiplier inside the zone
   age: number;
   maxAge: number;
 };
@@ -214,9 +214,9 @@ export type HelixRelay = {
   id: string;
   position: Vector2;
   captureRadius: number;
-  captureProgress: number;    // 0.0 → 1.0 (fills over 5 seconds while occupied)
+  captureProgress: number; // 0.0 → 1.0 (fills over 5 seconds while occupied)
   capturedById: string | null;
-  rewardCooldownMs: number;   // ms until it can reward again after capture
+  rewardCooldownMs: number; // ms until it can reward again after capture
 };
 
 // A crate airdropped by rogue factions opposing Helix.
@@ -225,7 +225,7 @@ export type SupplyDrop = {
   id: string;
   position: Vector2;
   isLanded: boolean;
-  landInMs: number;     // countdown ms until impact (positive = descending)
+  landInMs: number; // countdown ms until impact (positive = descending)
   pickupRadius: number;
   weaponType: WeaponType;
   rarity: Rarity;
@@ -294,7 +294,7 @@ export type GameState = {
   // Mid-match objectives
   helixRelays: HelixRelay[];
   supplyDrops: SupplyDrop[];
-  nextSupplyDropMs: number;  // countdown until next supply drop spawns
+  nextSupplyDropMs: number; // countdown until next supply drop spawns
   // Comeback mechanic
   bountyPlayerId: string | null; // highest-kill alive player — bonus loot on elimination
   // Active character quip (displayed briefly after a nearby meteor strike)

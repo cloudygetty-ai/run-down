@@ -124,7 +124,10 @@ export const HUD: React.FC<Props> = ({
           <View style={styles.coreRow}>
             <View style={[styles.coreChip, styles.coreChipActive]}>
               <Text style={styles.coreChipText}>
-                CORE: {player.heldCoreEffect ? CORE_EFFECT_LABELS[player.heldCoreEffect] ?? player.heldCoreEffect : '?'}
+                CORE:{' '}
+                {player.heldCoreEffect
+                  ? CORE_EFFECT_LABELS[player.heldCoreEffect] ?? player.heldCoreEffect
+                  : '?'}
                 {'  '}
                 <Text style={styles.corruptText}>-{player.corruptionDps.toFixed(0)} HP/s</Text>
               </Text>
@@ -266,7 +269,11 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 12,
   },
-  killsChipBounty: { backgroundColor: 'rgba(180,30,0,0.85)', borderWidth: 1, borderColor: '#ff4400' },
+  killsChipBounty: {
+    backgroundColor: 'rgba(180,30,0,0.85)',
+    borderWidth: 1,
+    borderColor: '#ff4400',
+  },
   killsText: { color: '#ffcc00', fontWeight: 'bold', fontSize: 13 },
   killsTextBounty: { color: '#ff6633' },
 
@@ -295,7 +302,11 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     alignSelf: 'flex-start',
   },
-  coreChipActive: { backgroundColor: 'rgba(180,0,200,0.55)', borderWidth: 1, borderColor: '#cc44ff' },
+  coreChipActive: {
+    backgroundColor: 'rgba(180,0,200,0.55)',
+    borderWidth: 1,
+    borderColor: '#cc44ff',
+  },
   coreChipText: { color: '#ee88ff', fontSize: 10, fontWeight: 'bold' },
   corruptText: { color: '#ff4488' },
 
