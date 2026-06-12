@@ -1,129 +1,140 @@
-/* MapLibre baseline — prevents layout bleed */
+/* MapLibre baseline */
 .maplibregl-map { font: unset; }
 .maplibregl-ctrl-logo,
 .maplibregl-ctrl-attrib { display: none !important; }
+.maplibregl-ctrl-group {
+  background: rgba(18,15,30,0.9) !important;
+  border: 1px solid rgba(139,92,246,0.2) !important;
+  box-shadow: none !important;
+}
+.maplibregl-ctrl-group button {
+  background: transparent !important;
+}
+.maplibregl-ctrl-icon { filter: invert(0.7) !important; }
 
-/* ── Cruiser marker ─────────────────────────────────── */
-.cruiser-marker {
+/* ── Nearby user marker ─────────────────────────────────────── */
+.user-marker {
   position: relative;
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   cursor: pointer;
 }
-.cruiser-dot {
+.user-dot {
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  border: 2px solid rgba(255,255,255,0.6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 8px;
-  font-family: 'DM Mono', monospace;
-  color: #0D0A14;
-  font-weight: 500;
+  border: 2px solid rgba(255,255,255,0.5);
   z-index: 2;
-  transition: transform 0.3s ease;
+  transition: transform 0.2s ease;
 }
-.cruiser-heading {
+.user-pulse {
   position: absolute;
-  top: -8px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 0;
-  height: 0;
-  border-left: 4px solid transparent;
-  border-right: 4px solid transparent;
-  border-bottom: 8px solid currentColor;
-  z-index: 3;
-  opacity: 0.9;
-}
-.cruiser-pulse {
-  position: absolute;
-  inset: -4px;
+  inset: -5px;
   border-radius: 50%;
-  animation: cruiser-ring 2s ease-out infinite;
+  animation: user-ring 2.4s ease-out infinite;
   z-index: 1;
 }
-@keyframes cruiser-ring {
-  0%   { transform: scale(1);   opacity: 0.6; }
-  100% { transform: scale(2.4); opacity: 0;   }
+.user-marker.liked .user-dot {
+  border-color: #8B5CF6;
+  box-shadow: 0 0 8px rgba(139,92,246,0.8);
 }
-.cruiser-marker:hover .cruiser-dot { transform: scale(1.25); }
+.user-marker.matched .user-dot {
+  border-color: #C9A84C;
+  box-shadow: 0 0 10px rgba(201,168,76,0.9);
+}
+.user-marker:hover .user-dot { transform: scale(1.3); }
+@keyframes user-ring {
+  0%   { transform: scale(0.9); opacity: 0.7; }
+  100% { transform: scale(2.6); opacity: 0;   }
+}
 
-/* ── Spot marker ────────────────────────────────────── */
+/* ── My position marker ─────────────────────────────────────── */
+.me-marker {
+  position: relative;
+  width: 22px;
+  height: 22px;
+}
+.me-dot {
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  background: #C9A84C;
+  box-shadow: 0 0 10px rgba(201,168,76,0.8);
+  z-index: 3;
+}
+.me-pulse-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid #8B5CF6;
+  animation: me-ring 1.8s ease-out infinite;
+}
+.me-pulse-ring:nth-child(3) { animation-delay: 0.9s; }
+@keyframes me-ring {
+  0%   { transform: scale(1);   opacity: 0.9; }
+  100% { transform: scale(2.8); opacity: 0;   }
+}
+
+/* ── Spot marker ────────────────────────────────────────────── */
 .spot-marker {
   position: relative;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 .spot-pin {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   border-radius: 50% 50% 50% 0;
   transform: rotate(-45deg);
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid rgba(255,255,255,0.25);
-  position: relative;
+  border: 1.5px solid rgba(255,255,255,0.2);
   z-index: 2;
+  position: relative;
   transition: transform 0.2s ease;
 }
 .spot-pin-icon {
   transform: rotate(45deg);
-  font-size: 13px;
-  line-height: 1;
+  font-size: 12px;
 }
-.spot-heat-ring {
+.spot-active-badge {
   position: absolute;
+  top: -6px;
+  right: -8px;
+  background: #8B5CF6;
+  color: #fff;
+  font-size: 9px;
+  font-family: 'DM Mono', monospace;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
-  border: 1.5px solid var(--gold);
-  animation: spot-heat 2.5s ease-out infinite;
-  z-index: 1;
-}
-.spot-heat-ring:nth-child(2) { animation-delay: 0.8s; }
-.spot-heat-ring:nth-child(3) { animation-delay: 1.6s; }
-@keyframes spot-heat {
-  0%   { transform: scale(0.8); opacity: 0.8; }
-  100% { transform: scale(2.2); opacity: 0;   }
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 4;
+  border: 1.5px solid #09080F;
 }
 .spot-marker:hover .spot-pin { transform: rotate(-45deg) scale(1.15); }
 
-/* ── Honk burst animation ───────────────────────────── */
-.honk-burst {
-  position: absolute;
-  pointer-events: none;
-  animation: honk-out 1s ease-out forwards;
-  border-radius: 50%;
-  border: 2px solid #F0C96A;
-  z-index: 10;
+/* ── Match notification flash ───────────────────────────────── */
+@keyframes match-flash {
+  0%   { opacity: 0; transform: scale(0.8); }
+  20%  { opacity: 1; transform: scale(1.05); }
+  80%  { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0.95); }
 }
-@keyframes honk-out {
-  0%   { transform: scale(0); opacity: 1; width: 20px; height: 20px; margin: -10px; }
-  100% { transform: scale(1); opacity: 0; width: 80px; height: 80px; margin: -40px; }
+.match-toast {
+  animation: match-flash 3.5s ease forwards;
 }
 
-/* ── MapLibre popup overrides ───────────────────────── */
-.maplibregl-popup-content {
-  background: #1A1528 !important;
-  border: 1px solid rgba(201,168,76,0.3) !important;
-  border-radius: 4px !important;
-  padding: 12px 16px !important;
-  color: #F5F0E8 !important;
-  font-family: 'DM Mono', monospace !important;
-  font-size: 12px !important;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.6) !important;
-  min-width: 160px;
+/* ── Photo blur/reveal ──────────────────────────────────────── */
+.photo-hidden {
+  filter: blur(18px) brightness(0.5) saturate(1.5);
+  transform: scale(1.06);
+  transition: filter 0.6s ease, transform 0.6s ease;
 }
-.maplibregl-popup-tip {
-  border-top-color: rgba(201,168,76,0.3) !important;
+.photo-revealed {
+  filter: none;
+  transform: scale(1);
+  transition: filter 0.6s ease, transform 0.6s ease;
 }
-.maplibregl-popup-close-button {
-  color: #6B6070 !important;
-  font-size: 16px !important;
-  padding: 4px 8px !important;
-}
-.maplibregl-popup-close-button:hover { color: #C9A84C !important; }

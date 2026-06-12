@@ -1,80 +1,80 @@
 import { create } from 'zustand';
-import type { Cruiser, CruisingSpot, CruiseGroup, ActivityEvent, MapMode } from '../types';
-
-const MAX_FEED_EVENTS = 30;
+import type { NearbyUser, CruisingSpot, CruiseGroup } from '../types';
 
 type MapStore = {
-  cruisers: Record<string, Cruiser>;
+  nearbyUsers: Record<string, NearbyUser>;
   spots: CruisingSpot[];
   groups: Record<string, CruiseGroup>;
-  feed: ActivityEvent[];
+  selectedUserId: string | null;
   selectedSpotId: string | null;
-  selectedCruiserId: string | null;
-  mode: MapMode;
-  activeCruiserCount: number;
-  activeGroupCount: number;
+  nearbyCount: number;
 
-  setCruiser: (c: Cruiser) => void;
-  removeCruiser: (id: string) => void;
+  setUser: (u: NearbyUser) => void;
+  removeUser: (id: string) => void;
   setSpots: (spots: CruisingSpot[]) => void;
-  updateSpotActivity: (id: string, delta: number) => void;
   setGroups: (groups: Record<string, CruiseGroup>) => void;
-  pushFeed: (e: ActivityEvent) => void;
+  updateSpotCount: (id: string, delta: number) => void;
+  selectUser: (id: string | null) => void;
   selectSpot: (id: string | null) => void;
-  selectCruiser: (id: string | null) => void;
-  setMode: (mode: MapMode) => void;
+  expressInterest: (id: string) => void;
+  confirmMatch: (id: string, profile: NearbyUser['profile']) => void;
 };
 
-export const useMapStore = create<MapStore>((set, get) => ({
-  cruisers: {},
+export const useMapStore = create<MapStore>((set) => ({
+  nearbyUsers: {},
   spots: [],
   groups: {},
-  feed: [],
+  selectedUserId: null,
   selectedSpotId: null,
-  selectedCruiserId: null,
-  mode: 'explore',
-  activeCruiserCount: 0,
-  activeGroupCount: 0,
+  nearbyCount: 0,
 
-  setCruiser: (c) =>
+  setUser: (u) =>
     set((s) => {
-      const next = { ...s.cruisers, [c.id]: c };
-      return {
-        cruisers: next,
-        activeCruiserCount: Object.values(next).filter((x) => x.isLive).length,
-      };
+      const next = { ...s.nearbyUsers, [u.id]: u };
+      return { nearbyUsers: next, nearbyCount: Object.keys(next).length };
     }),
 
-  removeCruiser: (id) =>
+  removeUser: (id) =>
     set((s) => {
-      const next = { ...s.cruisers };
+      const next = { ...s.nearbyUsers };
       delete next[id];
-      return {
-        cruisers: next,
-        activeCruiserCount: Object.values(next).filter((x) => x.isLive).length,
-      };
+      return { nearbyUsers: next, nearbyCount: Object.keys(next).length };
     }),
 
   setSpots: (spots) => set({ spots }),
+  setGroups: (groups) => set({ groups }),
 
-  updateSpotActivity: (id, delta) =>
+  updateSpotCount: (id, delta) =>
     set((s) => ({
       spots: s.spots.map((sp) =>
-        sp.id === id
-          ? { ...sp, activeCruisers: Math.max(0, sp.activeCruisers + delta) }
-          : sp,
+        sp.id === id ? { ...sp, activeCount: Math.max(0, sp.activeCount + delta) } : sp,
       ),
     })),
 
-  setGroups: (groups) =>
-    set({ groups, activeGroupCount: Object.keys(groups).length }),
+  selectUser: (id) => set({ selectedUserId: id, selectedSpotId: null }),
+  selectSpot: (id) => set({ selectedSpotId: id, selectedUserId: null }),
 
-  pushFeed: (e) =>
-    set((s) => ({
-      feed: [e, ...s.feed].slice(0, MAX_FEED_EVENTS),
-    })),
+  expressInterest: (id) =>
+    set((s) => {
+      const user = s.nearbyUsers[id];
+      if (!user || user.revealStatus !== 'hidden') return s;
+      return {
+        nearbyUsers: {
+          ...s.nearbyUsers,
+          [id]: { ...user, revealStatus: 'liked' },
+        },
+      };
+    }),
 
-  selectSpot: (id) => set({ selectedSpotId: id, selectedCruiserId: null }),
-  selectCruiser: (id) => set({ selectedCruiserId: id, selectedSpotId: null }),
-  setMode: (mode) => set({ mode }),
+  confirmMatch: (id, profile) =>
+    set((s) => {
+      const user = s.nearbyUsers[id];
+      if (!user) return s;
+      return {
+        nearbyUsers: {
+          ...s.nearbyUsers,
+          [id]: { ...user, revealStatus: 'matched', profile },
+        },
+      };
+    }),
 }));

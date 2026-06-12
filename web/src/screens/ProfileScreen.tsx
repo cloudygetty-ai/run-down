@@ -1,271 +1,141 @@
 import { useUserStore } from '../store/user.store';
 import { useMapStore } from '../store/map.store';
-import { formatRep, formatMiles } from '../services/geo';
-
-const CLASS_LABEL: Record<string, string> = {
-  lowrider: 'LOWRIDER',
-  muscle:   'MUSCLE',
-  classic:  'CLASSIC',
-  truck:    'TRUCK',
-  import:   'IMPORT',
-  euro:     'EURO',
-  suv:      'SUV',
-};
-
-const REP_TIER = (rep: number) => {
-  if (rep >= 10000) return { label: 'LEGEND',   color: '#F0C96A' };
-  if (rep >= 5000)  return { label: 'VETERAN',  color: '#C9A84C' };
-  if (rep >= 2000)  return { label: 'REGULAR',  color: '#8B5CF6' };
-  if (rep >= 500)   return { label: 'FRESH',    color: '#4CAF7C' };
-  return               { label: 'UNKNOWN',  color: '#6B6070' };
-};
+import { useChatStore } from '../store/chat.store';
+import { GRADIENTS } from '../services/geo';
 
 export function ProfileScreen() {
-  const user = useUserStore();
-  const feed = useMapStore((s) => s.feed);
-  const tier = REP_TIER(user.repScore);
-  const myEvents = feed.filter((e) => e.handle === 'You' || e.targetHandle === 'You');
+  const { profile, mode, setMode, checkedInSpotId, checkOut } = useUserStore();
+  const spots = useMapStore((s) => s.spots);
+  const conversations = useChatStore((s) => s.conversations);
+  const matchCount = Object.values(useMapStore.getState().nearbyUsers)
+    .filter((u) => u.revealStatus === 'matched').length;
+
+  const checkedInSpot = spots.find((s) => s.id === checkedInSpotId);
+  const gradient = GRADIENTS[profile.gradientId];
 
   return (
     <div style={{
-      position: 'absolute',
-      inset: 0,
+      position: 'absolute', inset: 0,
       background: 'var(--obsidian)',
-      overflowY: 'auto',
-      paddingTop: '56px',
-      paddingBottom: '64px',
+      overflowY: 'auto', paddingTop: '52px', paddingBottom: '64px',
     }}>
       {/* Hero */}
       <div style={{
-        background: 'linear-gradient(180deg, rgba(201,168,76,0.08) 0%, transparent 100%)',
-        borderBottom: '1px solid var(--border)',
+        background: 'linear-gradient(180deg, rgba(139,92,246,0.1) 0%, transparent 100%)',
+        borderBottom: '1px solid rgba(139,92,246,0.1)',
         padding: '24px 20px',
       }}>
-        {/* Avatar */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
           <div style={{
-            width: '64px',
-            height: '64px',
-            borderRadius: '50%',
-            background: 'rgba(201,168,76,0.15)',
-            border: '2px solid var(--gold)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '28px',
-            boxShadow: '0 0 20px rgba(201,168,76,0.2)',
-            flexShrink: 0,
+            width: '72px', height: '72px', borderRadius: '50%',
+            background: gradient,
+            border: `3px solid ${mode === 'active' ? '#8B5CF6' : '#3D2A6E'}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '32px',
+            boxShadow: mode === 'active' ? '0 0 20px rgba(139,92,246,0.4)' : 'none',
+            transition: 'all 0.3s ease', flexShrink: 0,
           }}>
-            🚗
+            😎
           </div>
           <div>
-            <div style={{
-              fontFamily: 'var(--font-display)',
-              fontSize: '20px',
-              color: 'var(--gold)',
-              letterSpacing: '0.08em',
-              marginBottom: '4px',
-            }}>
-              {user.handle}
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: '20px', color: 'var(--cream)', letterSpacing: '0.05em', marginBottom: '4px' }}>
+              {profile.displayName}
+              {profile.verified && <span style={{ color: '#4ECDC4', fontSize: '13px', marginLeft: '6px' }}>✓</span>}
             </div>
             <div style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '6px' }}>
-              {user.vehicleName}
+              {profile.age} · {profile.height} · {profile.tribe.charAt(0).toUpperCase() + profile.tribe.slice(1)}
             </div>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '8px' }}>
               <span style={{
-                fontSize: '9px',
-                letterSpacing: '0.2em',
-                background: 'rgba(201,168,76,0.12)',
-                border: '1px solid rgba(201,168,76,0.25)',
-                color: 'var(--gold)',
-                padding: '2px 8px',
-                borderRadius: '2px',
-              }}>
-                {CLASS_LABEL[user.vehicleClass]}
-              </span>
-              <span style={{
-                fontSize: '10px',
-                letterSpacing: '0.15em',
-                color: tier.color,
-                background: `${tier.color}15`,
-                border: `1px solid ${tier.color}30`,
-                padding: '2px 8px',
-                borderRadius: '2px',
-              }}>
-                {tier.label}
+                fontSize: '9px', letterSpacing: '0.15em',
+                background: mode === 'active' ? 'rgba(139,92,246,0.2)' : 'rgba(61,42,110,0.3)',
+                border: `1px solid ${mode === 'active' ? 'rgba(139,92,246,0.5)' : 'rgba(61,42,110,0.4)'}`,
+                color: mode === 'active' ? '#8B5CF6' : 'var(--muted)',
+                padding: '3px 9px', borderRadius: '2px', cursor: 'pointer',
+              }}
+              onClick={() => setMode(mode === 'active' ? 'offline' : 'active')}
+              >
+                {mode === 'active' ? '● CRUISING' : '○ OFFLINE'}
               </span>
             </div>
           </div>
         </div>
 
-        {/* Stats grid */}
+        {/* Stats */}
         <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: '1px',
-          background: 'var(--border)',
-          borderRadius: '6px',
-          overflow: 'hidden',
+          display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
+          gap: '1px', background: 'rgba(139,92,246,0.1)',
+          borderRadius: '6px', overflow: 'hidden',
         }}>
           {[
-            { label: 'Rep Score',  value: formatRep(user.repScore),      color: 'var(--gold)'   },
-            { label: 'Miles',      value: formatMiles(user.milesLogged),  color: 'var(--cream)'  },
-            { label: 'Check-ins',  value: user.totalCheckins,             color: 'var(--violet)' },
-            { label: 'Honks Sent', value: user.honksSent,                 color: 'var(--cream)'  },
-            { label: 'Honks Rcvd', value: user.honksReceived,             color: 'var(--gold)'   },
-            { label: 'Tier',       value: tier.label,                     color: tier.color      },
+            { label: 'Matches', value: matchCount,                         color: '#C9A84C'  },
+            { label: 'Chats',   value: Object.keys(conversations).length,  color: 'var(--cream)' },
+            { label: 'Status',  value: mode === 'active' ? 'ACTIVE' : 'OFFLINE', color: mode === 'active' ? '#4ECDC4' : 'var(--muted)' },
           ].map(({ label, value, color }) => (
-            <div key={label} style={{
-              background: 'var(--obsidian-2)',
-              padding: '14px 10px',
-              textAlign: 'center',
-            }}>
-              <div style={{
-                fontFamily: 'var(--font-display)',
-                fontSize: typeof value === 'string' && value.length > 6 ? '13px' : '18px',
-                color,
-                lineHeight: 1,
-                marginBottom: '5px',
-              }}>
+            <div key={label} style={{ background: 'rgba(18,15,30,0.8)', padding: '14px 8px', textAlign: 'center' as const }}>
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: typeof value === 'string' ? '11px' : '20px', color, lineHeight: 1, marginBottom: '4px' }}>
                 {value}
               </div>
-              <div style={{ fontSize: '9px', color: 'var(--muted)', letterSpacing: '0.15em' }}>
-                {label.toUpperCase()}
-              </div>
+              <div style={{ fontSize: '9px', color: 'var(--muted)', letterSpacing: '0.15em' }}>{label.toUpperCase()}</div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Rep progress bar */}
-      <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-          <span style={{ fontSize: '10px', letterSpacing: '0.15em', color: 'var(--muted)' }}>
-            REP PROGRESS TO NEXT TIER
-          </span>
-          <span style={{ fontSize: '10px', color: 'var(--gold)' }}>
-            {formatRep(user.repScore)} / {user.repScore < 500 ? '500' : user.repScore < 2000 ? '2k' : user.repScore < 5000 ? '5k' : '10k'}
-          </span>
-        </div>
+      {/* Checked-in spot */}
+      {checkedInSpot && (
         <div style={{
-          height: '4px',
-          background: 'var(--obsidian-4)',
-          borderRadius: '2px',
-          overflow: 'hidden',
-        }}>
-          <div style={{
-            height: '100%',
-            width: `${Math.min(100, (user.repScore % 1000) / 10)}%`,
-            background: 'linear-gradient(90deg, var(--gold-dim), var(--gold))',
-            borderRadius: '2px',
-            transition: 'width 0.5s ease',
-          }} />
-        </div>
-      </div>
-
-      {/* Vehicle card */}
-      <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
-        <div style={{
-          fontSize: '10px',
-          letterSpacing: '0.2em',
-          color: 'var(--muted)',
-          marginBottom: '12px',
-        }}>
-          MY RIDE
-        </div>
-        <div style={{
-          background: 'var(--obsidian-3)',
-          border: '1px solid var(--border)',
+          margin: '16px 20px',
+          padding: '12px 14px',
+          background: 'rgba(78,205,196,0.08)',
+          border: '1px solid rgba(78,205,196,0.25)',
           borderRadius: '6px',
-          padding: '16px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '14px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
-          <div style={{
-            width: '52px',
-            height: '52px',
-            borderRadius: '4px',
-            background: 'rgba(201,168,76,0.1)',
-            border: '1px solid var(--border)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '24px',
-          }}>
-            🚗
-          </div>
           <div>
-            <div style={{
-              fontFamily: 'var(--font-display)',
-              fontSize: '14px',
-              color: 'var(--cream)',
-              marginBottom: '4px',
-            }}>
-              {user.vehicleName}
-            </div>
-            <div style={{ fontSize: '11px', color: 'var(--muted)' }}>
-              {CLASS_LABEL[user.vehicleClass]} · {formatMiles(user.milesLogged)} mi logged
+            <div style={{ fontSize: '9px', color: '#4ECDC4', letterSpacing: '0.2em', marginBottom: '3px' }}>CHECKED IN</div>
+            <div style={{ fontSize: '13px', color: 'var(--cream)', fontFamily: 'var(--font-display)' }}>
+              {checkedInSpot.name}
             </div>
           </div>
-          <button style={{
-            marginLeft: 'auto',
-            background: 'none',
-            border: '1px solid var(--border)',
-            borderRadius: '3px',
-            color: 'var(--muted)',
-            padding: '5px 10px',
-            fontSize: '10px',
-            cursor: 'pointer',
-            fontFamily: 'var(--font-ui)',
-            letterSpacing: '0.12em',
+          <button onClick={checkOut} style={{
+            background: 'none', border: '1px solid rgba(78,205,196,0.3)', borderRadius: '3px',
+            color: '#4ECDC4', padding: '5px 10px', fontSize: '9px',
+            cursor: 'pointer', fontFamily: 'var(--font-ui)', letterSpacing: '0.12em',
           }}>
-            EDIT
+            LEAVE
           </button>
         </div>
+      )}
+
+      {/* Bio */}
+      <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(139,92,246,0.08)' }}>
+        <div style={{ fontSize: '10px', letterSpacing: '0.2em', color: 'var(--muted)', marginBottom: '10px' }}>ABOUT</div>
+        <p style={{ fontSize: '13px', color: 'var(--cream)', lineHeight: 1.6, marginBottom: '10px' }}>
+          {profile.bio}
+        </p>
+        <div style={{
+          display: 'inline-flex', gap: '6px', alignItems: 'center',
+          background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.2)',
+          borderRadius: '4px', padding: '6px 10px',
+        }}>
+          <span style={{ fontSize: '11px', color: 'var(--muted)' }}>Looking for:</span>
+          <span style={{ fontSize: '11px', color: '#8B5CF6' }}>{profile.lookingFor}</span>
+        </div>
       </div>
 
-      {/* Recent activity */}
+      {/* Settings placeholder */}
       <div style={{ padding: '16px 20px' }}>
-        <div style={{
-          fontSize: '10px',
-          letterSpacing: '0.2em',
-          color: 'var(--muted)',
-          marginBottom: '12px',
-        }}>
-          RECENT ACTIVITY
-        </div>
-        {myEvents.length === 0 ? (
-          <div style={{
-            color: 'var(--muted)',
-            fontSize: '12px',
-            textAlign: 'center',
-            padding: '20px',
+        <div style={{ fontSize: '10px', letterSpacing: '0.2em', color: 'var(--muted)', marginBottom: '12px' }}>SETTINGS</div>
+        {['Edit Profile', 'Privacy', 'Blocked Users', 'Sign Out'].map((item) => (
+          <div key={item} style={{
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            padding: '13px 0', borderBottom: '1px solid rgba(139,92,246,0.06)',
+            cursor: 'pointer',
           }}>
-            No activity yet. Hit the map and get rolling.
+            <span style={{ fontSize: '13px', color: 'var(--cream)' }}>{item}</span>
+            <span style={{ fontSize: '14px', color: 'var(--muted)' }}>›</span>
           </div>
-        ) : (
-          myEvents.map((e) => (
-            <div key={e.id} style={{
-              display: 'flex',
-              gap: '10px',
-              padding: '10px 0',
-              borderBottom: '1px solid rgba(255,255,255,0.04)',
-              alignItems: 'center',
-            }}>
-              <div style={{
-                width: '6px',
-                height: '6px',
-                borderRadius: '50%',
-                backgroundColor: 'var(--gold)',
-                flexShrink: 0,
-              }} />
-              <div style={{ flex: 1, fontSize: '12px', color: 'var(--cream)' }}>
-                {e.detail}
-              </div>
-            </div>
-          ))
-        )}
+        ))}
       </div>
     </div>
   );

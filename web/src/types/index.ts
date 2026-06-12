@@ -1,78 +1,80 @@
 export type Vec2 = { lat: number; lng: number };
 
-export type VehicleClass =
-  | 'lowrider'
-  | 'muscle'
-  | 'classic'
-  | 'truck'
-  | 'import'
-  | 'euro'
-  | 'suv';
+// ── Reveal lifecycle ─────────────────────────────────────────────
+export type RevealStatus = 'hidden' | 'liked' | 'matched' | 'blocked';
 
-export type Cruiser = {
-  id: string;
-  handle: string;
-  vehicleClass: VehicleClass;
-  vehicleName: string;
-  color: string;
-  position: Vec2;
-  heading: number;
-  speed: number;
-  groupId: string | null;
-  isLive: boolean;
-  lastSeen: number;
-  repScore: number;
-  milesLogged: number;
+// ── User profile (only visible post-reveal) ──────────────────────
+export type Tribe =
+  | 'jock' | 'bear' | 'otter' | 'twink' | 'daddy' | 'masc' | 'femme' | 'other';
+
+export type UserProfile = {
+  displayName: string;
+  age: number;
+  tribe: Tribe;
+  height: string;
+  bio: string;
+  lookingFor: string;
+  gradientId: number; // 0–7, drives avatar color gradient
+  verified: boolean;
 };
 
-export type SpotCategory =
-  | 'strip'
-  | 'meetup'
-  | 'lookout'
-  | 'parking'
-  | 'drive-in'
-  | 'historic';
+// ── Nearby user (always present, profile gated by reveal) ─────────
+export type NearbyUser = {
+  id: string;
+  position: Vec2;
+  distanceFt: number;
+  lastActive: number;
+  pulseIntensity: number; // 0–1
+  revealStatus: RevealStatus;
+  profile: UserProfile | null; // null until matched
+};
+
+// ── Cruising spot ─────────────────────────────────────────────────
+export type SpotType = 'bar' | 'park' | 'sauna' | 'beach' | 'venue' | 'social';
 
 export type CruisingSpot = {
   id: string;
   name: string;
-  description: string;
+  type: SpotType;
   position: Vec2;
-  category: SpotCategory;
-  activeCruisers: number;
-  peakTime: string;
-  totalCheckins: number;
-  rating: number;
-  createdByHandle: string;
-  vibeScore: 'lit' | 'active' | 'quiet' | 'dead';
+  activeCount: number;
+  hasGroup: boolean;
+  groupId: string | null;
+  description: string;
 };
+
+// ── Group hangout ─────────────────────────────────────────────────
+export type GroupVibe = 'cruising' | 'social' | 'party' | 'chill';
 
 export type CruiseGroup = {
   id: string;
-  name: string;
-  color: string;
-  leaderId: string;
-  memberIds: string[];
-  isConvoy: boolean;
+  spotId: string;
+  spotName: string;
+  vibe: GroupVibe;
+  memberCount: number;
+  maxMembers: number;
+  isOpen: boolean;
+  startedAt: number;
 };
 
-export type ActivityEventType =
-  | 'join'
-  | 'checkin'
-  | 'honk'
-  | 'group_form'
-  | 'milestone'
-  | 'spot_hot';
-
-export type ActivityEvent = {
+// ── Direct message / chat ─────────────────────────────────────────
+export type Message = {
   id: string;
-  type: ActivityEventType;
-  handle: string;
-  targetHandle?: string;
-  spotName?: string;
-  detail: string;
+  senderId: string;
+  text: string;
   timestamp: number;
+  read: boolean;
 };
 
-export type NavTab = 'map' | 'spots' | 'profile';
-export type MapMode = 'explore' | 'live' | 'convoy';
+export type Conversation = {
+  id: string;
+  partnerId: string;
+  partnerProfile: UserProfile;
+  messages: Message[];
+  unreadCount: number;
+  lastActivity: number;
+};
+
+// ── App navigation ────────────────────────────────────────────────
+export type NavTab = 'map' | 'nearby' | 'chats' | 'profile';
+export type CruiseMode = 'offline' | 'active';

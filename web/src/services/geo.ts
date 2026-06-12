@@ -1,44 +1,19 @@
 import type { Vec2 } from '../types';
 
-const R = 3958.8; // Earth radius in miles
+const R_MILES = 3958.8;
 
-export function haversineDistance(a: Vec2, b: Vec2): number {
+export function haversineDistanceFt(a: Vec2, b: Vec2): number {
   const dLat = toRad(b.lat - a.lat);
   const dLng = toRad(b.lng - a.lng);
   const h =
     Math.sin(dLat / 2) ** 2 +
     Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
-  return 2 * R * Math.asin(Math.sqrt(h));
+  return 2 * R_MILES * Math.asin(Math.sqrt(h)) * 5280;
 }
 
-export function headingBetween(a: Vec2, b: Vec2): number {
-  const dLng = toRad(b.lng - a.lng);
-  const lat1 = toRad(a.lat);
-  const lat2 = toRad(b.lat);
-  const y = Math.sin(dLng) * Math.cos(lat2);
-  const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng);
-  return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
-}
-
-export function interpolateVec2(a: Vec2, b: Vec2, t: number): Vec2 {
-  return {
-    lat: a.lat + (b.lat - a.lat) * t,
-    lng: a.lng + (b.lng - a.lng) * t,
-  };
-}
-
-function toRad(deg: number): number {
-  return (deg * Math.PI) / 180;
-}
-
-export function formatMiles(miles: number): string {
-  if (miles >= 1000) return `${(miles / 1000).toFixed(1)}k`;
-  return miles.toFixed(0);
-}
-
-export function formatRep(rep: number): string {
-  if (rep >= 1000) return `${(rep / 1000).toFixed(1)}k`;
-  return rep.toString();
+export function formatDistance(ft: number): string {
+  if (ft < 1000) return `${Math.round(ft / 10) * 10} ft`;
+  return `${(ft / 5280).toFixed(1)} mi`;
 }
 
 export function timeAgo(ms: number): string {
@@ -47,3 +22,19 @@ export function timeAgo(ms: number): string {
   if (secs < 3600) return `${Math.floor(secs / 60)}m ago`;
   return `${Math.floor(secs / 3600)}h ago`;
 }
+
+function toRad(deg: number): number {
+  return (deg * Math.PI) / 180;
+}
+
+// Gradient palette for anonymous user avatars (index 0–7)
+export const GRADIENTS = [
+  'linear-gradient(135deg, #8B5CF6, #EC4899)',
+  'linear-gradient(135deg, #06B6D4, #8B5CF6)',
+  'linear-gradient(135deg, #F59E0B, #EF4444)',
+  'linear-gradient(135deg, #10B981, #06B6D4)',
+  'linear-gradient(135deg, #EF4444, #8B5CF6)',
+  'linear-gradient(135deg, #3B82F6, #10B981)',
+  'linear-gradient(135deg, #F59E0B, #8B5CF6)',
+  'linear-gradient(135deg, #EC4899, #F59E0B)',
+];
