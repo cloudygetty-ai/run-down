@@ -73,7 +73,10 @@ export const GameScreen: React.FC<Props> = ({ onGameOver }) => {
             const weapon = h.weapons[h.activeWeaponSlot];
             if (weapon && !weapon.isReloading && weapon.currentAmmo > 0) {
               const now = Date.now();
-              if (now - lastFireTimeRef.current >= 1000 / weapon.fireRate) {
+              const effectiveFireRate = h.activeAbilityEffect === 'rapid_fire'
+                ? weapon.fireRate * 2
+                : weapon.fireRate;
+              if (now - lastFireTimeRef.current >= 1000 / effectiveFireRate) {
                 lastFireTimeRef.current = now;
                 const aim = inputRef.current.aimVector;
                 const mag = Math.sqrt(aim.x * aim.x + aim.y * aim.y);
@@ -131,7 +134,8 @@ export const GameScreen: React.FC<Props> = ({ onGameOver }) => {
     const weapon = h.weapons[h.activeWeaponSlot];
     if (!weapon || weapon.isReloading || weapon.currentAmmo <= 0) return;
     const now = Date.now();
-    if (now - lastFireTimeRef.current < 1000 / weapon.fireRate) return;
+    const effectiveFireRate = h.activeAbilityEffect === 'rapid_fire' ? weapon.fireRate * 2 : weapon.fireRate;
+    if (now - lastFireTimeRef.current < 1000 / effectiveFireRate) return;
     lastFireTimeRef.current = now;
     const aim = inputRef.current.aimVector;
     const mag = Math.sqrt(aim.x * aim.x + aim.y * aim.y);

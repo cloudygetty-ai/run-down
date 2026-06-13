@@ -10,6 +10,8 @@ import {
   BuildingMaterial,
   Vector2,
   HelixRelay,
+  Gear,
+  GearSlot,
 } from '../../types';
 import { createInitialBombardment } from '../../core/meteor';
 import { getCharacter, DEFAULT_CHARACTER_ID } from '../../core/characters';
@@ -275,6 +277,88 @@ function makeMaterials(): Record<BuildingMaterial, number> {
   return { wood: 100, stone: 50, metal: 25 };
 }
 
+// ── Gear generation ───────────────────────────────────────────────────────────
+// Stat tables indexed [common, uncommon, rare, epic, legendary]
+const GEAR_RARITY_INDEX: Record<Rarity, number> = {
+  common: 0, uncommon: 1, rare: 2, epic: 3, legendary: 4,
+};
+
+const GEAR_NAMES: Record<GearSlot, string[]> = {
+  helmet: ['Scrap Cap', 'Field Helmet', 'Tactical Helm', 'Reinforced Helm', 'Orbital Visor'],
+  chest:  ['Scrap Vest', 'Ballistic Vest', 'Combat Plate', 'Reinforced Plate', 'Void Armor'],
+  legs:   ['Runner Wrap', 'Combat Greaves', 'Tac Kneeguards', 'Reactive Legs', 'Quantum Stride'],
+  gloves: ['Grip Wrap', 'Tactical Gloves', 'Aim Gauntlets', 'Prec. Gauntlets', 'Neural Gloves'],
+};
+
+const GEAR_HP:         Record<GearSlot, number[]> = {
+  helmet: [10, 20, 30, 45,  60], chest:  [15, 25, 40, 55,  70],
+  legs:   [10, 15, 25, 35,  50], gloves: [ 0,  0,  5, 10,  15],
+};
+const GEAR_SHIELD:     Record<GearSlot, number[]> = {
+  helmet: [ 0,  5, 10, 15,  25], chest:  [20, 30, 50, 70, 100],
+  legs:   [ 0,  0,  0, 10,  20], gloves: [ 0,  0,  0,  0,  10],
+};
+const GEAR_RESISTANCE: Record<GearSlot, number[]> = {
+  helmet: [0.03, 0.05, 0.08, 0.12, 0.18], chest:  [0.05, 0.08, 0.12, 0.18, 0.25],
+  legs:   [0.00, 0.02, 0.04, 0.07, 0.10], gloves: [0.00, 0.00, 0.02, 0.04, 0.06],
+};
+const GEAR_SPEED:      Record<GearSlot, number[]> = {
+  helmet: [0.00, 0.00, 0.01, 0.02, 0.03], chest:  [0.00, 0.00, 0.00, 0.01, 0.02],
+  legs:   [0.02, 0.04, 0.06, 0.09, 0.12], gloves: [0.00, 0.01, 0.02, 0.03, 0.05],
+};
+const GEAR_DAMAGE:     Record<GearSlot, number[]> = {
+  helmet: [0.00, 0.00, 0.02, 0.04, 0.06], chest:  [0.00, 0.00, 0.02, 0.05, 0.08],
+  legs:   [0.00, 0.00, 0.00, 0.02, 0.04], gloves: [0.05, 0.10, 0.15, 0.20, 0.25],
+};
+// Negative = faster reload (additive to reloadMult which defaults to 1.0)
+const GEAR_RELOAD:     Record<GearSlot, number[]> = {
+  helmet: [ 0.00,  0.00,  0.00, -0.03, -0.05], chest:  [ 0.00,  0.00,  0.00, -0.03, -0.06],
+  legs:   [ 0.00,  0.00,  0.00,  0.00, -0.03], gloves: [-0.05, -0.08, -0.12, -0.18, -0.25],
+};
+
+function makeGear(slot: GearSlot, rarity: Rarity): Gear {
+  const ri = GEAR_RARITY_INDEX[rarity];
+  return {
+    id: `gear_${slot}_${Math.random().toString(36).slice(2)}`,
+    slot,
+    rarity,
+    name: GEAR_NAMES[slot][ri],
+    healthBonus:     GEAR_HP[slot][ri],
+    shieldBonus:     GEAR_SHIELD[slot][ri],
+    resistanceBonus: GEAR_RESISTANCE[slot][ri],
+    speedBonus:      GEAR_SPEED[slot][ri],
+    damageBonus:     GEAR_DAMAGE[slot][ri],
+    reloadBonus:     GEAR_RELOAD[slot][ri],
+  };
+}
+
+// Apply or remove one gear piece's stat deltas from a player (sign = +1 equip, -1 unequip).
+function applyGearDelta(player: Player, gear: Gear, sign: 1 | -1): Player {
+  const hpDelta = gear.healthBonus * sign;
+  const shDelta = gear.shieldBonus * sign;
+  const newMaxHealth = player.maxHealth + hpDelta;
+  const newMaxShield = player.maxShield + shDelta;
+  // Equipping: grant the bonus HP/shield immediately. Unequipping: cap at new lower max.
+  const newHealth = sign === 1
+    ? Math.min(newMaxHealth, player.health + hpDelta)
+    : Math.max(1, Math.min(player.health, newMaxHealth));
+  const newShield = sign === 1
+    ? Math.min(newMaxShield, player.shield + shDelta)
+    : Math.max(0, Math.min(player.shield, newMaxShield));
+
+  return {
+    ...player,
+    maxHealth:        newMaxHealth,
+    health:           newHealth,
+    maxShield:        newMaxShield,
+    shield:           newShield,
+    damageResistance: Math.max(0, Math.min(0.75, player.damageResistance + gear.resistanceBonus * sign)),
+    speedMult:        Math.max(0.1, player.speedMult    + gear.speedBonus   * sign),
+    damageMult:       Math.max(0.1, player.damageMult   + gear.damageBonus  * sign),
+    reloadMult:       Math.max(0.1, Math.min(2.0, player.reloadMult + gear.reloadBonus * sign)),
+  };
+}
+
 function makePlayer(
   id: string,
   name: string,
@@ -318,6 +402,7 @@ function makePlayer(
     activeAbilityEffect: 'none',
     heldCoreEffect: null,
     corruptionDps: 0,
+    gear: { helmet: null, chest: null, legs: null, gloves: null },
   };
 }
 
@@ -351,25 +436,33 @@ function scatterLoot(count: number): LootDrop[] {
   ];
   const rarities: Rarity[] = ['common', 'common', 'uncommon', 'rare', 'epic', 'legendary'];
 
-  return Array.from({ length: count }, (_, i) => ({
-    id: `loot_${i}`,
-    position: {
-      x: randomInRange(50, MAP_WIDTH - 50),
-      y: randomInRange(50, MAP_HEIGHT - 50),
-    },
-    weapon: makeWeapon(
-      types[randomInt(0, types.length - 1)],
-      rarities[randomInt(0, rarities.length - 1)],
-    ),
-    ammo: randomInt(30, 120),
-    materials: {
-      wood: randomInt(20, 60),
-      stone: randomInt(10, 30),
-      metal: randomInt(5, 15),
-    },
-    shield: randomInt(0, 1) === 1 ? 50 : 0,
-    health: randomInt(0, 1) === 1 ? 25 : 0,
-  }));
+  const gearSlots: GearSlot[] = ['helmet', 'chest', 'legs', 'gloves'];
+
+  return Array.from({ length: count }, (_, i) => {
+    const gearRarity = rarities[randomInt(0, rarities.length - 1)];
+    const hasGear = randomInt(0, 9) < 3; // 30% chance of gear in a drop
+
+    return {
+      id: `loot_${i}`,
+      position: {
+        x: randomInRange(50, MAP_WIDTH - 50),
+        y: randomInRange(50, MAP_HEIGHT - 50),
+      },
+      weapon: makeWeapon(
+        types[randomInt(0, types.length - 1)],
+        rarities[randomInt(0, rarities.length - 1)],
+      ),
+      gear: hasGear ? makeGear(gearSlots[randomInt(0, gearSlots.length - 1)], gearRarity) : null,
+      ammo: randomInt(30, 120),
+      materials: {
+        wood: randomInt(20, 60),
+        stone: randomInt(10, 30),
+        metal: randomInt(5, 15),
+      },
+      shield: randomInt(0, 1) === 1 ? 50 : 0,
+      health: randomInt(0, 1) === 1 ? 25 : 0,
+    };
+  });
 }
 
 function buildHelixRelays(mapWidth: number, mapHeight: number): HelixRelay[] {
@@ -577,6 +670,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
           weapons[emptySlot] = loot.weapon;
           updated = { ...updated, weapons };
         }
+      }
+
+      if (loot.gear) {
+        const { slot } = loot.gear;
+        const oldGear = updated.gear[slot];
+        // Remove old gear's stat delta before applying new piece
+        if (oldGear) updated = applyGearDelta(updated, oldGear, -1);
+        updated = applyGearDelta(updated, loot.gear, 1);
+        updated = { ...updated, gear: { ...updated.gear, [slot]: loot.gear } };
       }
 
       return {

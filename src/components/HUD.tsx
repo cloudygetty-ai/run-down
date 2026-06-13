@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Player, Bombardment, IncomingMeteor, WeaponType } from '../types';
+import { Player, Bombardment, IncomingMeteor, WeaponType, GearSlot, Gear } from '../types';
 
 type Props = {
   player: Player;
@@ -60,6 +60,21 @@ const CORE_EFFECT_LABELS: Record<string, string> = {
   cooldown_reduction: 'CDR',
   damage_amp: '+DMG',
   ability_mutation: 'MUTATE',
+};
+
+const GEAR_SLOT_ICONS: Record<GearSlot, string> = {
+  helmet: '⛑',
+  chest:  '🦺',
+  legs:   '👖',
+  gloves: '🥊',
+};
+
+const RARITY_COLORS: Record<string, string> = {
+  common:    '#aaaaaa',
+  uncommon:  '#44cc44',
+  rare:      '#4488ff',
+  epic:      '#aa44ff',
+  legendary: '#ffaa00',
 };
 
 export const HUD: React.FC<Props> = ({
@@ -178,6 +193,34 @@ export const HUD: React.FC<Props> = ({
           <Text style={styles.matText}>S:{player.materials.stone}</Text>
           <Text style={styles.matText}>M:{player.materials.metal}</Text>
         </View>
+      </View>
+
+      {/* Gear strip — 4 slots above weapon bar */}
+      <View style={styles.gearStrip}>
+        {(['helmet', 'chest', 'legs', 'gloves'] as GearSlot[]).map((slot) => {
+          const piece: Gear | null = player.gear[slot];
+          return (
+            <View
+              key={slot}
+              style={[
+                styles.gearSlot,
+                piece && { borderColor: RARITY_COLORS[piece.rarity] },
+              ]}
+            >
+              <Text style={styles.gearIcon}>{GEAR_SLOT_ICONS[slot]}</Text>
+              {piece ? (
+                <Text
+                  style={[styles.gearName, { color: RARITY_COLORS[piece.rarity] }]}
+                  numberOfLines={1}
+                >
+                  {piece.name}
+                </Text>
+              ) : (
+                <Text style={styles.gearEmpty}>—</Text>
+              )}
+            </View>
+          );
+        })}
       </View>
 
       {/* Bottom center: weapon slots */}
@@ -354,6 +397,28 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   matText: { color: '#ccaa44', fontSize: 11, fontWeight: 'bold' },
+
+  gearStrip: {
+    position: 'absolute',
+    bottom: 100,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    gap: 6,
+  },
+  gearSlot: {
+    width: 58,
+    height: 44,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 2,
+  },
+  gearIcon: { fontSize: 14 },
+  gearName: { fontSize: 8, fontWeight: 'bold', textAlign: 'center', marginTop: 1 },
+  gearEmpty: { color: 'rgba(255,255,255,0.25)', fontSize: 12 },
 
   weaponBar: {
     position: 'absolute',

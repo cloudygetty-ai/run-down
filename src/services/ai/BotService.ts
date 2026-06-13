@@ -1,4 +1,4 @@
-import { GameState, Player, Vector2 } from '../../types';
+import { GameState, Player, Vector2, Rarity } from '../../types';
 import { fireShot } from '../../core/gameEngine';
 import { distance, normalize, isInsideCircle, clamp, randomInRange } from '../../utils';
 import { computeAimPoint, canFire } from '../weapons';
@@ -9,6 +9,10 @@ import {
   BOT_LOOT_RANGE,
   TICK_RATE_MS,
 } from '../../core/balance';
+
+const RARITY_ORDER: Record<Rarity, number> = {
+  common: 0, uncommon: 1, rare: 2, epic: 3, legendary: 4,
+};
 
 // Per-bot mutable state (intentionally outside pure game state — AI is ephemeral)
 type BotBrain = {
@@ -165,6 +169,36 @@ function pickUpLootForBot(state: GameState, bot: Player, lootId: string): GameSt
       const weapons = [...updatedBot.weapons] as Player['weapons'];
       weapons[emptySlot] = loot.weapon;
       updatedBot = { ...updatedBot, weapons };
+    }
+  }
+
+  if (loot.gear) {
+    const { slot } = loot.gear;
+    const oldGear = updatedBot.gear[slot];
+    // Bots equip gear directly without complex diff logic — just take the upgrade
+    if (!oldGear || RARITY_ORDER[loot.gear.rarity] > RARITY_ORDER[oldGear.rarity]) {
+      if (oldGear) {
+        // Remove old gear delta
+        updatedBot = {
+          ...updatedBot,
+          maxHealth:        updatedBot.maxHealth - oldGear.healthBonus,
+          maxShield:        updatedBot.maxShield - oldGear.shieldBonus,
+          damageResistance: Math.max(0, updatedBot.damageResistance - oldGear.resistanceBonus),
+          speedMult:        Math.max(0.1, updatedBot.speedMult  - oldGear.speedBonus),
+          damageMult:       Math.max(0.1, updatedBot.damageMult - oldGear.damageBonus),
+          reloadMult:       Math.max(0.1, updatedBot.reloadMult - oldGear.reloadBonus),
+        };
+      }
+      updatedBot = {
+        ...updatedBot,
+        maxHealth:        updatedBot.maxHealth + loot.gear.healthBonus,
+        maxShield:        updatedBot.maxShield + loot.gear.shieldBonus,
+        damageResistance: Math.min(0.75, updatedBot.damageResistance + loot.gear.resistanceBonus),
+        speedMult:        updatedBot.speedMult  + loot.gear.speedBonus,
+        damageMult:       updatedBot.damageMult + loot.gear.damageBonus,
+        reloadMult:       Math.max(0.1, updatedBot.reloadMult + loot.gear.reloadBonus),
+        gear:             { ...updatedBot.gear, [slot]: loot.gear },
+      };
     }
   }
 

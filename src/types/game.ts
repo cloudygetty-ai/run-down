@@ -114,10 +114,28 @@ export type BuildPiece = {
   ownerId: string;
 };
 
+// ── Gear system (The Division 2 style) ───────────────────────────────────────
+export type GearSlot = 'helmet' | 'chest' | 'legs' | 'gloves';
+
+export type Gear = {
+  id: string;
+  slot: GearSlot;
+  rarity: Rarity;
+  name: string;
+  // All stats are additive deltas applied on top of character passives.
+  healthBonus: number;       // flat +maxHP
+  shieldBonus: number;       // flat +maxShield
+  resistanceBonus: number;   // additive fraction, e.g. 0.08 = +8% damage reduction
+  speedBonus: number;        // additive to speedMult, e.g. 0.05 = +5% speed
+  damageBonus: number;       // additive to damageMult, e.g. 0.10 = +10% damage
+  reloadBonus: number;       // additive to reloadMult; negative = faster
+};
+
 export type LootDrop = {
   id: string;
   position: Vector2;
   weapon: Weapon | null;
+  gear: Gear | null;
   ammo: number;
   materials: Record<BuildingMaterial, number>;
   shield: number;
@@ -158,6 +176,8 @@ export type Player = {
   // Fracture Core system
   heldCoreEffect: FractureCoreEffect | null; // buff from a picked-up Fracture Core
   corruptionDps: number;                     // HP drained per second while holding a core
+  // Gear slots — each piece additively modifies the character's base stats
+  gear: Record<GearSlot, Gear | null>;
 };
 
 export type MeteorType =
