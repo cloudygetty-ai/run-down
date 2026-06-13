@@ -1,14 +1,18 @@
 import { useMapStore } from '../store/map.store';
 import { useChatStore } from '../store/chat.store';
 import { scheduleAutoMatch } from '../services/mock.service';
-import { formatDistance, GRADIENTS } from '../services/geo';
+import { formatDistance } from '../services/geo';
+import { MediaBlock } from '../components/UI/MediaBlock';
 import type { NearbyUser } from '../types';
+
+function gradientIdx(user: NearbyUser): number {
+  return parseInt(user.id.replace('user-', ''), 10) % 8;
+}
 
 function NearbyCard({ user, onMessage }: { user: NearbyUser; onMessage: () => void }) {
   const expressInterest = useMapStore((s) => s.expressInterest);
   const revealed = user.revealStatus === 'matched';
   const liked = user.revealStatus === 'liked';
-  const gradient = GRADIENTS[user.profile?.gradientId ?? (parseInt(user.id.replace('user-', ''), 10) % 8)];
 
   return (
     <div style={{
@@ -19,27 +23,23 @@ function NearbyCard({ user, onMessage }: { user: NearbyUser; onMessage: () => vo
       cursor: 'pointer',
       transition: 'border-color 0.2s ease',
     }}>
-      {/* Photo */}
-      <div style={{
-        height: '120px',
-        background: gradient,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: '40px',
-        position: 'relative',
-      }}
-      className={revealed ? 'photo-revealed' : 'photo-hidden'}
-      >
-        {revealed && user.profile
-          ? ['😎','🔥','👀','✨','💫','⚡','🎯','🌟'][user.profile.gradientId]
-          : '👤'}
+      {/* Media */}
+      <div style={{ position: 'relative' }}>
+        <MediaBlock
+          profile={user.profile}
+          gradientId={gradientIdx(user)}
+          revealed={revealed}
+          width="100%"
+          height={130}
+          borderRadius="0"
+          iconSize="40px"
+        />
         {revealed && (
           <div style={{
             position: 'absolute', top: '6px', right: '6px',
             background: 'rgba(201,168,76,0.9)', color: '#09080F',
             fontSize: '8px', padding: '2px 6px', borderRadius: '2px',
-            letterSpacing: '0.1em', fontWeight: 700,
+            letterSpacing: '0.1em', fontWeight: 700, zIndex: 4,
           }}>MATCH</div>
         )}
         {liked && !revealed && (
@@ -47,7 +47,7 @@ function NearbyCard({ user, onMessage }: { user: NearbyUser; onMessage: () => vo
             position: 'absolute', top: '6px', right: '6px',
             background: 'rgba(139,92,246,0.9)', color: '#fff',
             fontSize: '8px', padding: '2px 6px', borderRadius: '2px',
-            letterSpacing: '0.1em',
+            letterSpacing: '0.1em', zIndex: 4,
           }}>SENT</div>
         )}
       </div>

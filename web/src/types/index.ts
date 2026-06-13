@@ -14,8 +14,12 @@ export type UserProfile = {
   height: string;
   bio: string;
   lookingFor: string;
-  gradientId: number; // 0–7, drives avatar color gradient
+  gradientId: number; // 0–7, drives avatar color + video placeholder
   verified: boolean;
+  // Media — video is primary, photo is optional secondary
+  videoUrl?: string;  // looping profile video (mp4/webm)
+  photoUrl?: string;  // optional still photo alongside video
+  hasVideo: boolean;  // true even when videoUrl is absent (simulated in demo)
 };
 
 // ── Nearby user (always present, profile gated by reveal) ─────────

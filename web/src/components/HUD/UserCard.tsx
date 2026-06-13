@@ -1,7 +1,8 @@
 import { useMapStore } from '../../store/map.store';
 import { useChatStore } from '../../store/chat.store';
 import { scheduleAutoMatch } from '../../services/mock.service';
-import { formatDistance, GRADIENTS } from '../../services/geo';
+import { formatDistance } from '../../services/geo';
+import { MediaBlock } from '../UI/MediaBlock';
 import type { NearbyUser } from '../../types';
 
 const TRIBE_LABEL: Record<string, string> = {
@@ -9,48 +10,8 @@ const TRIBE_LABEL: Record<string, string> = {
   daddy: 'DADDY', masc: 'MASC', femme: 'FEMME', other: 'OTHER',
 };
 
-function AvatarBlock({ user, revealed }: { user: NearbyUser; revealed: boolean }) {
-  const gradient = GRADIENTS[user.profile?.gradientId ?? (parseInt(user.id.replace('user-', ''), 10) % 8)];
-  return (
-    <div style={{
-      width: '80px',
-      height: '80px',
-      borderRadius: '8px',
-      background: gradient,
-      overflow: 'hidden',
-      flexShrink: 0,
-      position: 'relative',
-    }}
-    className={revealed ? 'photo-revealed' : 'photo-hidden'}
-    >
-      {/* Abstract silhouette when hidden */}
-      {!revealed && (
-        <div style={{
-          position: 'absolute',
-          inset: 0,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '32px',
-          filter: 'blur(4px)',
-        }}>
-          👤
-        </div>
-      )}
-      {revealed && user.profile && (
-        <div style={{
-          position: 'absolute',
-          inset: 0,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '36px',
-        }}>
-          {['😎','🔥','👀','✨','💫','⚡','🎯','🌟'][user.profile.gradientId]}
-        </div>
-      )}
-    </div>
-  );
+function gradientIdx(user: NearbyUser): number {
+  return parseInt(user.id.replace('user-', ''), 10) % 8;
 }
 
 export function UserCard() {
@@ -114,7 +75,14 @@ export function UserCard() {
 
           {/* Main card */}
           <div style={{ display: 'flex', gap: '12px', marginBottom: '14px' }}>
-            <AvatarBlock user={user} revealed={revealed} />
+            <MediaBlock
+              profile={user.profile}
+              gradientId={gradientIdx(user)}
+              revealed={revealed}
+              width={80}
+              height={106}
+              borderRadius="8px"
+            />
 
             <div style={{ flex: 1, minWidth: 0 }}>
               {revealed && user.profile ? (
@@ -151,6 +119,15 @@ export function UserCard() {
                     <span style={{ fontSize: '11px', color: 'var(--muted)' }}>
                       {user.profile.height}
                     </span>
+                    {user.profile.hasVideo && (
+                      <span style={{
+                        fontSize: '9px', letterSpacing: '0.12em',
+                        background: 'rgba(232,85,85,0.15)',
+                        border: '1px solid rgba(232,85,85,0.3)',
+                        color: '#E85555',
+                        padding: '2px 7px', borderRadius: '2px',
+                      }}>▶ VIDEO</span>
+                    )}
                   </div>
                   <div style={{ fontSize: '12px', color: 'var(--muted)', lineHeight: 1.5 }}>
                     {user.profile.bio}

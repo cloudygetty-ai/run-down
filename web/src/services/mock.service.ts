@@ -107,18 +107,18 @@ export const INITIAL_GROUPS: Record<string, CruiseGroup> = {
 // ── Mock nearby user profiles ────────────────────────────────────
 
 const MOCK_PROFILES: UserProfile[] = [
-  { displayName: 'Marco',   age: 29, tribe: 'jock',   height: '6\'1"',  bio: 'Gym rat. DDF.', lookingFor: 'Fun tonight',         gradientId: 0, verified: true  },
-  { displayName: 'Dario',   age: 34, tribe: 'bear',   height: '5\'10"', bio: 'Bearded. Friendly.', lookingFor: 'Whatever feels right', gradientId: 1, verified: true  },
-  { displayName: 'Eli',     age: 26, tribe: 'twink',  height: '5\'9"',  bio: 'Down for anything.', lookingFor: 'Company tonight',   gradientId: 2, verified: false },
-  { displayName: 'Rafael',  age: 38, tribe: 'daddy',  height: '6\'0"',  bio: 'Latin. Masc.', lookingFor: 'NSA',                   gradientId: 3, verified: true  },
-  { displayName: 'Caden',   age: 23, tribe: 'otter',  height: '5\'11"', bio: 'New in town.',       lookingFor: 'Explore',           gradientId: 4, verified: false },
-  { displayName: 'Jordan',  age: 31, tribe: 'masc',   height: '6\'2"',  bio: 'Discreet.',          lookingFor: 'Tonight only',      gradientId: 5, verified: true  },
-  { displayName: 'Theo',    age: 27, tribe: 'jock',   height: '5\'10"', bio: 'Hockey player.',     lookingFor: 'Fun',               gradientId: 6, verified: true  },
-  { displayName: 'Marcus',  age: 42, tribe: 'bear',   height: '6\'1"',  bio: 'Daddy energy.',      lookingFor: 'Anything',          gradientId: 7, verified: true  },
-  { displayName: 'Luca',    age: 25, tribe: 'femme',  height: '5\'8"',  bio: 'Cute. Loud.',        lookingFor: 'Good time',         gradientId: 0, verified: false },
-  { displayName: 'Dev',     age: 33, tribe: 'other',  height: '5\'9"',  bio: 'Vers.',              lookingFor: 'See what happens',  gradientId: 1, verified: true  },
-  { displayName: 'Mateo',   age: 30, tribe: 'masc',   height: '5\'11"', bio: 'Pro athlete.',       lookingFor: 'Discreet',          gradientId: 2, verified: true  },
-  { displayName: 'Ash',     age: 24, tribe: 'twink',  height: '5\'10"', bio: 'Artsy.',             lookingFor: 'Cute guys',         gradientId: 3, verified: false },
+  { displayName: 'Marco',  age: 29, tribe: 'jock',  height: '6\'1"',  bio: 'Gym rat. DDF.',       lookingFor: 'Fun tonight',          gradientId: 0, verified: true,  hasVideo: true  },
+  { displayName: 'Dario',  age: 34, tribe: 'bear',  height: '5\'10"', bio: 'Bearded. Friendly.',  lookingFor: 'Whatever feels right', gradientId: 1, verified: true,  hasVideo: false },
+  { displayName: 'Eli',    age: 26, tribe: 'twink', height: '5\'9"',  bio: 'Down for anything.',  lookingFor: 'Company tonight',      gradientId: 2, verified: false, hasVideo: true  },
+  { displayName: 'Rafael', age: 38, tribe: 'daddy', height: '6\'0"',  bio: 'Latin. Masc.',        lookingFor: 'NSA',                  gradientId: 3, verified: true,  hasVideo: true  },
+  { displayName: 'Caden',  age: 23, tribe: 'otter', height: '5\'11"', bio: 'New in town.',        lookingFor: 'Explore',              gradientId: 4, verified: false, hasVideo: false },
+  { displayName: 'Jordan', age: 31, tribe: 'masc',  height: '6\'2"',  bio: 'Discreet.',           lookingFor: 'Tonight only',         gradientId: 5, verified: true,  hasVideo: true  },
+  { displayName: 'Theo',   age: 27, tribe: 'jock',  height: '5\'10"', bio: 'Hockey player.',      lookingFor: 'Fun',                  gradientId: 6, verified: true,  hasVideo: true  },
+  { displayName: 'Marcus', age: 42, tribe: 'bear',  height: '6\'1"',  bio: 'Daddy energy.',       lookingFor: 'Anything',             gradientId: 7, verified: true,  hasVideo: true  },
+  { displayName: 'Luca',   age: 25, tribe: 'femme', height: '5\'8"',  bio: 'Cute. Loud.',         lookingFor: 'Good time',            gradientId: 0, verified: false, hasVideo: false },
+  { displayName: 'Dev',    age: 33, tribe: 'other', height: '5\'9"',  bio: 'Vers.',               lookingFor: 'See what happens',     gradientId: 1, verified: true,  hasVideo: true  },
+  { displayName: 'Mateo',  age: 30, tribe: 'masc',  height: '5\'11"', bio: 'Pro athlete.',        lookingFor: 'Discreet',             gradientId: 2, verified: true,  hasVideo: true  },
+  { displayName: 'Ash',    age: 24, tribe: 'twink', height: '5\'10"', bio: 'Artsy.',              lookingFor: 'Cute guys',            gradientId: 3, verified: false, hasVideo: false },
 ];
 
 // User IDs that auto-match when you express interest (within a few seconds)

@@ -25,6 +25,7 @@ export const useUserStore = create<UserStore>((set) => ({
     lookingFor: 'Whatever happens',
     gradientId: 0,
     verified: true,
+    hasVideo: true,
   },
   joinedGroupId: null,
   checkedInSpotId: null,
