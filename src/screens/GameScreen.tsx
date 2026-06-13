@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { View, StyleSheet, Dimensions } from 'react-native';
 import { GameMap } from '../components/GameMap';
 import { HUD } from '../components/HUD';
@@ -36,6 +36,8 @@ export const GameScreen: React.FC<Props> = ({ onGameOver }) => {
   const tickIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const onGameOverRef = useRef(onGameOver);
   onGameOverRef.current = onGameOver;
+  const [hitMarkerVisible, setHitMarkerVisible] = useState(false);
+  const hitMarkerTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Camera follows the human player
   const human = gameState.players.find((p) => p.isHuman);
@@ -83,10 +85,17 @@ export const GameScreen: React.FC<Props> = ({ onGameOver }) => {
                 const dir = mag > 0.01
                   ? aim
                   : { x: Math.cos(h.rotation * Math.PI / 180), y: Math.sin(h.rotation * Math.PI / 180) };
+                const prevPlayers = next.players;
                 next = fireShot(next, h.id, {
                   x: h.position.x + dir.x * weapon.range,
                   y: h.position.y + dir.y * weapon.range,
                 });
+                // Hit marker: detect if any enemy's health decreased
+                if (next.players.some((p, i) => !p.isHuman && p.health < (prevPlayers[i]?.health ?? p.health))) {
+                  setHitMarkerVisible(true);
+                  if (hitMarkerTimeoutRef.current) clearTimeout(hitMarkerTimeoutRef.current);
+                  hitMarkerTimeoutRef.current = setTimeout(() => setHitMarkerVisible(false), 120);
+                }
               }
             }
           }
@@ -142,10 +151,16 @@ export const GameScreen: React.FC<Props> = ({ onGameOver }) => {
     const dir = mag > 0.01
       ? aim
       : { x: Math.cos(h.rotation * Math.PI / 180), y: Math.sin(h.rotation * Math.PI / 180) };
-    update(fireShot(state, h.id, {
+    const nextState = fireShot(state, h.id, {
       x: h.position.x + dir.x * weapon.range,
       y: h.position.y + dir.y * weapon.range,
-    }));
+    });
+    if (nextState.players.some((p, i) => !p.isHuman && p.health < (state.players[i]?.health ?? p.health))) {
+      setHitMarkerVisible(true);
+      if (hitMarkerTimeoutRef.current) clearTimeout(hitMarkerTimeoutRef.current);
+      hitMarkerTimeoutRef.current = setTimeout(() => setHitMarkerVisible(false), 120);
+    }
+    update(nextState);
   }, []);
 
   const handleReload = useCallback(() => {
@@ -244,6 +259,13 @@ export const GameScreen: React.FC<Props> = ({ onGameOver }) => {
         />
       </View>
 
+      {hitMarkerVisible && (
+        <View style={styles.hitMarkerOverlay} pointerEvents="none">
+          <View style={styles.hitMarkerLineH} />
+          <View style={styles.hitMarkerLineV} />
+        </View>
+      )}
+
       <HUD
         player={human}
         bombardment={gameState.bombardment}
@@ -252,6 +274,7 @@ export const GameScreen: React.FC<Props> = ({ onGameOver }) => {
         alivePlayers={gameState.alivePlayers}
         bountyPlayerId={gameState.bountyPlayerId}
         activeQuip={gameState.activeQuip}
+        killFeed={gameState.killFeed}
         onShoot={human.isBuilding ? handlePlaceBuild : handleShoot}
         onReload={handleReload}
         onBuildToggle={handleBuildToggle}
@@ -267,4 +290,22 @@ const styles = StyleSheet.create({
   joystickLeft: { position: 'absolute', bottom: 30, left: 30 },
   joystickRight: { position: 'absolute', bottom: 50, right: 160 },
   minimapOverlay: { position: 'absolute', top: 50, right: 10 },
+  hitMarkerOverlay: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  hitMarkerLineH: {
+    position: 'absolute',
+    width: 24,
+    height: 2,
+    backgroundColor: '#ff3333',
+  },
+  hitMarkerLineV: {
+    position: 'absolute',
+    width: 2,
+    height: 24,
+    backgroundColor: '#ff3333',
+  },
 });

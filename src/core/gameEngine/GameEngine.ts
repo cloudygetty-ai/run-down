@@ -11,10 +11,20 @@ import {
   SupplyDrop,
   WeaponType,
   Rarity,
+  KillFeedEntry,
+  GearSlot,
 } from '../../types';
 import { tickBombardment, tickIncomingMeteors } from '../meteor';
 import { resolvePlayerWallCollision, isPlayerHitByBullet, checkBulletHit } from '../physics';
-import { distance, clamp, normalize, randomInRange, randomInt } from '../../utils';
+import {
+  distance,
+  clamp,
+  normalize,
+  randomInRange,
+  randomInt,
+  makeGear,
+  applyGearDelta,
+} from '../../utils';
 import { logger } from '../../utils';
 import { getCharacter } from '../characters';
 import {
@@ -42,6 +52,9 @@ import {
   GRAVITY_ZONE_PULL_STRENGTH,
   GRAVITY_ZONE_MAX_AGE_MS,
   ABILITY_SPEED_BOOST_MULT,
+  KNOCKED_TIMER_MS,
+  KILL_FEED_TTL_MS,
+  KILL_FEED_MAX,
 } from '../balance';
 
 export type InputState = {
@@ -53,6 +66,76 @@ export type InputState = {
   buildPosition: Vector2 | null;
   wantsReload: boolean;
 };
+
+// Trigger a player's active ability. Works for both human and bot players.
+// WHY: pure function so bots and the store can both call it without coupling.
+export function triggerPlayerAbility(state: GameState, playerId: string): GameState {
+  const playerIndex = state.players.findIndex((p) => p.id === playerId);
+  if (playerIndex === -1) return state;
+  const player = state.players[playerIndex];
+  if (player.status !== 'alive' || player.abilityChargeMs > 0) return state;
+
+  const character = getCharacter(player.characterId);
+  const { ability } = character;
+  let updated = { ...player, abilityChargeMs: ability.cooldownMs };
+
+  if (ability.durationMs === 0) {
+    // Instant effects
+    switch (character.id) {
+      case 'vex': {
+        const rad = (player.rotation * Math.PI) / 180;
+        updated = {
+          ...updated,
+          position: {
+            x: clamp(player.position.x + Math.cos(rad) * 250, 0, state.mapWidth),
+            y: clamp(player.position.y + Math.sin(rad) * 250, 0, state.mapHeight),
+          },
+        };
+        break;
+      }
+      case 'voss':
+        updated = { ...updated, health: Math.min(updated.maxHealth, updated.health + 80) };
+        break;
+      case 'orin':
+        updated = {
+          ...updated,
+          materials: {
+            wood: updated.materials.wood + 100,
+            stone: updated.materials.stone + 100,
+            metal: updated.materials.metal + 100,
+          },
+        };
+        break;
+      default:
+        break;
+    }
+  } else {
+    // Timed effects
+    updated = {
+      ...updated,
+      abilityActiveMs: ability.durationMs,
+      activeAbilityEffect: ability.effectType,
+    };
+    // Per-character activation bonuses on top of the timed effect
+    if (character.id === 'nyra') {
+      updated = { ...updated, health: Math.min(updated.maxHealth, updated.health + 60) };
+    }
+    if (character.id === 'talon') {
+      const rad = (player.rotation * Math.PI) / 180;
+      updated = {
+        ...updated,
+        position: {
+          x: clamp(player.position.x + Math.cos(rad) * 200, 0, state.mapWidth),
+          y: clamp(player.position.y + Math.sin(rad) * 200, 0, state.mapHeight),
+        },
+      };
+    }
+  }
+
+  const players = [...state.players];
+  players[playerIndex] = updated;
+  return { ...state, players };
+}
 
 // Pure tick function — takes current state + input and returns new state.
 // WHY: keeping this pure makes it trivially testable without mocks.
@@ -69,6 +152,8 @@ export function tickGame(state: GameState, humanInput: InputState, deltaMs: numb
     };
 
     next = tickAbilityTimers(next, deltaMs);
+    next = tickKnockedPlayers(next, deltaMs);
+    next = tickKillFeed(next, deltaMs);
     next = tickFractureCores(next, deltaMs);
     next = tickGravityZones(next, deltaMs);
     next = tickTimeEchoZones(next, deltaMs);
@@ -120,6 +205,65 @@ export function tickGame(state: GameState, humanInput: InputState, deltaMs: numb
     logger.error('GameEngine', 'tick error', err);
     return state;
   }
+}
+
+// Auto-eliminate knocked players whose bleed-out timer expires.
+function tickKnockedPlayers(state: GameState, deltaMs: number): GameState {
+  let players = [...state.players];
+  let { killFeed, lootDrops } = state;
+  let changed = false;
+
+  for (let i = 0; i < players.length; i++) {
+    const p = players[i];
+    if (p.status !== 'knocked') continue;
+
+    const newTimer = p.knockedTimerMs - deltaMs;
+    if (newTimer <= 0) {
+      const entry: KillFeedEntry = {
+        id: `kf_bleed_${state.tickCount}_${i}`,
+        killerName: 'Storm',
+        victimName: p.name,
+        ttlMs: KILL_FEED_TTL_MS,
+      };
+      killFeed = [entry, ...killFeed].slice(0, KILL_FEED_MAX);
+
+      // Drop weapons on auto-eliminate
+      p.weapons.forEach((w, slot) => {
+        if (!w || w.type === 'pickaxe') return;
+        lootDrops = [
+          ...lootDrops,
+          {
+            id: `bleed_loot_${p.id}_s${slot}_${state.tickCount}`,
+            position: { x: p.position.x + (slot - 1) * 18, y: p.position.y + (slot - 1) * 18 },
+            weapon: { ...w, currentAmmo: w.magazineSize },
+            gear: null,
+            ammo: 0,
+            materials: { wood: 0, stone: 0, metal: 0 },
+            shield: 0,
+            health: 0,
+          },
+        ];
+      });
+
+      players[i] = { ...p, status: 'eliminated', knockedTimerMs: 0 };
+      changed = true;
+    } else {
+      players[i] = { ...p, knockedTimerMs: newTimer };
+      changed = true;
+    }
+  }
+
+  if (!changed) return state;
+  return { ...state, players, killFeed, lootDrops };
+}
+
+// Age kill feed entries; remove expired ones.
+function tickKillFeed(state: GameState, deltaMs: number): GameState {
+  if (state.killFeed.length === 0) return state;
+  const killFeed = state.killFeed
+    .map((e) => ({ ...e, ttlMs: e.ttlMs - deltaMs }))
+    .filter((e) => e.ttlMs > 0);
+  return { ...state, killFeed };
 }
 
 // Tick down ability cooldown and active-effect timers for every player.
@@ -335,7 +479,6 @@ function tickSupplyDrops(state: GameState, deltaMs: number): GameState {
     nextSupplyDropMs = SUPPLY_DROP_INTERVAL_MS;
   }
 
-  const landedIds = new Set<string>();
   supplyDrops = supplyDrops.map((drop) => {
     if (drop.isLanded) return drop;
     const remaining = drop.landInMs - deltaMs;
@@ -348,26 +491,42 @@ function tickSupplyDrops(state: GameState, deltaMs: number): GameState {
       (p) => p.status === 'alive' && distance(p.position, drop.position) <= drop.pickupRadius,
     );
     if (!nearbyPlayer) return true;
+
     players = players.map((p) => {
       if (p.id !== nearbyPlayer.id) return p;
+      let updated = { ...p };
+
+      // Weapon slot
       const emptySlot = p.weapons.findIndex((w, i) => i > 0 && w === null) as 0 | 1 | 2 | -1;
-      if (emptySlot === -1) return p;
-      const weapons = [...p.weapons] as Player['weapons'];
-      weapons[emptySlot] = {
-        id: `supply_${drop.id}`,
-        type: drop.weaponType,
-        rarity: drop.rarity,
-        damage: 50,
-        fireRate: 3,
-        magazineSize: 20,
-        currentAmmo: 20,
-        range: 400,
-        reloadTime: 2000,
-        isReloading: false,
-      };
-      return { ...p, weapons };
+      if (emptySlot !== -1) {
+        const weapons = [...p.weapons] as Player['weapons'];
+        weapons[emptySlot] = {
+          id: `supply_${drop.id}`,
+          type: drop.weaponType,
+          rarity: drop.rarity,
+          damage: 50,
+          fireRate: 3,
+          magazineSize: 20,
+          currentAmmo: 20,
+          range: 400,
+          reloadTime: 2000,
+          isReloading: false,
+        };
+        updated = { ...updated, weapons };
+      }
+
+      // Gear slot — always equip supply drop gear (it's legendary)
+      if (drop.gear) {
+        const { slot } = drop.gear;
+        const oldGear = updated.gear[slot];
+        if (oldGear) updated = applyGearDelta(updated, oldGear, -1);
+        updated = applyGearDelta(updated, drop.gear, 1);
+        updated = { ...updated, gear: { ...updated.gear, [slot]: drop.gear } };
+      }
+
+      return updated;
     });
-    landedIds.add(drop.id);
+
     return false;
   });
 
@@ -377,6 +536,7 @@ function tickSupplyDrops(state: GameState, deltaMs: number): GameState {
 function spawnSupplyDrop(mapWidth: number, mapHeight: number): SupplyDrop {
   const epicWeapons: WeaponType[] = ['sniper', 'heavy_sniper', 'rail_gun', 'minigun', 'rocket_launcher', 'heavy_ar'];
   const rarities: Rarity[] = ['epic', 'legendary'];
+  const gearSlots: GearSlot[] = ['helmet', 'chest', 'legs', 'gloves'];
   return {
     id: `supply_${Date.now()}_${Math.random().toString(36).slice(2)}`,
     position: {
@@ -388,6 +548,7 @@ function spawnSupplyDrop(mapWidth: number, mapHeight: number): SupplyDrop {
     pickupRadius: SUPPLY_DROP_PICKUP_RADIUS,
     weaponType: epicWeapons[randomInt(0, epicWeapons.length - 1)],
     rarity: rarities[randomInt(0, rarities.length - 1)],
+    gear: makeGear(gearSlots[randomInt(0, gearSlots.length - 1)], 'legendary'),
   };
 }
 
@@ -466,6 +627,7 @@ function applyMeteorDamage(state: GameState, newImpacts: MeteorImpact[]): GameSt
   if (explosiveImpacts.length === 0) return state;
 
   const players = state.players.map((p) => {
+    // Knocked players are already dying; skip to avoid double-processing
     if (p.status !== 'alive') return p;
     if (p.activeAbilityEffect === 'damage_immunity') return p;
 
@@ -484,8 +646,9 @@ function applyMeteorDamage(state: GameState, newImpacts: MeteorImpact[]): GameSt
     shield -= absorbed;
     health = Math.max(0, health - (effectiveDmg - absorbed));
 
-    const status = health === 0 ? ('eliminated' as const) : p.status;
-    return { ...p, shield, health, status };
+    const newStatus = health === 0 ? ('knocked' as const) : p.status;
+    const knockedTimerMs = newStatus === 'knocked' ? KNOCKED_TIMER_MS : p.knockedTimerMs;
+    return { ...p, shield, health, status: newStatus, knockedTimerMs };
   });
 
   return { ...state, players };
@@ -590,7 +753,8 @@ export function fireShot(state: GameState, shooterId: string, targetPos: Vector2
 
   for (let i = 0; i < players.length; i++) {
     const target = players[i];
-    if (target.id === shooterId || target.status !== 'alive') continue;
+    // Knocked players can be finished with a shot; eliminated players cannot be hit
+    if (target.id === shooterId || target.status === 'eliminated') continue;
     if (!isPlayerHitByBullet(shooter.position, targetPos, target)) continue;
     if (target.activeAbilityEffect === 'damage_immunity') break;
 
@@ -603,41 +767,63 @@ export function fireShot(state: GameState, shooterId: string, targetPos: Vector2
       weapon.damage * players[shooterIndex].damageMult * abilityDamageMult * coreDamageMult,
     );
 
-    let dmg = Math.round(rawDmg * (1 - target.damageResistance));
-    let shield = target.shield;
+    const wasKnocked = target.status === 'knocked';
+    const wasAlive = target.status === 'alive';
+
+    // Hitting a knocked player finishes them instantly
+    let dmg = wasKnocked
+      ? target.health
+      : Math.round(rawDmg * (1 - target.damageResistance));
+
+    let shield = wasKnocked ? 0 : target.shield;
     let health = target.health;
 
-    if (shield > 0) {
+    if (!wasKnocked && shield > 0) {
       const absorbed = Math.min(shield, dmg);
       shield -= absorbed;
       dmg -= absorbed;
     }
     health = Math.max(0, health - dmg);
 
-    const status = health === 0 ? ('eliminated' as const) : target.status;
-    players[i] = { ...target, shield, health, status };
+    const newStatus = health === 0
+      ? (wasAlive ? ('knocked' as const) : ('eliminated' as const))
+      : target.status;
+    const knockedTimerMs = newStatus === 'knocked' ? KNOCKED_TIMER_MS : target.knockedTimerMs;
 
-    if (status === 'eliminated') {
+    players[i] = { ...target, shield, health, status: newStatus, knockedTimerMs };
+
+    // Kill credit on the first down (alive → knocked)
+    if (wasAlive && health === 0) {
       const kills = players[shooterIndex].kills + 1;
       const healedHp = Math.min(
         players[shooterIndex].maxHealth,
         players[shooterIndex].health + players[shooterIndex].killHealAmount,
       );
+      players[shooterIndex] = { ...players[shooterIndex], kills, health: healedHp };
+    }
+
+    // Weapon drop + kill feed on elimination (finish)
+    if (newStatus === 'eliminated') {
+      const newEntry: KillFeedEntry = {
+        id: `kf_${state.tickCount}_${i}`,
+        killerName: players[shooterIndex].name,
+        victimName: target.name,
+        ttlMs: KILL_FEED_TTL_MS,
+      };
+      const killFeed = [newEntry, ...state.killFeed].slice(0, KILL_FEED_MAX);
 
       let lootDrops = state.lootDrops;
-
-      // Drop all non-pickaxe weapons the eliminated player was carrying
-      target.weapons.forEach((weapon, slot) => {
-        if (!weapon || weapon.type === 'pickaxe') return;
+      target.weapons.forEach((w, slot) => {
+        if (!w || w.type === 'pickaxe') return;
         lootDrops = [
           ...lootDrops,
           {
-            id: `kill_loot_${target.id}_s${slot}_${Date.now()}`,
+            id: `kill_loot_${target.id}_s${slot}_${state.tickCount}`,
             position: {
               x: target.position.x + (slot - 1) * 18,
               y: target.position.y + (slot - 1) * 18,
             },
-            weapon: { ...weapon, currentAmmo: weapon.magazineSize },
+            weapon: { ...w, currentAmmo: w.magazineSize },
             gear: null,
             ammo: 0,
             materials: { wood: 0, stone: 0, metal: 0 },
@@ -651,7 +837,7 @@ export function fireShot(state: GameState, shooterId: string, targetPos: Vector2
         lootDrops = [
           ...lootDrops,
           {
-            id: `bounty_loot_${Date.now()}`,
+            id: `bounty_loot_${state.tickCount}`,
             position: target.position,
             weapon: null,
             gear: null,
@@ -663,8 +849,7 @@ export function fireShot(state: GameState, shooterId: string, targetPos: Vector2
         ];
       }
 
-      players[shooterIndex] = { ...players[shooterIndex], kills, health: healedHp };
-      return { ...state, players, lootDrops };
+      return { ...state, players, lootDrops, killFeed };
     }
     break;
   }

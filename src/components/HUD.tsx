@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Player, Bombardment, IncomingMeteor, WeaponType, GearSlot, Gear } from '../types';
+import { Player, Bombardment, IncomingMeteor, WeaponType, GearSlot, Gear, KillFeedEntry } from '../types';
 
 type Props = {
   player: Player;
@@ -10,6 +10,7 @@ type Props = {
   alivePlayers: number;
   bountyPlayerId: string | null;
   activeQuip: string | null;
+  killFeed: KillFeedEntry[];
   onShoot: () => void;
   onReload: () => void;
   onBuildToggle: () => void;
@@ -85,6 +86,7 @@ export const HUD: React.FC<Props> = ({
   alivePlayers,
   bountyPlayerId,
   activeQuip,
+  killFeed,
   onShoot,
   onReload,
   onBuildToggle,
@@ -138,6 +140,28 @@ export const HUD: React.FC<Props> = ({
           </Text>
         </View>
       </View>
+
+      {/* Kill feed — top right, below top bar */}
+      {killFeed.length > 0 && (
+        <View style={styles.killFeedContainer}>
+          {killFeed.slice(0, 5).map((entry) => (
+            <View key={entry.id} style={styles.killFeedRow}>
+              <Text style={styles.killFeedKiller} numberOfLines={1}>{entry.killerName}</Text>
+              <Text style={styles.killFeedSep}> ⚡ </Text>
+              <Text style={styles.killFeedVictim} numberOfLines={1}>{entry.victimName}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* Knocked / downed indicator */}
+      {player.status === 'knocked' && (
+        <View style={styles.knockedBanner}>
+          <Text style={styles.knockedText}>
+            KNOCKED — {Math.ceil((player.knockedTimerMs ?? 0) / 1000)}s
+          </Text>
+        </View>
+      )}
 
       {/* Character quip banner */}
       {activeQuip && (
@@ -335,6 +359,39 @@ const styles = StyleSheet.create({
   killsChipBounty: { backgroundColor: 'rgba(180,30,0,0.85)', borderWidth: 1, borderColor: '#ff4400' },
   killsText: { color: '#ffcc00', fontWeight: 'bold', fontSize: 13 },
   killsTextBounty: { color: '#ff6633' },
+
+  killFeedContainer: {
+    position: 'absolute',
+    top: 55,
+    right: 10,
+    alignItems: 'flex-end',
+  },
+  killFeedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    marginBottom: 3,
+    maxWidth: 200,
+  },
+  killFeedKiller: { color: '#ffcc44', fontSize: 11, fontWeight: 'bold', flexShrink: 1 },
+  killFeedSep:    { color: '#ff4444', fontSize: 11 },
+  killFeedVictim: { color: '#aaaaaa', fontSize: 11, flexShrink: 1 },
+
+  knockedBanner: {
+    position: 'absolute',
+    top: '40%',
+    alignSelf: 'center',
+    backgroundColor: 'rgba(180,0,0,0.85)',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#ff4444',
+  },
+  knockedText: { color: '#fff', fontWeight: 'bold', fontSize: 18, textAlign: 'center' },
 
   quipBanner: {
     alignSelf: 'center',

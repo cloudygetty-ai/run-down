@@ -66,6 +66,8 @@ function makePlayer(overrides: Partial<Player> = {}): Player {
     activeAbilityEffect: 'none' as const,
     heldCoreEffect: null,
     corruptionDps: 0,
+    gear: { helmet: null, chest: null, legs: null, gloves: null },
+    knockedTimerMs: 0,
     ...overrides,
   };
 }
@@ -94,6 +96,7 @@ function makeGameState(overrides: Partial<GameState> = {}): GameState {
     activeQuip: null,
     quipTtlMs: 0,
     incomingMeteors: [],
+    killFeed: [],
     ...overrides,
   };
 }

@@ -156,6 +156,7 @@ export type Player = {
   shield: number;
   maxShield: number;
   status: PlayerStatus;
+  knockedTimerMs: number; // countdown to auto-elimination while knocked (0 when alive/eliminated)
   weapons: [Weapon | null, Weapon | null, Weapon | null]; // 3 slots
   activeWeaponSlot: 0 | 1 | 2;
   materials: Record<BuildingMaterial, number>;
@@ -257,6 +258,7 @@ export type SupplyDrop = {
   pickupRadius: number;
   weaponType: WeaponType;
   rarity: Rarity;
+  gear: Gear | null;    // always legendary when present
 };
 
 export type BombardmentPhase = {
@@ -284,6 +286,13 @@ export type Bombardment = {
   timeUntilNextImpact: number;
   timeUntilNextPhase: number;
   activeImpacts: MeteorImpact[];
+};
+
+export type KillFeedEntry = {
+  id: string;
+  killerName: string;
+  victimName: string;
+  ttlMs: number; // ms remaining before entry disappears from HUD
 };
 
 export type GamePhase = 'lobby' | 'dropping' | 'playing' | 'game_over';
@@ -330,4 +339,6 @@ export type GameState = {
   quipTtlMs: number; // ms remaining before quip clears
   // Incoming meteors — warning phase before they land
   incomingMeteors: IncomingMeteor[];
+  // Recent eliminations shown briefly on screen
+  killFeed: KillFeedEntry[];
 };

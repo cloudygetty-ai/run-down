@@ -1,5 +1,5 @@
 import { GameState, Player, Vector2, Rarity } from '../../types';
-import { fireShot } from '../../core/gameEngine';
+import { fireShot, triggerPlayerAbility } from '../../core/gameEngine';
 import { distance, normalize, isInsideCircle, clamp, randomInRange } from '../../utils';
 import { computeAimPoint, canFire } from '../weapons';
 import {
@@ -73,13 +73,21 @@ function tickSingleBot(state: GameState, botId: string, nowMs: number, deltaMs: 
 
   // Priority 2: engage enemy if in range
   if (nearestEnemy && distance(bot.position, nearestEnemy.position) < BOT_AGGRO_RANGE) {
-    let updatedState = moveBot(state, bot, nearestEnemy.position, deltaMs);
+    // Trigger ability when engaging and it's off cooldown
+    let workState = state;
+    let workBot = bot;
+    if (bot.abilityChargeMs === 0) {
+      workState = triggerPlayerAbility(state, botId);
+      workBot = workState.players.find((p) => p.id === botId) ?? bot;
+    }
 
-    const weapon = bot.weapons[bot.activeWeaponSlot];
-    if (weapon && distance(bot.position, nearestEnemy.position) < BOT_SHOOT_RANGE) {
+    let updatedState = moveBot(workState, workBot, nearestEnemy.position, deltaMs);
+
+    const weapon = workBot.weapons[workBot.activeWeaponSlot];
+    if (weapon && distance(workBot.position, nearestEnemy.position) < BOT_SHOOT_RANGE) {
       if (canFire(weapon, brain.lastFireTimeMs, nowMs)) {
         brain.lastFireTimeMs = nowMs;
-        const aimPoint = computeAimPoint(bot.position, nearestEnemy.position, weapon);
+        const aimPoint = computeAimPoint(workBot.position, nearestEnemy.position, weapon);
         updatedState = fireShot(updatedState, botId, aimPoint);
       }
     }

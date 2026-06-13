@@ -10,13 +10,13 @@ import {
   BuildingMaterial,
   Vector2,
   HelixRelay,
-  Gear,
   GearSlot,
 } from '../../types';
 import { createInitialBombardment } from '../../core/meteor';
 import { getCharacter, DEFAULT_CHARACTER_ID } from '../../core/characters';
 import { MAP_WIDTH, MAP_HEIGHT, BOT_COUNT } from '../../core/balance';
-import { randomInRange, randomInt } from '../../utils';
+import { randomInRange, randomInt, makeGear, applyGearDelta } from '../../utils';
+import { triggerPlayerAbility } from '../../core/gameEngine';
 // WHY: resetGame must clean up both weapon timers and bot brain state
 // to prevent stale callbacks firing into a fresh game.
 import { cancelAllReloads } from '../weapons';
@@ -277,88 +277,6 @@ function makeMaterials(): Record<BuildingMaterial, number> {
   return { wood: 100, stone: 50, metal: 25 };
 }
 
-// ── Gear generation ───────────────────────────────────────────────────────────
-// Stat tables indexed [common, uncommon, rare, epic, legendary]
-const GEAR_RARITY_INDEX: Record<Rarity, number> = {
-  common: 0, uncommon: 1, rare: 2, epic: 3, legendary: 4,
-};
-
-const GEAR_NAMES: Record<GearSlot, string[]> = {
-  helmet: ['Scrap Cap', 'Field Helmet', 'Tactical Helm', 'Reinforced Helm', 'Orbital Visor'],
-  chest:  ['Scrap Vest', 'Ballistic Vest', 'Combat Plate', 'Reinforced Plate', 'Void Armor'],
-  legs:   ['Runner Wrap', 'Combat Greaves', 'Tac Kneeguards', 'Reactive Legs', 'Quantum Stride'],
-  gloves: ['Grip Wrap', 'Tactical Gloves', 'Aim Gauntlets', 'Prec. Gauntlets', 'Neural Gloves'],
-};
-
-const GEAR_HP:         Record<GearSlot, number[]> = {
-  helmet: [10, 20, 30, 45,  60], chest:  [15, 25, 40, 55,  70],
-  legs:   [10, 15, 25, 35,  50], gloves: [ 0,  0,  5, 10,  15],
-};
-const GEAR_SHIELD:     Record<GearSlot, number[]> = {
-  helmet: [ 0,  5, 10, 15,  25], chest:  [20, 30, 50, 70, 100],
-  legs:   [ 0,  0,  0, 10,  20], gloves: [ 0,  0,  0,  0,  10],
-};
-const GEAR_RESISTANCE: Record<GearSlot, number[]> = {
-  helmet: [0.03, 0.05, 0.08, 0.12, 0.18], chest:  [0.05, 0.08, 0.12, 0.18, 0.25],
-  legs:   [0.00, 0.02, 0.04, 0.07, 0.10], gloves: [0.00, 0.00, 0.02, 0.04, 0.06],
-};
-const GEAR_SPEED:      Record<GearSlot, number[]> = {
-  helmet: [0.00, 0.00, 0.01, 0.02, 0.03], chest:  [0.00, 0.00, 0.00, 0.01, 0.02],
-  legs:   [0.02, 0.04, 0.06, 0.09, 0.12], gloves: [0.00, 0.01, 0.02, 0.03, 0.05],
-};
-const GEAR_DAMAGE:     Record<GearSlot, number[]> = {
-  helmet: [0.00, 0.00, 0.02, 0.04, 0.06], chest:  [0.00, 0.00, 0.02, 0.05, 0.08],
-  legs:   [0.00, 0.00, 0.00, 0.02, 0.04], gloves: [0.05, 0.10, 0.15, 0.20, 0.25],
-};
-// Negative = faster reload (additive to reloadMult which defaults to 1.0)
-const GEAR_RELOAD:     Record<GearSlot, number[]> = {
-  helmet: [ 0.00,  0.00,  0.00, -0.03, -0.05], chest:  [ 0.00,  0.00,  0.00, -0.03, -0.06],
-  legs:   [ 0.00,  0.00,  0.00,  0.00, -0.03], gloves: [-0.05, -0.08, -0.12, -0.18, -0.25],
-};
-
-function makeGear(slot: GearSlot, rarity: Rarity): Gear {
-  const ri = GEAR_RARITY_INDEX[rarity];
-  return {
-    id: `gear_${slot}_${Math.random().toString(36).slice(2)}`,
-    slot,
-    rarity,
-    name: GEAR_NAMES[slot][ri],
-    healthBonus:     GEAR_HP[slot][ri],
-    shieldBonus:     GEAR_SHIELD[slot][ri],
-    resistanceBonus: GEAR_RESISTANCE[slot][ri],
-    speedBonus:      GEAR_SPEED[slot][ri],
-    damageBonus:     GEAR_DAMAGE[slot][ri],
-    reloadBonus:     GEAR_RELOAD[slot][ri],
-  };
-}
-
-// Apply or remove one gear piece's stat deltas from a player (sign = +1 equip, -1 unequip).
-function applyGearDelta(player: Player, gear: Gear, sign: 1 | -1): Player {
-  const hpDelta = gear.healthBonus * sign;
-  const shDelta = gear.shieldBonus * sign;
-  const newMaxHealth = player.maxHealth + hpDelta;
-  const newMaxShield = player.maxShield + shDelta;
-  // Equipping: grant the bonus HP/shield immediately. Unequipping: cap at new lower max.
-  const newHealth = sign === 1
-    ? Math.min(newMaxHealth, player.health + hpDelta)
-    : Math.max(1, Math.min(player.health, newMaxHealth));
-  const newShield = sign === 1
-    ? Math.min(newMaxShield, player.shield + shDelta)
-    : Math.max(0, Math.min(player.shield, newMaxShield));
-
-  return {
-    ...player,
-    maxHealth:        newMaxHealth,
-    health:           newHealth,
-    maxShield:        newMaxShield,
-    shield:           newShield,
-    damageResistance: Math.max(0, Math.min(0.75, player.damageResistance + gear.resistanceBonus * sign)),
-    speedMult:        Math.max(0.1, player.speedMult    + gear.speedBonus   * sign),
-    damageMult:       Math.max(0.1, player.damageMult   + gear.damageBonus  * sign),
-    reloadMult:       Math.max(0.1, Math.min(2.0, player.reloadMult + gear.reloadBonus * sign)),
-  };
-}
-
 function makePlayer(
   id: string,
   name: string,
@@ -384,6 +302,7 @@ function makePlayer(
     shield: startingShield,
     maxShield,
     status: 'alive',
+    knockedTimerMs: 0,
     weapons: [makeWeapon('pickaxe', 'common'), null, null],
     activeWeaponSlot: 0,
     materials: { wood: baseMaterials, stone: 50 + (isHuman ? p.materialsBonus : 0), metal: 25 + (isHuman ? p.materialsBonus : 0) },
@@ -397,7 +316,8 @@ function makePlayer(
     killHealAmount: p.killHealAmount,
     speedMult: p.speedMult,
     reloadMult: p.reloadMult,
-    abilityChargeMs: 0,
+    // WHY: stagger bots so they don't all use abilities simultaneously at match start
+    abilityChargeMs: isHuman ? 0 : randomInt(0, character.ability.cooldownMs),
     abilityActiveMs: 0,
     activeAbilityEffect: 'none',
     heldCoreEffect: null,
@@ -526,6 +446,8 @@ function buildInitialState(characterId = DEFAULT_CHARACTER_ID): GameState {
     quipTtlMs: 0,
     // Incoming meteor warnings
     incomingMeteors: [],
+    // Kill feed
+    killFeed: [],
   };
 }
 
@@ -564,82 +486,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }));
   },
 
+  // Delegates to the engine's pure function so bots can share the same logic.
   triggerAbility: () => {
     const { gameState } = get();
-    const humanIndex = gameState.players.findIndex((p) => p.isHuman && p.status === 'alive');
-    if (humanIndex === -1) {
-      return;
-    }
-    const human = gameState.players[humanIndex];
-    if (human.abilityChargeMs > 0) {
-      return; // still on cooldown
-    }
-
-    const character = getCharacter(human.characterId);
-    const { ability } = character;
-    let updated = { ...human, abilityChargeMs: ability.cooldownMs };
-
-    // Apply instant effects by character id
-    if (ability.durationMs === 0) {
-      switch (character.id) {
-        case 'vex': {
-          // Phase Skip: teleport forward 250 units in facing direction
-          const rad = (human.rotation * Math.PI) / 180;
-          updated = {
-            ...updated,
-            position: {
-              x: Math.max(0, Math.min(gameState.mapWidth, human.position.x + Math.cos(rad) * 250)),
-              y: Math.max(0, Math.min(gameState.mapHeight, human.position.y + Math.sin(rad) * 250)),
-            },
-          };
-          break;
-        }
-        case 'voss':
-          // Bio Surge: restore 80 HP
-          updated = { ...updated, health: Math.min(updated.maxHealth, updated.health + 80) };
-          break;
-        case 'orin':
-          // Junk Fortress: +100 each material
-          updated = {
-            ...updated,
-            materials: {
-              wood: updated.materials.wood + 100,
-              stone: updated.materials.stone + 100,
-              metal: updated.materials.metal + 100,
-            },
-          };
-          break;
-        default:
-          break;
-      }
-    } else {
-      // Timed effect: set active effect and duration
-      updated = {
-        ...updated,
-        abilityActiveMs: ability.durationMs,
-        activeAbilityEffect: ability.effectType,
-      };
-
-      // Nyra's Solar Bloom also heals instantly before the damage boost kicks in
-      if (character.id === 'nyra') {
-        updated = { ...updated, health: Math.min(updated.maxHealth, updated.health + 60) };
-      }
-      // Talon's Predator Leap also teleports forward
-      if (character.id === 'talon') {
-        const rad = (human.rotation * Math.PI) / 180;
-        updated = {
-          ...updated,
-          position: {
-            x: Math.max(0, Math.min(gameState.mapWidth, human.position.x + Math.cos(rad) * 200)),
-            y: Math.max(0, Math.min(gameState.mapHeight, human.position.y + Math.sin(rad) * 200)),
-          },
-        };
-      }
-    }
-
-    const players = [...gameState.players];
-    players[humanIndex] = updated;
-    set({ gameState: { ...gameState, players } });
+    const human = gameState.players.find((p) => p.isHuman && p.status === 'alive');
+    if (!human || human.abilityChargeMs > 0) return;
+    set({ gameState: triggerPlayerAbility(gameState, human.id) });
   },
 
   updateGameState: (next: GameState) => {
@@ -679,6 +531,20 @@ export const useGameStore = create<GameStore>((set, get) => ({
         if (oldGear) updated = applyGearDelta(updated, oldGear, -1);
         updated = applyGearDelta(updated, loot.gear, 1);
         updated = { ...updated, gear: { ...updated.gear, [slot]: loot.gear } };
+      }
+
+      // Add ammo from loot drop to active weapon
+      if (loot.ammo > 0) {
+        const slot = updated.activeWeaponSlot;
+        const activeWeapon = updated.weapons[slot];
+        if (activeWeapon && activeWeapon.type !== 'pickaxe' && isFinite(activeWeapon.magazineSize)) {
+          const weapons = [...updated.weapons] as Player['weapons'];
+          weapons[slot] = {
+            ...activeWeapon,
+            currentAmmo: Math.min(activeWeapon.magazineSize, activeWeapon.currentAmmo + loot.ammo),
+          };
+          updated = { ...updated, weapons };
+        }
       }
 
       return {

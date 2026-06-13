@@ -52,6 +52,11 @@ export const SUPPLY_DROP_PICKUP_RADIUS = 100;
 // ── Bounty system ─────────────────────────────────────────────────────────────
 export const BOUNTY_KILL_THRESHOLD = 3; // ≥ this many kills to become bounty target
 
+// ── Knocked / downed state ────────────────────────────────────────────────────
+export const KNOCKED_TIMER_MS = 4000;  // ms until a knocked player auto-eliminates
+export const KILL_FEED_TTL_MS = 5000;  // ms a kill feed entry stays visible
+export const KILL_FEED_MAX    = 5;     // max entries shown at once
+
 // ── HUD ───────────────────────────────────────────────────────────────────────
 export const QUIP_DISPLAY_MS = 3500; // ms a character quip remains on screen
 
