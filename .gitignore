@@ -26,3 +26,4 @@ coverage/
 
 # React Native
 *.orig.*
+cpp/rundown
