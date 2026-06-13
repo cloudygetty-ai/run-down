@@ -26,3 +26,10 @@ coverage/
 
 # React Native
 *.orig.*
+
+# Claude Code internal state
+.claude/
+
+# C++ build artifacts
+cpp/rundown
+cpp/src
