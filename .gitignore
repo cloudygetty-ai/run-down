@@ -26,3 +26,5 @@ coverage/
 
 # React Native
 *.orig.*
+web/node_modules
+web/dist
