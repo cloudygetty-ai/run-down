@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Player, Bombardment, SupplyDrop, IncomingMeteor } from '../types';
+import { Player, Bombardment, SupplyDrop, IncomingMeteor, MapTheme } from '../types';
 
 type Props = {
   players: Player[];
@@ -9,6 +9,7 @@ type Props = {
   incomingMeteors: IncomingMeteor[];
   mapWidth: number;
   mapHeight: number;
+  mapTheme: MapTheme;
 };
 
 const SIZE = 130; // minimap square side length in pts
@@ -20,6 +21,7 @@ export const Minimap: React.FC<Props> = ({
   incomingMeteors,
   mapWidth,
   mapHeight,
+  mapTheme,
 }) => {
   const scaleX = SIZE / mapWidth;
   const scaleY = SIZE / mapHeight;
@@ -38,7 +40,10 @@ export const Minimap: React.FC<Props> = ({
   const nextR = Math.max(2, bombardment.nextShelterRadius * scaleX);
 
   return (
-    <View style={styles.container} pointerEvents="none">
+    <View
+      style={[styles.container, { borderColor: mapTheme.accentColor + '44', backgroundColor: mapTheme.bgColor + 'aa' }]}
+      pointerEvents="none"
+    >
       {/* Next shelter zone (dashed look — just a dim ring) */}
       <View
         style={{
@@ -158,10 +163,8 @@ const styles = StyleSheet.create({
   container: {
     width: SIZE,
     height: SIZE,
-    backgroundColor: 'rgba(0, 0, 0, 0.65)',
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
     overflow: 'hidden',
   },
 });

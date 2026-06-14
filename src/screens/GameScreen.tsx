@@ -256,6 +256,7 @@ export const GameScreen: React.FC<Props> = ({ onGameOver }) => {
           incomingMeteors={gameState.incomingMeteors}
           mapWidth={gameState.mapWidth}
           mapHeight={gameState.mapHeight}
+          mapTheme={gameState.mapTheme}
         />
       </View>
 

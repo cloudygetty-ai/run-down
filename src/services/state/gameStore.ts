@@ -14,6 +14,7 @@ import {
 } from '../../types';
 import { createInitialBombardment } from '../../core/meteor';
 import { getCharacter, DEFAULT_CHARACTER_ID } from '../../core/characters';
+import { getEnvironment, DEFAULT_ENVIRONMENT_ID } from '../../core/environments';
 import { MAP_WIDTH, MAP_HEIGHT, BOT_COUNT } from '../../core/balance';
 import { randomInRange, randomInt, makeGear, applyGearDelta } from '../../utils';
 import { triggerPlayerAbility } from '../../core/gameEngine';
@@ -404,7 +405,8 @@ function buildHelixRelays(mapWidth: number, mapHeight: number): HelixRelay[] {
   }));
 }
 
-function buildInitialState(characterId = DEFAULT_CHARACTER_ID): GameState {
+function buildInitialState(characterId = DEFAULT_CHARACTER_ID, environmentId: string = DEFAULT_ENVIRONMENT_ID): GameState {
+  const env = getEnvironment(environmentId);
   const human = makePlayer('human', 'You', true, {
     x: MAP_WIDTH / 2,
     y: MAP_HEIGHT / 2,
@@ -415,15 +417,23 @@ function buildInitialState(characterId = DEFAULT_CHARACTER_ID): GameState {
       y: randomInRange(100, MAP_HEIGHT - 100),
     }),
   );
-  const allPlayers = [human, ...bots];
+
+  // Apply environment speed modifier to all players
+  const allPlayers = [human, ...bots].map((p) =>
+    env.playerSpeedMult !== 1.0
+      ? { ...p, speedMult: p.speedMult * env.playerSpeedMult }
+      : p,
+  );
+
+  const lootCount = Math.round(200 * env.lootCountMult);
 
   return {
     phase: 'lobby',
     selectedCharacterId: characterId,
     players: allPlayers,
     buildPieces: [],
-    lootDrops: scatterLoot(200),
-    bombardment: createInitialBombardment(MAP_WIDTH, MAP_HEIGHT),
+    lootDrops: scatterLoot(lootCount),
+    bombardment: createInitialBombardment(MAP_WIDTH, MAP_HEIGHT, env.meteorFrequencyMult),
     mapWidth: MAP_WIDTH,
     mapHeight: MAP_HEIGHT,
     tickCount: 0,
@@ -438,7 +448,7 @@ function buildInitialState(characterId = DEFAULT_CHARACTER_ID): GameState {
     // Mid-match objectives
     helixRelays: buildHelixRelays(MAP_WIDTH, MAP_HEIGHT),
     supplyDrops: [],
-    nextSupplyDropMs: 3 * 60 * 1000, // first drop at 3 minutes
+    nextSupplyDropMs: env.supplyDropIntervalMs,
     // Comeback mechanic
     bountyPlayerId: null,
     // Character quips
@@ -448,6 +458,10 @@ function buildInitialState(characterId = DEFAULT_CHARACTER_ID): GameState {
     incomingMeteors: [],
     // Kill feed
     killFeed: [],
+    // Environment
+    environmentId,
+    mapTheme: env.theme,
+    outsideZoneDps: env.outsideZoneDps,
   };
 }
 
@@ -461,6 +475,7 @@ type GameStore = {
   pickUpLoot: (playerId: string, lootId: string) => void;
   placeBuildPiece: (piece: BuildPiece) => void;
   selectCharacter: (characterId: string) => void;
+  selectEnvironment: (environmentId: string) => void;
   triggerAbility: () => void;
 };
 
@@ -477,13 +492,26 @@ export const useGameStore = create<GameStore>((set, get) => ({
     cancelAllReloads();
     clearBotBrains();
     const { gameState } = get();
-    set({ gameState: buildInitialState(gameState.selectedCharacterId) });
+    set({ gameState: buildInitialState(gameState.selectedCharacterId, gameState.environmentId) });
   },
 
   selectCharacter: (characterId: string) => {
     set((s) => ({
       gameState: { ...s.gameState, selectedCharacterId: characterId },
     }));
+  },
+
+  selectEnvironment: (environmentId: string) => {
+    const { gameState } = get();
+    const env = getEnvironment(environmentId);
+    set({
+      gameState: {
+        ...gameState,
+        environmentId,
+        mapTheme: env.theme,
+        outsideZoneDps: env.outsideZoneDps,
+      },
+    });
   },
 
   // Delegates to the engine's pure function so bots can share the same logic.

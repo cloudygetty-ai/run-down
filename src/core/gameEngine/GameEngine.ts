@@ -24,6 +24,7 @@ import {
   randomInt,
   makeGear,
   applyGearDelta,
+  isInsideCircle,
 } from '../../utils';
 import { logger } from '../../utils';
 import { getCharacter } from '../characters';
@@ -152,6 +153,7 @@ export function tickGame(state: GameState, humanInput: InputState, deltaMs: numb
     };
 
     next = tickAbilityTimers(next, deltaMs);
+    next = tickEnvironmentHazard(next, deltaMs);
     next = tickKnockedPlayers(next, deltaMs);
     next = tickKillFeed(next, deltaMs);
     next = tickFractureCores(next, deltaMs);
@@ -205,6 +207,25 @@ export function tickGame(state: GameState, humanInput: InputState, deltaMs: numb
     logger.error('GameEngine', 'tick error', err);
     return state;
   }
+}
+
+// Apply per-environment outside-zone DPS to alive players standing in the danger area.
+// WHY: Ashfall Crater has acid ash that burns players who linger outside the shelter.
+function tickEnvironmentHazard(state: GameState, deltaMs: number): GameState {
+  if (state.outsideZoneDps <= 0) return state;
+  const hpLoss = state.outsideZoneDps * (deltaMs / 1000);
+  let changed = false;
+  const players = state.players.map((p) => {
+    if (p.status !== 'alive') return p;
+    if (isInsideCircle(p.position, state.bombardment.shelterCenter, state.bombardment.shelterRadius)) return p;
+    const newHealth = Math.max(0, p.health - hpLoss);
+    changed = true;
+    if (newHealth <= 0) {
+      return { ...p, health: 0, status: 'knocked' as const, knockedTimerMs: KNOCKED_TIMER_MS };
+    }
+    return { ...p, health: newHealth };
+  });
+  return changed ? { ...state, players } : state;
 }
 
 // Auto-eliminate knocked players whose bleed-out timer expires.

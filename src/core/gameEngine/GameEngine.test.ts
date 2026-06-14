@@ -97,6 +97,9 @@ function makeGameState(overrides: Partial<GameState> = {}): GameState {
     quipTtlMs: 0,
     incomingMeteors: [],
     killFeed: [],
+    environmentId: 'fractured_metropolis',
+    mapTheme: { bgColor: '#12121e', groundColor: '#1e1e30', accentColor: '#7788ff' },
+    outsideZoneDps: 0,
     ...overrides,
   };
 }

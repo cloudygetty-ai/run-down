@@ -54,6 +54,8 @@ function makePlayer(overrides: Partial<Player> = {}): Player {
     activeAbilityEffect: 'none' as const,
     heldCoreEffect: null,
     corruptionDps: 0,
+    knockedTimerMs: 0,
+    gear: { helmet: null, chest: null, legs: null, gloves: null },
     ...overrides,
   };
 }

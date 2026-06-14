@@ -286,6 +286,7 @@ export type Bombardment = {
   timeUntilNextImpact: number;
   timeUntilNextPhase: number;
   activeImpacts: MeteorImpact[];
+  meteorFrequencyMult: number; // env multiplier — divides base impactInterval each phase
 };
 
 export type KillFeedEntry = {
@@ -293,6 +294,12 @@ export type KillFeedEntry = {
   killerName: string;
   victimName: string;
   ttlMs: number; // ms remaining before entry disappears from HUD
+};
+
+export type MapTheme = {
+  bgColor: string;      // map container background (sky / deep ground)
+  groundColor: string;  // main ground fill
+  accentColor: string;  // zone rings, minimap border tint
 };
 
 export type GamePhase = 'lobby' | 'dropping' | 'playing' | 'game_over';
@@ -341,4 +348,8 @@ export type GameState = {
   incomingMeteors: IncomingMeteor[];
   // Recent eliminations shown briefly on screen
   killFeed: KillFeedEntry[];
+  // Active environment
+  environmentId: string;
+  mapTheme: MapTheme;
+  outsideZoneDps: number; // extra HP/s drained from players outside the shelter zone
 };

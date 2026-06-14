@@ -45,6 +45,8 @@ function makePlayer(x: number, y: number): Player {
     activeAbilityEffect: 'none' as const,
     heldCoreEffect: null,
     corruptionDps: 0,
+    knockedTimerMs: 0,
+    gear: { helmet: null, chest: null, legs: null, gloves: null },
   };
 }
 

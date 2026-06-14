@@ -11,11 +11,14 @@ import {
 import { useGameStore } from '../services/state';
 import { clearBotBrains } from '../services/ai';
 import { CHARACTERS } from '../core/characters';
+import { ENVIRONMENTS } from '../core/environments';
 
 export const LobbyScreen: React.FC = () => {
-  const { gameState, startGame, selectCharacter } = useGameStore();
+  const { gameState, startGame, selectCharacter, selectEnvironment } = useGameStore();
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [tab, setTab] = useState<'operative' | 'environment'>('operative');
   const selectedId = gameState.selectedCharacterId;
+  const selectedEnvId = gameState.environmentId;
   const detailChar = CHARACTERS.find((c) => c.id === detailId) ?? null;
 
   const handleStart = () => {
@@ -30,94 +33,186 @@ export const LobbyScreen: React.FC = () => {
         <Text style={styles.subtitle}>Choose your operative — then drop in.</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.grid} showsVerticalScrollIndicator={false}>
-        {CHARACTERS.map((c) => {
-          const active = c.id === selectedId;
-          return (
-            <TouchableOpacity
-              key={c.id}
-              style={[
-                styles.card,
-                active && {
-                  borderColor: c.accentColor,
-                  backgroundColor: c.accentColor + '14',
-                },
-              ]}
-              onPress={() => selectCharacter(c.id)}
-              onLongPress={() => setDetailId(c.id)}
-              activeOpacity={0.75}
-            >
-              <View style={[styles.portrait, { backgroundColor: c.accentColor + '1a' }]}>
-                {c.portraitSource !== null ? (
-                  <Image
-                    source={
-                      typeof c.portraitSource === 'string'
-                        ? { uri: c.portraitSource }
-                        : c.portraitSource
-                    }
-                    style={styles.portraitImage}
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <Text style={[styles.portraitInitial, { color: c.accentColor + 'aa' }]}>
-                    {c.title.replace('The ', '').charAt(0)}
-                  </Text>
-                )}
-              </View>
+      {/* Tab bar */}
+      <View style={styles.tabBar}>
+        <TouchableOpacity
+          style={[styles.tab, tab === 'operative' && styles.tabActive]}
+          onPress={() => setTab('operative')}
+        >
+          <Text style={[styles.tabText, tab === 'operative' && styles.tabTextActive]}>
+            OPERATIVE
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, tab === 'environment' && styles.tabActive]}
+          onPress={() => setTab('environment')}
+        >
+          <Text style={[styles.tabText, tab === 'environment' && styles.tabTextActive]}>
+            ENVIRONMENT
+          </Text>
+        </TouchableOpacity>
+      </View>
 
-              <Text
-                style={[styles.cardName, { color: active ? c.accentColor : '#bbb' }]}
-                numberOfLines={1}
-              >
-                {c.name}
-              </Text>
-              <Text style={styles.cardTitle}>{c.title}</Text>
-
-              <View style={[styles.abilityTag, { backgroundColor: c.accentColor + '28' }]}>
-                <Text
-                  style={[styles.abilityTagText, { color: c.accentColor }]}
-                  numberOfLines={1}
+      {/* — OPERATIVE TAB — */}
+      {tab === 'operative' && (
+        <>
+          <ScrollView contentContainerStyle={styles.grid} showsVerticalScrollIndicator={false}>
+            {CHARACTERS.map((c) => {
+              const active = c.id === selectedId;
+              return (
+                <TouchableOpacity
+                  key={c.id}
+                  style={[
+                    styles.card,
+                    active && {
+                      borderColor: c.accentColor,
+                      backgroundColor: c.accentColor + '14',
+                    },
+                  ]}
+                  onPress={() => selectCharacter(c.id)}
+                  onLongPress={() => setDetailId(c.id)}
+                  activeOpacity={0.75}
                 >
-                  {c.ability.name}
+                  <View style={[styles.portrait, { backgroundColor: c.accentColor + '1a' }]}>
+                    {c.portraitSource !== null ? (
+                      <Image
+                        source={
+                          typeof c.portraitSource === 'string'
+                            ? { uri: c.portraitSource }
+                            : c.portraitSource
+                        }
+                        style={styles.portraitImage}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <Text style={[styles.portraitInitial, { color: c.accentColor + 'aa' }]}>
+                        {c.title.replace('The ', '').charAt(0)}
+                      </Text>
+                    )}
+                  </View>
+
+                  <Text
+                    style={[styles.cardName, { color: active ? c.accentColor : '#bbb' }]}
+                    numberOfLines={1}
+                  >
+                    {c.name}
+                  </Text>
+                  <Text style={styles.cardTitle}>{c.title}</Text>
+
+                  <View style={[styles.abilityTag, { backgroundColor: c.accentColor + '28' }]}>
+                    <Text
+                      style={[styles.abilityTagText, { color: c.accentColor }]}
+                      numberOfLines={1}
+                    >
+                      {c.ability.name}
+                    </Text>
+                  </View>
+
+                  <Text style={styles.passiveSnip} numberOfLines={2}>
+                    {c.passive.description}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+
+          {/* Selected character summary bar */}
+          {(() => {
+            const sel = CHARACTERS.find((c) => c.id === selectedId);
+            if (!sel) return null;
+            return (
+              <View
+                style={[
+                  styles.summary,
+                  {
+                    backgroundColor: sel.accentColor + '0e',
+                    borderColor: sel.accentColor + '30',
+                  },
+                ]}
+              >
+                <Text style={[styles.sumName, { color: sel.accentColor }]}>{sel.name}</Text>
+                <Text style={[styles.sumAbility, { color: sel.accentColor + 'bb' }]}>
+                  {sel.ability.name} —{' '}
+                  {(sel.ability.cooldownMs / 1000).toFixed(0)}s cd
+                  {sel.ability.durationMs > 0
+                    ? ` · ${(sel.ability.durationMs / 1000).toFixed(0)}s`
+                    : ' · instant'}
+                </Text>
+                <Text style={styles.sumPassive} numberOfLines={1}>
+                  {sel.passive.description}
                 </Text>
               </View>
+            );
+          })()}
+        </>
+      )}
 
-              <Text style={styles.passiveSnip} numberOfLines={2}>
-                {c.passive.description}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
+      {/* — ENVIRONMENT TAB — */}
+      {tab === 'environment' && (
+        <ScrollView contentContainerStyle={styles.envList} showsVerticalScrollIndicator={false}>
+          {ENVIRONMENTS.map((env) => {
+            const active = env.id === selectedEnvId;
+            return (
+              <TouchableOpacity
+                key={env.id}
+                style={[
+                  styles.envCard,
+                  active && { borderColor: env.theme.accentColor, backgroundColor: env.theme.accentColor + '10' },
+                ]}
+                onPress={() => selectEnvironment(env.id)}
+                activeOpacity={0.75}
+              >
+                {/* Color swatch */}
+                <View
+                  style={[
+                    styles.envSwatch,
+                    { backgroundColor: env.theme.bgColor, borderColor: env.theme.accentColor + '66' },
+                  ]}
+                >
+                  <View style={[styles.envSwatchGround, { backgroundColor: env.theme.groundColor }]} />
+                </View>
 
-      {/* Selected character summary bar */}
-      {(() => {
-        const sel = CHARACTERS.find((c) => c.id === selectedId);
-        if (!sel) return null;
-        return (
-          <View
-            style={[
-              styles.summary,
-              {
-                backgroundColor: sel.accentColor + '0e',
-                borderColor: sel.accentColor + '30',
-              },
-            ]}
-          >
-            <Text style={[styles.sumName, { color: sel.accentColor }]}>{sel.name}</Text>
-            <Text style={[styles.sumAbility, { color: sel.accentColor + 'bb' }]}>
-              {sel.ability.name} —{' '}
-              {(sel.ability.cooldownMs / 1000).toFixed(0)}s cd
-              {sel.ability.durationMs > 0
-                ? ` · ${(sel.ability.durationMs / 1000).toFixed(0)}s`
-                : ' · instant'}
-            </Text>
-            <Text style={styles.sumPassive} numberOfLines={1}>
-              {sel.passive.description}
-            </Text>
-          </View>
-        );
-      })()}
+                <View style={styles.envInfo}>
+                  <Text
+                    style={[styles.envName, { color: active ? env.theme.accentColor : '#ccc' }]}
+                  >
+                    {env.name}
+                  </Text>
+                  <Text style={styles.envTagline} numberOfLines={2}>{env.tagline}</Text>
+
+                  <View style={styles.envMods}>
+                    {env.playerSpeedMult !== 1 && (
+                      <Text style={[styles.envMod, { color: env.theme.accentColor }]}>
+                        {env.playerSpeedMult > 1 ? '+' : ''}{Math.round((env.playerSpeedMult - 1) * 100)}% speed
+                      </Text>
+                    )}
+                    {env.meteorFrequencyMult !== 1 && (
+                      <Text style={[styles.envMod, { color: '#ff7733' }]}>
+                        {env.meteorFrequencyMult > 1 ? '+' : ''}{Math.round((env.meteorFrequencyMult - 1) * 100)}% meteors
+                      </Text>
+                    )}
+                    {env.outsideZoneDps > 0 && (
+                      <Text style={[styles.envMod, { color: '#ff4444' }]}>
+                        {env.outsideZoneDps} DPS outside zone
+                      </Text>
+                    )}
+                    {env.lootCountMult !== 1 && (
+                      <Text style={[styles.envMod, { color: '#ffcc44' }]}>
+                        {env.lootCountMult > 1 ? '+' : ''}{Math.round((env.lootCountMult - 1) * 100)}% loot
+                      </Text>
+                    )}
+                    {env.supplyDropIntervalMs !== 180_000 && (
+                      <Text style={[styles.envMod, { color: '#44ccff' }]}>
+                        Supply drops every {Math.round(env.supplyDropIntervalMs / 60_000)}m
+                      </Text>
+                    )}
+                  </View>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      )}
 
       <TouchableOpacity style={styles.playBtn} onPress={handleStart}>
         <Text style={styles.playBtnText}>DEPLOY</Text>
@@ -246,6 +341,92 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   playBtnText: { fontSize: 17, fontWeight: 'bold', color: '#000', letterSpacing: 3 },
+
+  // Tab bar
+  tabBar: {
+    flexDirection: 'row',
+    marginHorizontal: 14,
+    marginBottom: 10,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.07)',
+    overflow: 'hidden',
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
+  tabActive: {
+    backgroundColor: 'rgba(255,204,0,0.12)',
+  },
+  tabText: {
+    fontSize: 10,
+    letterSpacing: 2,
+    fontWeight: 'bold',
+    color: '#444',
+  },
+  tabTextActive: {
+    color: '#ffcc00',
+  },
+
+  // Environment cards
+  envList: {
+    paddingHorizontal: 14,
+    gap: 10,
+    paddingBottom: 10,
+  },
+  envCard: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.07)',
+    padding: 10,
+    alignItems: 'center',
+    gap: 12,
+  },
+  envSwatch: {
+    width: 56,
+    height: 56,
+    borderRadius: 8,
+    borderWidth: 1,
+    overflow: 'hidden',
+    justifyContent: 'flex-end',
+  },
+  envSwatchGround: {
+    height: '40%',
+    width: '100%',
+  },
+  envInfo: {
+    flex: 1,
+  },
+  envName: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    marginBottom: 3,
+  },
+  envTagline: {
+    fontSize: 10,
+    color: '#555',
+    lineHeight: 14,
+    marginBottom: 6,
+  },
+  envMods: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+  },
+  envMod: {
+    fontSize: 9,
+    fontWeight: 'bold',
+    letterSpacing: 0.5,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 3,
+  },
 
   overlay: {
     flex: 1,

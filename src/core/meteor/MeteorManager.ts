@@ -19,10 +19,15 @@ const BOMBARDMENT_PHASES: BombardmentPhase[] = [
   { phase: 6, shelterCenter: { x: 0, y: 0 }, shelterRadius: 10,   impactDamage: 100, impactInterval: 1_000, shrinkDuration: 10_000, waitDuration: 0       },
 ];
 
-export function createInitialBombardment(mapWidth: number, mapHeight: number): Bombardment {
+export function createInitialBombardment(
+  mapWidth: number,
+  mapHeight: number,
+  meteorFrequencyMult = 1,
+): Bombardment {
   const center: Vector2 = { x: mapWidth / 2, y: mapHeight / 2 };
   const first = BOMBARDMENT_PHASES[0];
   const next = pickNextShelterZone(center, first.shelterRadius, mapWidth, mapHeight);
+  const interval = Math.round(first.impactInterval / meteorFrequencyMult);
 
   return {
     currentPhase: 0,
@@ -33,10 +38,11 @@ export function createInitialBombardment(mapWidth: number, mapHeight: number): B
     isShrinking: false,
     shrinkProgress: 0,
     impactDamage: first.impactDamage,
-    impactInterval: first.impactInterval,
-    timeUntilNextImpact: first.impactInterval,
+    impactInterval: interval,
+    timeUntilNextImpact: interval,
     timeUntilNextPhase: first.waitDuration,
     activeImpacts: [],
+    meteorFrequencyMult,
   };
 }
 
@@ -146,7 +152,7 @@ export function tickBombardment(
 
       const nextData = BOMBARDMENT_PHASES[Math.min(b.currentPhase, BOMBARDMENT_PHASES.length - 1)];
       b.impactDamage = nextData.impactDamage;
-      b.impactInterval = nextData.impactInterval;
+      b.impactInterval = Math.round(nextData.impactInterval / b.meteorFrequencyMult);
       b.timeUntilNextPhase = nextData.waitDuration;
 
       const next = pickNextShelterZone(b.shelterCenter, b.shelterRadius, mapWidth, mapHeight);

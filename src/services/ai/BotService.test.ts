@@ -55,6 +55,8 @@ function makePlayer(overrides: Partial<Player> = {}): Player {
     activeAbilityEffect: 'none' as const,
     heldCoreEffect: null,
     corruptionDps: 0,
+    knockedTimerMs: 0,
+    gear: { helmet: null, chest: null, legs: null, gloves: null },
     ...overrides,
   };
 }
@@ -83,6 +85,10 @@ function makeState(overrides: Partial<GameState> = {}): GameState {
     activeQuip: null,
     quipTtlMs: 0,
     incomingMeteors: [],
+    killFeed: [],
+    environmentId: 'fractured_metropolis',
+    mapTheme: { bgColor: '#12121e', groundColor: '#1e1e30', accentColor: '#7788ff' },
+    outsideZoneDps: 0,
     ...overrides,
   };
 }
@@ -92,6 +98,7 @@ function makeLoot(id: string, x: number, y: number): LootDrop {
     id,
     position: { x, y },
     weapon: makeWeapon({ id: `loot_w_${id}` }),
+    gear: null,
     ammo: 30,
     materials: { wood: 20, stone: 10, metal: 5 },
     shield: 50,

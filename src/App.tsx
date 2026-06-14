@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { SafeAreaView, StatusBar, StyleSheet } from 'react-native';
 import { LobbyScreen } from './screens/LobbyScreen';
 import { GameScreen } from './screens/GameScreen';
 import { GameOverScreen } from './screens/GameOverScreen';
+import { StoryScreen } from './screens/StoryScreen';
 import { useGameStore } from './services/state';
 
 const App: React.FC = () => {
@@ -11,10 +12,16 @@ const App: React.FC = () => {
   // local screen state drifts from the actual game phase.
   const phase = gameState.phase;
 
+  // WHY: story state lives here, not in GameState, so resetGame never re-shows the intro.
+  const [storySeen, setStorySeen] = useState(false);
+
+  const showStory = phase === 'lobby' && !storySeen;
+
   return (
     <SafeAreaView style={styles.root}>
       <StatusBar hidden />
-      {phase === 'lobby' && <LobbyScreen />}
+      {showStory && <StoryScreen onComplete={() => setStorySeen(true)} />}
+      {!showStory && phase === 'lobby' && <LobbyScreen />}
       {(phase === 'playing' || phase === 'dropping') && <GameScreen onGameOver={() => {}} />}
       {phase === 'game_over' && gameState.result && <GameOverScreen result={gameState.result} />}
     </SafeAreaView>

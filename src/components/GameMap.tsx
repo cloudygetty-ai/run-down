@@ -49,10 +49,12 @@ export const GameMap: React.FC<Props> = ({ state, viewportX, viewportY, viewport
     [state.buildPieces, viewportX, viewportY, viewportW, viewportH],
   );
 
+  const { bgColor, groundColor } = state.mapTheme;
+
   return (
-    <View style={[styles.container, { width: viewportW, height: viewportH }]}>
+    <View style={[styles.container, { width: viewportW, height: viewportH, backgroundColor: bgColor }]}>
       {/* Ground fill */}
-      <View style={styles.ground} />
+      <View style={[styles.ground, { backgroundColor: groundColor }]} />
 
       {/* Meteor bombardment zone */}
       <MeteorZoneOverlay
@@ -91,10 +93,8 @@ const styles = StyleSheet.create({
   container: {
     overflow: 'hidden',
     position: 'relative',
-    backgroundColor: '#2d5a27',
   },
   ground: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#3a7a30',
   },
 });
