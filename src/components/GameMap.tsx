@@ -83,6 +83,54 @@ export const GameMap: React.FC<Props> = ({ state, viewportX, viewportY, viewport
         viewportH={viewportH}
       />
 
+      {/* Gravity zones — purple pull-fields left by gravity meteors */}
+      {state.gravityZones.map((z) => {
+        const zx = z.position.x - viewportX;
+        const zy = z.position.y - viewportY;
+        const opacity = Math.max(0, 0.7 * (1 - z.age / z.maxAge));
+        return (
+          <View
+            key={z.id}
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              left: zx - z.radius,
+              top: zy - z.radius,
+              width: z.radius * 2,
+              height: z.radius * 2,
+              borderRadius: z.radius,
+              borderWidth: 2,
+              borderColor: `rgba(160,60,255,${opacity})`,
+              backgroundColor: `rgba(80,0,180,${opacity * 0.18})`,
+            }}
+          />
+        );
+      })}
+
+      {/* Time echo zones — cyan reality-distortion fields */}
+      {state.timeEchoZones.map((z) => {
+        const zx = z.position.x - viewportX;
+        const zy = z.position.y - viewportY;
+        const opacity = Math.max(0, 0.6 * (1 - z.age / z.maxAge));
+        return (
+          <View
+            key={z.id}
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              left: zx - z.radius,
+              top: zy - z.radius,
+              width: z.radius * 2,
+              height: z.radius * 2,
+              borderRadius: z.radius,
+              borderWidth: 2,
+              borderColor: `rgba(60,200,255,${opacity})`,
+              backgroundColor: `rgba(0,100,200,${opacity * 0.15})`,
+            }}
+          />
+        );
+      })}
+
       {/* Meteor bombardment zone */}
       <MeteorZoneOverlay
         bombardment={state.bombardment}
