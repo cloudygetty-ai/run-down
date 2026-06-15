@@ -1,13 +1,5 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  Modal,
-  Image,
-} from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Modal, Image } from 'react-native';
 import { useGameStore } from '../services/state';
 import { clearBotBrains } from '../services/ai';
 import { CHARACTERS } from '../core/characters';
@@ -74,10 +66,7 @@ export const LobbyScreen: React.FC = () => {
               <Text style={styles.cardTitle}>{c.title}</Text>
 
               <View style={[styles.abilityTag, { backgroundColor: c.accentColor + '28' }]}>
-                <Text
-                  style={[styles.abilityTagText, { color: c.accentColor }]}
-                  numberOfLines={1}
-                >
+                <Text style={[styles.abilityTagText, { color: c.accentColor }]} numberOfLines={1}>
                   {c.ability.name}
                 </Text>
               </View>
@@ -93,7 +82,9 @@ export const LobbyScreen: React.FC = () => {
       {/* Selected character summary bar */}
       {(() => {
         const sel = CHARACTERS.find((c) => c.id === selectedId);
-        if (!sel) return null;
+        if (!sel) {
+          return null;
+        }
         return (
           <View
             style={[
@@ -106,8 +97,7 @@ export const LobbyScreen: React.FC = () => {
           >
             <Text style={[styles.sumName, { color: sel.accentColor }]}>{sel.name}</Text>
             <Text style={[styles.sumAbility, { color: sel.accentColor + 'bb' }]}>
-              {sel.ability.name} —{' '}
-              {(sel.ability.cooldownMs / 1000).toFixed(0)}s cd
+              {sel.ability.name} — {(sel.ability.cooldownMs / 1000).toFixed(0)}s cd
               {sel.ability.durationMs > 0
                 ? ` · ${(sel.ability.durationMs / 1000).toFixed(0)}s`
                 : ' · instant'}
@@ -131,9 +121,7 @@ export const LobbyScreen: React.FC = () => {
           onPress={() => setDetailId(null)}
         >
           {detailChar && (
-            <View
-              style={[styles.modal, { borderColor: detailChar.accentColor + '44' }]}
-            >
+            <View style={[styles.modal, { borderColor: detailChar.accentColor + '44' }]}>
               {detailChar.portraitSource !== null && (
                 <Image
                   source={

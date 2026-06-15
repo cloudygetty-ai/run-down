@@ -141,8 +141,12 @@ function tickImpacts(impacts: MeteorImpact[], deltaMs: number): MeteorImpact[] {
 // WHY: 5% echo, 15% gravity, 80% explosive — chaos is calibrated, not random.
 function pickMeteorType(): MeteorType {
   const roll = Math.random();
-  if (roll < 0.05) return 'echo';
-  if (roll < 0.20) return 'gravity';
+  if (roll < 0.05) {
+    return 'echo';
+  }
+  if (roll < 0.2) {
+    return 'gravity';
+  }
   return 'explosive';
 }
 
