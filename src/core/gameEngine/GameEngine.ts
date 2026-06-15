@@ -854,6 +854,31 @@ export function fireShot(state: GameState, shooterId: string, targetPos: Vector2
         ];
       });
 
+      // Drop equipped gear so human can loot it
+      let gearOffset = 0;
+      (Object.entries(target.gear) as [GearSlot, typeof target.gear[GearSlot]][]).forEach(
+        ([, piece]) => {
+          if (!piece) return;
+          lootDrops = [
+            ...lootDrops,
+            {
+              id: `kill_gear_${target.id}_${piece.id}_${state.tickCount}`,
+              position: {
+                x: target.position.x + (gearOffset - 1) * 16,
+                y: target.position.y + 18,
+              },
+              weapon: null,
+              gear: piece,
+              ammo: 0,
+              materials: { wood: 0, stone: 0, metal: 0 },
+              shield: 0,
+              health: 0,
+            },
+          ];
+          gearOffset++;
+        },
+      );
+
       if (target.id === state.bountyPlayerId) {
         lootDrops = [
           ...lootDrops,

@@ -268,6 +268,7 @@ export const GameScreen: React.FC<Props> = ({ onGameOver }) => {
           bombardment={gameState.bombardment}
           supplyDrops={gameState.supplyDrops}
           incomingMeteors={gameState.incomingMeteors}
+          helixRelays={gameState.helixRelays}
           mapWidth={gameState.mapWidth}
           mapHeight={gameState.mapHeight}
           mapTheme={gameState.mapTheme}

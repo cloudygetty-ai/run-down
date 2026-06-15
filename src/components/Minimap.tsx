@@ -1,12 +1,13 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Player, Bombardment, SupplyDrop, IncomingMeteor, MapTheme } from '../types';
+import { Player, Bombardment, SupplyDrop, IncomingMeteor, MapTheme, HelixRelay } from '../types';
 
 type Props = {
   players: Player[];
   bombardment: Bombardment;
   supplyDrops: SupplyDrop[];
   incomingMeteors: IncomingMeteor[];
+  helixRelays: HelixRelay[];
   mapWidth: number;
   mapHeight: number;
   mapTheme: MapTheme;
@@ -19,6 +20,7 @@ export const Minimap: React.FC<Props> = ({
   bombardment,
   supplyDrops,
   incomingMeteors,
+  helixRelays,
   mapWidth,
   mapHeight,
   mapTheme,
@@ -86,6 +88,34 @@ export const Minimap: React.FC<Props> = ({
               height: 4,
               borderRadius: 2,
               backgroundColor: 'rgba(255, 60, 0, 0.9)',
+            }}
+          />
+        );
+      })}
+
+      {/* Helix Relays — diamond shapes, filled when captured */}
+      {helixRelays.map((relay) => {
+        const { x, y } = toMini(relay.position.x, relay.position.y);
+        const captured = relay.captureProgress >= 1;
+        const partial  = relay.captureProgress > 0 && relay.captureProgress < 1;
+        return (
+          <View
+            key={relay.id}
+            style={{
+              position: 'absolute',
+              left: x - 4,
+              top: y - 4,
+              width: 8,
+              height: 8,
+              borderRadius: 1,
+              transform: [{ rotate: '45deg' }],
+              backgroundColor: captured
+                ? 'rgba(200,255,100,0.9)'
+                : partial
+                ? 'rgba(100,200,80,0.7)'
+                : 'rgba(0,0,0,0)',
+              borderWidth: 1,
+              borderColor: captured ? 'rgba(200,255,100,0.9)' : 'rgba(100,200,80,0.5)',
             }}
           />
         );
