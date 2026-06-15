@@ -13,7 +13,7 @@ import {
   GearSlot,
 } from '../../types';
 import { createInitialBombardment } from '../../core/meteor';
-import { getCharacter, DEFAULT_CHARACTER_ID } from '../../core/characters';
+import { getCharacter, DEFAULT_CHARACTER_ID, CHARACTERS } from '../../core/characters';
 import { getEnvironment, DEFAULT_ENVIRONMENT_ID } from '../../core/environments';
 import { MAP_WIDTH, MAP_HEIGHT, BOT_COUNT } from '../../core/balance';
 import { randomInRange, randomInt, makeGear, applyGearDelta } from '../../utils';
@@ -424,13 +424,21 @@ function buildInitialState(characterId = DEFAULT_CHARACTER_ID, environmentId: st
     x: MAP_WIDTH / 2,
     y: MAP_HEIGHT / 2,
   }, characterId);
-  // Shuffle names so each match has a different crew
+  // Shuffle names and character IDs so each match has a varied field
   const shuffledNames = [...BOT_NAMES].sort(() => Math.random() - 0.5);
+  const charIds = CHARACTERS.map((c) => c.id).filter((id) => id !== characterId);
+  const shuffledChars = [...charIds].sort(() => Math.random() - 0.5);
   const bots: Player[] = Array.from({ length: BOT_COUNT }, (_, i) =>
-    makePlayer(`bot_${i}`, shuffledNames[i % shuffledNames.length], false, {
-      x: randomInRange(100, MAP_WIDTH - 100),
-      y: randomInRange(100, MAP_HEIGHT - 100),
-    }),
+    makePlayer(
+      `bot_${i}`,
+      shuffledNames[i % shuffledNames.length],
+      false,
+      {
+        x: randomInRange(100, MAP_WIDTH - 100),
+        y: randomInRange(100, MAP_HEIGHT - 100),
+      },
+      shuffledChars[i % shuffledChars.length],
+    ),
   );
 
   // Apply environment speed modifier to all players

@@ -10,6 +10,7 @@ import {
   KillFeedEntry,
   GravityZone,
   TimeEchoZone,
+  HelixRelay,
 } from '../types';
 import { distance } from '../utils';
 
@@ -24,6 +25,7 @@ type Props = {
   killFeed: KillFeedEntry[];
   gravityZones: GravityZone[];
   timeEchoZones: TimeEchoZone[];
+  helixRelays: HelixRelay[];
   startTime: number;
   onShoot: () => void;
   onReload: () => void;
@@ -104,6 +106,7 @@ export const HUD: React.FC<Props> = ({
   killFeed,
   gravityZones,
   timeEchoZones,
+  helixRelays,
   startTime,
   onShoot,
   onReload,
@@ -136,6 +139,11 @@ export const HUD: React.FC<Props> = ({
   const inGravityZone = gravityZones.some((z) => distance(player.position, z.position) <= z.radius);
   const inEchoZone = timeEchoZones.some((z) => distance(player.position, z.position) <= z.radius);
   const zoneAlert = inGravityZone ? 'GRAVITY ZONE' : inEchoZone ? 'ECHO ZONE' : null;
+
+  // Helix Relay: detect nearest relay within capture range
+  const nearbyRelay = helixRelays.find(
+    (r) => distance(player.position, r.position) <= r.captureRadius,
+  ) ?? null;
 
   // Build material label
   const MAT_COLORS: Record<string, string> = { wood: '#cc8800', stone: '#8899aa', metal: '#aabbcc' };
@@ -182,6 +190,25 @@ export const HUD: React.FC<Props> = ({
       {zoneAlert && (
         <View style={[styles.zoneAlert, inGravityZone ? styles.zoneAlertGravity : styles.zoneAlertEcho]}>
           <Text style={styles.zoneAlertText}>{zoneAlert}</Text>
+        </View>
+      )}
+
+      {/* Helix Relay capture indicator */}
+      {nearbyRelay && (
+        <View style={styles.relayCapture} pointerEvents="none">
+          <Text style={[styles.relayCaptureLabel, nearbyRelay.captureProgress >= 1 && styles.relaySecuredLabel]}>
+            {nearbyRelay.captureProgress >= 1 ? '⊕ RELAY SECURED' : '⊕ CAPTURING RELAY'}
+          </Text>
+          {nearbyRelay.captureProgress < 1 && (
+            <View style={styles.relayCaptureBar}>
+              <View
+                style={[
+                  styles.relayCaptureBarFill,
+                  { width: `${Math.round(nearbyRelay.captureProgress * 100)}%` },
+                ]}
+              />
+            </View>
+          )}
         </View>
       )}
 
@@ -399,6 +426,40 @@ const styles = StyleSheet.create({
   zoneAlertGravity: { backgroundColor: 'rgba(80,0,180,0.75)', borderColor: 'rgba(150,50,255,0.8)' },
   zoneAlertEcho:    { backgroundColor: 'rgba(0,100,180,0.75)', borderColor: 'rgba(50,180,255,0.8)' },
   zoneAlertText: { color: '#fff', fontSize: 11, fontWeight: 'bold', letterSpacing: 1 },
+
+  relayCapture: {
+    position: 'absolute',
+    top: 90,
+    alignSelf: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(180,100,255,0.6)',
+    minWidth: 180,
+  },
+  relayCaptureLabel: {
+    color: '#cc88ff',
+    fontSize: 12,
+    fontWeight: 'bold',
+    letterSpacing: 2,
+    marginBottom: 5,
+  },
+  relaySecuredLabel: { color: '#aaffaa' },
+  relayCaptureBar: {
+    width: 150,
+    height: 6,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  relayCaptureBarFill: {
+    height: '100%',
+    backgroundColor: '#bb44ff',
+    borderRadius: 3,
+  },
 
   buildGroup: {
     alignItems: 'center',

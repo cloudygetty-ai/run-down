@@ -293,6 +293,7 @@ export const GameScreen: React.FC<Props> = ({ onGameOver }) => {
         killFeed={gameState.killFeed}
         gravityZones={gameState.gravityZones}
         timeEchoZones={gameState.timeEchoZones}
+        helixRelays={gameState.helixRelays}
         startTime={gameState.startTime}
         onShoot={human.isBuilding ? handlePlaceBuild : handleShoot}
         onReload={handleReload}
