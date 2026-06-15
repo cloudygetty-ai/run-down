@@ -9,6 +9,8 @@ import {
   BOT_LOOT_RANGE,
   BOT_RELAY_SEEK_RANGE,
   BOT_SUPPLY_SEEK_RANGE,
+  BOT_CORE_SEEK_RANGE,
+  BOT_STRAFE_SPEED,
   TICK_RATE_MS,
 } from '../../core/balance';
 
@@ -22,6 +24,8 @@ type BotBrain = {
   wanderTarget: Vector2 | null;
   wanderTimer: number; // ms until picking a new wander target
   reloadEndMs: number; // timestamp when active weapon reload completes (0 = not reloading)
+  strafeDir: 1 | -1;   // current strafe direction during combat (flips periodically)
+  strafeSwitchMs: number; // timestamp to flip strafe direction
 };
 
 const botBrains = new Map<string, BotBrain>();
@@ -33,6 +37,8 @@ function getBrain(botId: string): BotBrain {
       wanderTarget: null,
       wanderTimer: 0,
       reloadEndMs: 0,
+      strafeDir: 1,
+      strafeSwitchMs: 0,
     });
   }
   return botBrains.get(botId)!;
@@ -119,7 +125,18 @@ function tickSingleBot(state: GameState, botId: string, nowMs: number, deltaMs: 
       workBot = workState.players.find((p) => p.id === botId) ?? workBot;
     }
 
-    let updatedState = moveBot(workState, workBot, nearestEnemy.position, deltaMs);
+    // Strafe perpendicular to the enemy while in shoot range
+    let updatedState = workState;
+    if (dist < BOT_SHOOT_RANGE) {
+      // Flip strafe direction every 1-2 seconds
+      if (nowMs >= brain.strafeSwitchMs) {
+        brain.strafeDir = brain.strafeDir === 1 ? -1 : 1;
+        brain.strafeSwitchMs = nowMs + randomInRange(1000, 2000);
+      }
+      updatedState = moveBotStrafe(workState, workBot, nearestEnemy.position, brain.strafeDir, deltaMs);
+    } else {
+      updatedState = moveBot(workState, workBot, nearestEnemy.position, deltaMs);
+    }
 
     const weapon = workBot.weapons[workBot.activeWeaponSlot];
     if (weapon && dist < BOT_SHOOT_RANGE) {
@@ -148,7 +165,17 @@ function tickSingleBot(state: GameState, botId: string, nowMs: number, deltaMs: 
     return moveBot(reloadedState, reloadedBot, nearSupply.position, deltaMs);
   }
 
-  // Priority 5: capture a nearby uncaptured Helix Relay
+  // Priority 5: grab a nearby Fracture Core (only if not already carrying one — corruption stacks badly)
+  if (!reloadedBot.heldCoreEffect) {
+    const nearCore = reloadedState.fractureCores.find(
+      (c) => distance(reloadedBot.position, c.position) < BOT_CORE_SEEK_RANGE,
+    );
+    if (nearCore) {
+      return moveBot(reloadedState, reloadedBot, nearCore.position, deltaMs);
+    }
+  }
+
+  // Priority 6: capture a nearby uncaptured Helix Relay
   const nearRelay = reloadedState.helixRelays.find(
     (r) => r.captureProgress < 1 && distance(reloadedBot.position, r.position) < BOT_RELAY_SEEK_RANGE,
   );
@@ -156,7 +183,7 @@ function tickSingleBot(state: GameState, botId: string, nowMs: number, deltaMs: 
     return moveBot(reloadedState, reloadedBot, nearRelay.position, deltaMs);
   }
 
-  // Priority 6: wander
+  // Priority 7: wander
   brain.wanderTimer -= deltaMs;
   if (!brain.wanderTarget || brain.wanderTimer <= 0) {
     brain.wanderTarget = {
@@ -187,6 +214,26 @@ function moveBot(state: GameState, bot: Player, target: Vector2, deltaMs: number
     y: clamp(bot.position.y + dir.y * speed, 0, state.mapHeight),
   };
   const rotation = Math.atan2(dir.y, dir.x) * (180 / Math.PI);
+  return updateBotPosition(state, bot.id, newPos, rotation);
+}
+
+// Move bot sideways relative to the enemy direction — perpendicular strafe.
+function moveBotStrafe(
+  state: GameState,
+  bot: Player,
+  enemyPos: Vector2,
+  strafeDir: 1 | -1,
+  deltaMs: number,
+): GameState {
+  const toEnemy = normalize({ x: enemyPos.x - bot.position.x, y: enemyPos.y - bot.position.y });
+  // Perpendicular vector: rotate 90° in strafeDir direction
+  const perp: Vector2 = { x: -toEnemy.y * strafeDir, y: toEnemy.x * strafeDir };
+  const strafeSpeed = BOT_STRAFE_SPEED * bot.speedMult * (deltaMs / TICK_RATE_MS);
+  const newPos: Vector2 = {
+    x: clamp(bot.position.x + perp.x * strafeSpeed, 0, state.mapWidth),
+    y: clamp(bot.position.y + perp.y * strafeSpeed, 0, state.mapHeight),
+  };
+  const rotation = Math.atan2(toEnemy.y, toEnemy.x) * (180 / Math.PI);
   return updateBotPosition(state, bot.id, newPos, rotation);
 }
 

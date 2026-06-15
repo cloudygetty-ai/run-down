@@ -76,4 +76,6 @@ export const BOT_SHOOT_RANGE = 300;         // units — bot fires when target i
 export const BOT_LOOT_RANGE = 60;           // units — bot auto-picks up loot within this radius
 export const BOT_RELAY_SEEK_RANGE = 600;    // units — bot will route toward an uncaptured relay within this range
 export const BOT_SUPPLY_SEEK_RANGE = 500;   // units — bot will route toward a landed supply drop within this range
+export const BOT_CORE_SEEK_RANGE = 450;     // units — bot will seek a fracture core if not already carrying one
+export const BOT_STRAFE_SPEED = 1.5;        // units per tick sideways during combat
 export const LOOT_PICKUP_RANGE = 60;        // units — player auto-picks up loot within this radius
