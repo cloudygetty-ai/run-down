@@ -6,6 +6,7 @@ import { MeteorZoneOverlay } from './MeteorZoneOverlay';
 import { BuildPieceView } from './BuildPieceView';
 import { LootDropView } from './LootDropView';
 import { SupplyDropView } from './SupplyDropView';
+import { MapTerrain } from './MapTerrain';
 
 type Props = {
   state: GameState;
@@ -55,6 +56,18 @@ export const GameMap: React.FC<Props> = ({ state, viewportX, viewportY, viewport
     <View style={[styles.container, { width: viewportW, height: viewportH, backgroundColor: bgColor }]}>
       {/* Ground fill */}
       <View style={[styles.ground, { backgroundColor: groundColor }]} />
+
+      {/* Environment-themed terrain decorations (procedural, deterministic) */}
+      <MapTerrain
+        mapWidth={state.mapWidth}
+        mapHeight={state.mapHeight}
+        environmentId={state.environmentId}
+        mapTheme={state.mapTheme}
+        viewportX={viewportX}
+        viewportY={viewportY}
+        viewportW={viewportW}
+        viewportH={viewportH}
+      />
 
       {/* Meteor bombardment zone */}
       <MeteorZoneOverlay

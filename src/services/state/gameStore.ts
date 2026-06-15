@@ -386,6 +386,19 @@ function scatterLoot(count: number): LootDrop[] {
   });
 }
 
+// Operatives pulled from the Helix Corp roster and rogue faction lists.
+// WHY: named opponents feel like real combatants, not test dummies.
+const BOT_NAMES = [
+  'Phantom', 'Cipher', 'Wraith', 'Specter', 'Nexus',
+  'Vector', 'Axiom', 'Prism', 'Reflex', 'Shade',
+  'Pulse', 'Echo', 'Flux', 'Apex', 'Hex',
+  'Scion', 'Nova', 'Surge', 'Drift', 'Cobalt',
+  'Veil', 'Razor', 'Pierce', 'Krait', 'Thorn',
+  'Grim', 'Dusk', 'Ash', 'Cinder', 'Ember',
+  'Steel', 'Rust', 'Shard', 'Wick', 'Knell',
+  'Ruin', 'Brink', 'Glint', 'Mave', 'Fang',
+];
+
 function buildHelixRelays(mapWidth: number, mapHeight: number): HelixRelay[] {
   // Place 5 relays at fixed strategic positions across the map
   const positions: Vector2[] = [
@@ -411,8 +424,10 @@ function buildInitialState(characterId = DEFAULT_CHARACTER_ID, environmentId: st
     x: MAP_WIDTH / 2,
     y: MAP_HEIGHT / 2,
   }, characterId);
+  // Shuffle names so each match has a different crew
+  const shuffledNames = [...BOT_NAMES].sort(() => Math.random() - 0.5);
   const bots: Player[] = Array.from({ length: BOT_COUNT }, (_, i) =>
-    makePlayer(`bot_${i}`, `Bot${i + 1}`, false, {
+    makePlayer(`bot_${i}`, shuffledNames[i % shuffledNames.length], false, {
       x: randomInRange(100, MAP_WIDTH - 100),
       y: randomInRange(100, MAP_HEIGHT - 100),
     }),

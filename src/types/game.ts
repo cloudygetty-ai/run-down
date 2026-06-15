@@ -309,6 +309,7 @@ export type GameResult = {
   kills: number;
   survivalTimeMs: number;
   winner: string | null;
+  environmentId: string;
 };
 
 export type MapTile = {

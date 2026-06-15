@@ -894,6 +894,7 @@ function checkWinCondition(state: GameState): GameState {
         kills: human?.kills ?? 0,
         survivalTimeMs: Date.now() - state.startTime,
         winner: winner?.name ?? null,
+        environmentId: state.environmentId,
       },
     };
   }
