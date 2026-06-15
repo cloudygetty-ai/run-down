@@ -20,8 +20,8 @@ type Props = {
 // know about the camera themselves.
 
 export const GameMap: React.FC<Props> = ({ state, viewportX, viewportY, viewportW, viewportH }) => {
-  const alivePlayers = useMemo(
-    () => state.players.filter((p) => p.status === 'alive'),
+  const playersToRender = useMemo(
+    () => state.players.filter((p) => p.status === 'alive' || p.status === 'knocked'),
     [state.players],
   );
 
@@ -81,8 +81,8 @@ export const GameMap: React.FC<Props> = ({ state, viewportX, viewportY, viewport
         <LootDropView key={l.id} loot={l} viewportX={viewportX} viewportY={viewportY} />
       ))}
 
-      {/* Players */}
-      {alivePlayers.map((p) => (
+      {/* Players (alive + knocked — knocked shown faded/downed) */}
+      {playersToRender.map((p) => (
         <PlayerSprite key={p.id} player={p} viewportX={viewportX} viewportY={viewportY} />
       ))}
     </View>

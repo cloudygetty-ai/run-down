@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Player } from '../types';
+import { Player, AbilityEffectType } from '../types';
 
 type Props = {
   player: Player;
@@ -10,12 +10,25 @@ type Props = {
 
 const PLAYER_SIZE = 20;
 
+const ABILITY_GLOW: Partial<Record<AbilityEffectType, string>> = {
+  damage_immunity: '#4488ff',
+  speed_boost:     '#ffcc00',
+  rapid_fire:      '#ff8800',
+  damage_boost:    '#ff4444',
+};
+
 export const PlayerSprite: React.FC<Props> = ({ player, viewportX, viewportY }) => {
   const left = player.position.x - viewportX - PLAYER_SIZE / 2;
-  const top = player.position.y - viewportY - PLAYER_SIZE / 2;
+  const top  = player.position.y - viewportY - PLAYER_SIZE / 2;
 
-  const color = player.isHuman ? '#00aaff' : '#ff4444';
-  const outlineColor = player.isHuman ? '#0055aa' : '#880000';
+  const isKnocked = player.status === 'knocked';
+  const abilityActive = player.abilityActiveMs > 0 && player.activeAbilityEffect !== 'none';
+  const glowColor = abilityActive ? (ABILITY_GLOW[player.activeAbilityEffect] ?? null) : null;
+
+  const color        = isKnocked ? '#555555' : (player.isHuman ? '#00aaff' : '#ff4444');
+  const outlineColor = isKnocked ? '#333333' : (player.isHuman ? '#0055aa' : '#880000');
+
+  const healthPct = Math.max(0, Math.min(1, player.health / player.maxHealth));
 
   return (
     <View
@@ -26,18 +39,36 @@ export const PlayerSprite: React.FC<Props> = ({ player, viewportX, viewportY }) 
           top,
           backgroundColor: color,
           borderColor: outlineColor,
-          transform: [{ rotate: `${player.rotation}deg` }],
+          opacity: isKnocked ? 0.5 : 1,
+          transform: [
+            { rotate: `${player.rotation}deg` },
+            { scale: isKnocked ? 0.75 : 1 },
+          ],
         },
       ]}
     >
-      {/* Direction indicator (small triangle at "front") */}
-      <View style={styles.directionDot} />
+      {/* Ability active glow ring — rendered behind the sprite */}
+      {glowColor && (
+        <View style={[styles.abilityGlow, { borderColor: glowColor }]} />
+      )}
+
+      {/* Direction dot — hidden when knocked */}
+      {!isKnocked && <View style={styles.directionDot} />}
+
+      {/* Knocked X marker */}
+      {isKnocked && <Text style={styles.knockedX}>✕</Text>}
+
       {/* Health bar above player */}
       <View style={styles.healthBarContainer}>
         <View
-          style={[styles.healthBar, { width: `${(player.health / player.maxHealth) * 100}%` }]}
+          style={[
+            styles.healthBar,
+            { width: `${healthPct * 100}%` },
+            healthPct < 0.3 && styles.healthBarLow,
+          ]}
         />
       </View>
+
       {player.isHuman && <Text style={styles.nameTag}>YOU</Text>}
     </View>
   );
@@ -53,6 +84,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  abilityGlow: {
+    position: 'absolute',
+    width: PLAYER_SIZE + 14,
+    height: PLAYER_SIZE + 14,
+    borderRadius: (PLAYER_SIZE + 14) / 2,
+    borderWidth: 2.5,
+    left: -9,
+    top: -9,
+  },
   directionDot: {
     width: 4,
     height: 4,
@@ -60,6 +100,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     position: 'absolute',
     top: 2,
+  },
+  knockedX: {
+    color: '#ff4444',
+    fontSize: 7,
+    fontWeight: 'bold',
   },
   healthBarContainer: {
     position: 'absolute',
@@ -75,6 +120,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#44ff44',
     borderRadius: 2,
   },
+  healthBarLow: { backgroundColor: '#ff4444' },
   nameTag: {
     position: 'absolute',
     top: -18,

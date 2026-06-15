@@ -1,6 +1,17 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Player, Bombardment, IncomingMeteor, WeaponType, GearSlot, Gear, KillFeedEntry } from '../types';
+import {
+  Player,
+  Bombardment,
+  IncomingMeteor,
+  WeaponType,
+  GearSlot,
+  Gear,
+  KillFeedEntry,
+  GravityZone,
+  TimeEchoZone,
+} from '../types';
+import { distance } from '../utils';
 
 type Props = {
   player: Player;
@@ -11,9 +22,13 @@ type Props = {
   bountyPlayerId: string | null;
   activeQuip: string | null;
   killFeed: KillFeedEntry[];
+  gravityZones: GravityZone[];
+  timeEchoZones: TimeEchoZone[];
+  startTime: number;
   onShoot: () => void;
   onReload: () => void;
   onBuildToggle: () => void;
+  onBuildMaterialSwitch: () => void;
   onWeaponSwitch: (slot: 0 | 1 | 2) => void;
   onAbility: () => void;
 };
@@ -87,9 +102,13 @@ export const HUD: React.FC<Props> = ({
   bountyPlayerId,
   activeQuip,
   killFeed,
+  gravityZones,
+  timeEchoZones,
+  startTime,
   onShoot,
   onReload,
   onBuildToggle,
+  onBuildMaterialSwitch,
   onWeaponSwitch,
   onAbility,
 }) => {
@@ -107,10 +126,28 @@ export const HUD: React.FC<Props> = ({
   const isCorrupted = player.corruptionDps > 0;
   const isBounty = bountyPlayerId === player.id;
 
+  // Match timer (computed — not stored in state)
+  const elapsedMs = startTime > 0 ? Date.now() - startTime : 0;
+  const elapsedMin = Math.floor(elapsedMs / 60_000);
+  const elapsedSec = Math.floor((elapsedMs % 60_000) / 1000);
+  const matchTime = `${elapsedMin}:${elapsedSec.toString().padStart(2, '0')}`;
+
+  // Zone type alert — show when player is inside a special meteor-created zone
+  const inGravityZone = gravityZones.some((z) => distance(player.position, z.position) <= z.radius);
+  const inEchoZone = timeEchoZones.some((z) => distance(player.position, z.position) <= z.radius);
+  const zoneAlert = inGravityZone ? 'GRAVITY ZONE' : inEchoZone ? 'ECHO ZONE' : null;
+
+  // Build material label
+  const MAT_COLORS: Record<string, string> = { wood: '#cc8800', stone: '#8899aa', metal: '#aabbcc' };
+  const matColor = MAT_COLORS[player.selectedBuildMaterial] ?? '#aaa';
+
   return (
     <View style={styles.container} pointerEvents="box-none">
-      {/* Top bar: alive count + meteor timer + kills */}
+      {/* Top bar: match timer | alive count | zone | kills */}
       <View style={styles.topBar}>
+        <View style={styles.timerChip}>
+          <Text style={styles.timerText}>{matchTime}</Text>
+        </View>
         <View style={styles.aliveChip}>
           <Text style={styles.aliveText}>{alivePlayers} alive</Text>
         </View>
@@ -123,7 +160,7 @@ export const HUD: React.FC<Props> = ({
         >
           <Text style={styles.meteorText}>
             {incomingMeteor
-              ? `IMPACT IN ${impactSeconds}s`
+              ? `IMPACT ${impactSeconds}s`
               : bombardment.isShrinking
               ? 'ZONE CLOSING'
               : `Zone: ${phaseSeconds}s`}
@@ -136,10 +173,17 @@ export const HUD: React.FC<Props> = ({
         )}
         <View style={[styles.killsChip, isBounty && styles.killsChipBounty]}>
           <Text style={[styles.killsText, isBounty && styles.killsTextBounty]}>
-            {isBounty ? `🎯 ${player.kills}` : `${player.kills} kills`}
+            {isBounty ? `🎯 ${player.kills}` : `${player.kills}K`}
           </Text>
         </View>
       </View>
+
+      {/* Zone type alert — shown when inside gravity or echo zone */}
+      {zoneAlert && (
+        <View style={[styles.zoneAlert, inGravityZone ? styles.zoneAlertGravity : styles.zoneAlertEcho]}>
+          <Text style={styles.zoneAlertText}>{zoneAlert}</Text>
+        </View>
+      )}
 
       {/* Kill feed — top right, below top bar */}
       {killFeed.length > 0 && (
@@ -273,12 +317,22 @@ export const HUD: React.FC<Props> = ({
 
       {/* Bottom right: action buttons + ability */}
       <View style={styles.actionButtons}>
-        <TouchableOpacity
-          style={[styles.buildBtn, player.isBuilding && styles.buildBtnActive]}
-          onPress={onBuildToggle}
-        >
-          <Text style={styles.btnText}>BUILD</Text>
-        </TouchableOpacity>
+        {/* Build button + material cycle (stacked) */}
+        <View style={styles.buildGroup}>
+          <TouchableOpacity
+            style={[styles.buildBtn, player.isBuilding && styles.buildBtnActive]}
+            onPress={onBuildToggle}
+          >
+            <Text style={styles.btnText}>BUILD</Text>
+          </TouchableOpacity>
+          {player.isBuilding && (
+            <TouchableOpacity style={[styles.matBtn, { borderColor: matColor }]} onPress={onBuildMaterialSwitch}>
+              <Text style={[styles.matBtnText, { color: matColor }]}>
+                {player.selectedBuildMaterial.toUpperCase().slice(0, 4)}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
         <TouchableOpacity style={styles.reloadBtn} onPress={onReload}>
           <Text style={styles.btnText}>RELOAD</Text>
         </TouchableOpacity>
@@ -325,6 +379,40 @@ const styles = StyleSheet.create({
     padding: 10,
     alignItems: 'center',
   },
+  timerChip: {
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  timerText: { color: '#cccccc', fontSize: 11, fontWeight: 'bold', fontVariant: ['tabular-nums'] },
+
+  zoneAlert: {
+    position: 'absolute',
+    top: 52,
+    alignSelf: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  zoneAlertGravity: { backgroundColor: 'rgba(80,0,180,0.75)', borderColor: 'rgba(150,50,255,0.8)' },
+  zoneAlertEcho:    { backgroundColor: 'rgba(0,100,180,0.75)', borderColor: 'rgba(50,180,255,0.8)' },
+  zoneAlertText: { color: '#fff', fontSize: 11, fontWeight: 'bold', letterSpacing: 1 },
+
+  buildGroup: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  matBtn: {
+    borderRadius: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderWidth: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  matBtnText: { fontSize: 10, fontWeight: 'bold', letterSpacing: 1 },
+
   aliveChip: {
     backgroundColor: 'rgba(0,0,0,0.6)',
     paddingHorizontal: 10,

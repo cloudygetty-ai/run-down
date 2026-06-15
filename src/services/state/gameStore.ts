@@ -477,6 +477,7 @@ type GameStore = {
   selectCharacter: (characterId: string) => void;
   selectEnvironment: (environmentId: string) => void;
   triggerAbility: () => void;
+  switchBuildMaterial: () => void;
 };
 
 export const useGameStore = create<GameStore>((set, get) => ({
@@ -524,6 +525,22 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   updateGameState: (next: GameState) => {
     set({ gameState: next });
+  },
+
+  switchBuildMaterial: () => {
+    const { gameState } = get();
+    const human = gameState.players.find((p) => p.isHuman);
+    if (!human) return;
+    const cycle: BuildingMaterial[] = ['wood', 'stone', 'metal'];
+    const nextMat = cycle[(cycle.indexOf(human.selectedBuildMaterial) + 1) % cycle.length];
+    set({
+      gameState: {
+        ...gameState,
+        players: gameState.players.map((p) =>
+          p.id === human.id ? { ...p, selectedBuildMaterial: nextMat } : p,
+        ),
+      },
+    });
   },
 
   pickUpLoot: (playerId: string, lootId: string) => {

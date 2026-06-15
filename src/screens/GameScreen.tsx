@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useCallback, useState } from 'react';
-import { View, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Dimensions } from 'react-native';
 import { GameMap } from '../components/GameMap';
 import { HUD } from '../components/HUD';
 import { Joystick } from '../components/Joystick';
@@ -38,6 +38,16 @@ export const GameScreen: React.FC<Props> = ({ onGameOver }) => {
   onGameOverRef.current = onGameOver;
   const [hitMarkerVisible, setHitMarkerVisible] = useState(false);
   const hitMarkerTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Show environment name for 3s on match start
+  const [showEnvBanner, setShowEnvBanner] = useState(true);
+  const envBannerTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    envBannerTimeoutRef.current = setTimeout(() => setShowEnvBanner(false), 3000);
+    return () => {
+      if (envBannerTimeoutRef.current) clearTimeout(envBannerTimeoutRef.current);
+    };
+  }, []);
 
   // Camera follows the human player
   const human = gameState.players.find((p) => p.isHuman);
@@ -193,6 +203,10 @@ export const GameScreen: React.FC<Props> = ({ onGameOver }) => {
     });
   }, []);
 
+  const handleBuildMaterialSwitch = useCallback(() => {
+    useGameStore.getState().switchBuildMaterial();
+  }, []);
+
   const handlePlaceBuild = useCallback(() => {
     const { gameState: state, placeBuildPiece } = useGameStore.getState();
     const h = state.players.find((p) => p.isHuman);
@@ -276,12 +290,29 @@ export const GameScreen: React.FC<Props> = ({ onGameOver }) => {
         bountyPlayerId={gameState.bountyPlayerId}
         activeQuip={gameState.activeQuip}
         killFeed={gameState.killFeed}
+        gravityZones={gameState.gravityZones}
+        timeEchoZones={gameState.timeEchoZones}
+        startTime={gameState.startTime}
         onShoot={human.isBuilding ? handlePlaceBuild : handleShoot}
         onReload={handleReload}
         onBuildToggle={handleBuildToggle}
+        onBuildMaterialSwitch={handleBuildMaterialSwitch}
         onWeaponSwitch={handleWeaponSwitch}
         onAbility={triggerAbility}
       />
+
+      {/* Environment name banner — shown for 3s on match start */}
+      {showEnvBanner && (
+        <View
+          style={[styles.envBanner, { borderColor: gameState.mapTheme.accentColor + '88' }]}
+          pointerEvents="none"
+        >
+          <Text style={[styles.envBannerName, { color: gameState.mapTheme.accentColor }]}>
+            {gameState.environmentId.replace(/_/g, ' ').toUpperCase()}
+          </Text>
+          <Text style={styles.envBannerSub}>Proving Ground Active</Text>
+        </View>
+      )}
     </View>
   );
 };
@@ -308,5 +339,27 @@ const styles = StyleSheet.create({
     width: 2,
     height: 24,
     backgroundColor: '#ff3333',
+  },
+  envBanner: {
+    position: 'absolute',
+    top: '30%',
+    alignSelf: 'center',
+    backgroundColor: 'rgba(0,0,0,0.78)',
+    paddingHorizontal: 28,
+    paddingVertical: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  envBannerName: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    letterSpacing: 4,
+    marginBottom: 4,
+  },
+  envBannerSub: {
+    fontSize: 11,
+    color: '#666',
+    letterSpacing: 2,
   },
 });
