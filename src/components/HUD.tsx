@@ -151,6 +151,14 @@ export const HUD: React.FC<Props> = ({
   const MAT_COLORS: Record<string, string> = { wood: '#cc8800', stone: '#8899aa', metal: '#aabbcc' };
   const matColor = MAT_COLORS[player.selectedBuildMaterial] ?? '#aaa';
 
+  // Passive stat chips — inferred from non-default player stats
+  const passiveChips: string[] = [];
+  if (player.damageMult > 1.05) passiveChips.push(`+${Math.round((player.damageMult - 1) * 100)}%DMG`);
+  if (player.damageResistance > 0.01) passiveChips.push(`${Math.round(player.damageResistance * 100)}%ARMOR`);
+  if (player.speedMult > 1.05) passiveChips.push(`+${Math.round((player.speedMult - 1) * 100)}%SPD`);
+  if (player.killHealAmount > 0) passiveChips.push(`+${player.killHealAmount}HP/EL`);
+  if (player.maxHealth > 100) passiveChips.push(`+${player.maxHealth - 100}HP`);
+
   return (
     <View style={styles.container} pointerEvents="box-none">
       {/* Top bar: match timer | alive count | zone | kills */}
@@ -290,6 +298,14 @@ export const HUD: React.FC<Props> = ({
           <Text style={styles.matText}>S:{player.materials.stone}</Text>
           <Text style={styles.matText}>M:{player.materials.metal}</Text>
         </View>
+        {/* Passive stat reminder */}
+        {passiveChips.length > 0 && (
+          <View style={styles.passiveRow}>
+            {passiveChips.map((chip) => (
+              <Text key={chip} style={styles.passiveChip}>{chip}</Text>
+            ))}
+          </View>
+        )}
       </View>
 
       {/* Gear strip — 4 slots above weapon bar */}
@@ -608,6 +624,8 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   matText: { color: '#ccaa44', fontSize: 11, fontWeight: 'bold' },
+  passiveRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 5 },
+  passiveChip: { color: '#88aaff', fontSize: 9, fontWeight: 'bold', letterSpacing: 0.5 },
 
   gearStrip: {
     position: 'absolute',

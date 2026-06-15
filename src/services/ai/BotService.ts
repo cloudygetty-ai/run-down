@@ -83,10 +83,18 @@ function tickSingleBot(state: GameState, botId: string, nowMs: number, deltaMs: 
       workBot = workState.players.find((p) => p.id === botId) ?? bot;
     }
 
+    // Pick the best weapon for the current engagement range
+    const dist = distance(workBot.position, nearestEnemy.position);
+    const bestSlot = selectBestWeaponSlot(workBot, dist);
+    if (bestSlot !== workBot.activeWeaponSlot) {
+      workState = setBotWeaponSlot(workState, botId, bestSlot);
+      workBot = workState.players.find((p) => p.id === botId) ?? workBot;
+    }
+
     let updatedState = moveBot(workState, workBot, nearestEnemy.position, deltaMs);
 
     const weapon = workBot.weapons[workBot.activeWeaponSlot];
-    if (weapon && distance(workBot.position, nearestEnemy.position) < BOT_SHOOT_RANGE) {
+    if (weapon && dist < BOT_SHOOT_RANGE) {
       if (canFire(weapon, brain.lastFireTimeMs, nowMs)) {
         brain.lastFireTimeMs = nowMs;
         const aimPoint = computeAimPoint(workBot.position, nearestEnemy.position, weapon);
@@ -160,6 +168,41 @@ function updateBotPosition(
 ): GameState {
   const players = state.players.map((p) =>
     p.id === botId ? { ...p, position: pos, rotation } : p,
+  );
+  return { ...state, players };
+}
+
+// Assign a weapon slot appropriate for the engagement distance.
+// Close range prefers shotguns/SMGs; far range prefers snipers; mid defaults to highest DPS.
+function selectBestWeaponSlot(bot: Player, distToEnemy: number): 0 | 1 | 2 {
+  const CLOSE_TYPES = new Set(['shotgun', 'tactical_shotgun', 'heavy_shotgun', 'drum_shotgun', 'smg', 'compact_smg', 'suppressed_smg', 'pickaxe']);
+  const FAR_TYPES   = new Set(['sniper', 'semi_sniper', 'heavy_sniper', 'hunting_rifle', 'marksman_rifle', 'rail_gun', 'thermal_ar']);
+
+  const candidates = bot.weapons
+    .map((w, i) => ({ w, i: i as 0 | 1 | 2 }))
+    .filter(({ w }) => w !== null && w.type !== 'pickaxe' && !w.isReloading && w.currentAmmo > 0);
+
+  if (candidates.length === 0) return bot.activeWeaponSlot;
+
+  if (distToEnemy < 140) {
+    const close = candidates.find(({ w }) => CLOSE_TYPES.has(w!.type));
+    if (close) return close.i;
+  } else if (distToEnemy > 350) {
+    const far = candidates.find(({ w }) => FAR_TYPES.has(w!.type));
+    if (far) return far.i;
+  }
+
+  // Mid-range or fallback: highest DPS
+  return candidates.reduce((best, cur) => {
+    const dpsB = best.w!.damage * best.w!.fireRate;
+    const dpsC = cur.w!.damage * cur.w!.fireRate;
+    return dpsC > dpsB ? cur : best;
+  }).i;
+}
+
+function setBotWeaponSlot(state: GameState, botId: string, slot: 0 | 1 | 2): GameState {
+  const players = state.players.map((p) =>
+    p.id === botId ? { ...p, activeWeaponSlot: slot } : p,
   );
   return { ...state, players };
 }
