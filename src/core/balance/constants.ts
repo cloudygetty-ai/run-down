@@ -52,6 +52,10 @@ export const SUPPLY_DROP_PICKUP_RADIUS = 100;
 // ── Bounty system ─────────────────────────────────────────────────────────────
 export const BOUNTY_KILL_THRESHOLD = 3; // ≥ this many kills to become bounty target
 
+// ── Shield regeneration ───────────────────────────────────────────────────────
+export const SHIELD_REGEN_DELAY_MS = 4000; // ms after last damage before regen starts
+export const SHIELD_REGEN_RATE = 20;       // shield per second
+
 // ── Knocked / downed state ────────────────────────────────────────────────────
 export const KNOCKED_TIMER_MS = 4000;  // ms until a knocked player auto-eliminates
 export const KILL_FEED_TTL_MS = 5000;  // ms a kill feed entry stays visible

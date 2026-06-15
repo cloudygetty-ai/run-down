@@ -302,6 +302,7 @@ function makePlayer(
     maxHealth,
     shield: startingShield,
     maxShield,
+    shieldRegenDelayMs: 0,
     status: 'alive',
     knockedTimerMs: 0,
     weapons: [makeWeapon('pickaxe', 'common'), null, null],

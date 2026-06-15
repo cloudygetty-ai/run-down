@@ -36,6 +36,7 @@ function makePlayer(overrides: Partial<Player> = {}): Player {
     maxHealth: 100,
     shield: 0,
     maxShield: 100,
+    shieldRegenDelayMs: 0,
     status: 'alive',
     weapons: [null, makeWeapon(), null],
     activeWeaponSlot: 1,

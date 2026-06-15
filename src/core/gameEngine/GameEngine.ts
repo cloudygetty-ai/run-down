@@ -56,6 +56,8 @@ import {
   KNOCKED_TIMER_MS,
   KILL_FEED_TTL_MS,
   KILL_FEED_MAX,
+  SHIELD_REGEN_DELAY_MS,
+  SHIELD_REGEN_RATE,
 } from '../balance';
 
 export type InputState = {
@@ -153,6 +155,7 @@ export function tickGame(state: GameState, humanInput: InputState, deltaMs: numb
     };
 
     next = tickAbilityTimers(next, deltaMs);
+    next = tickShieldRegen(next, deltaMs);
     next = tickEnvironmentHazard(next, deltaMs);
     next = tickKnockedPlayers(next, deltaMs);
     next = tickKillFeed(next, deltaMs);
@@ -221,9 +224,9 @@ function tickEnvironmentHazard(state: GameState, deltaMs: number): GameState {
     const newHealth = Math.max(0, p.health - hpLoss);
     changed = true;
     if (newHealth <= 0) {
-      return { ...p, health: 0, status: 'knocked' as const, knockedTimerMs: KNOCKED_TIMER_MS };
+      return { ...p, health: 0, status: 'knocked' as const, knockedTimerMs: KNOCKED_TIMER_MS, shieldRegenDelayMs: SHIELD_REGEN_DELAY_MS };
     }
-    return { ...p, health: newHealth };
+    return { ...p, health: newHealth, shieldRegenDelayMs: SHIELD_REGEN_DELAY_MS };
   });
   return changed ? { ...state, players } : state;
 }
@@ -276,6 +279,25 @@ function tickKnockedPlayers(state: GameState, deltaMs: number): GameState {
 
   if (!changed) return state;
   return { ...state, players, killFeed, lootDrops };
+}
+
+// Regen shield for players who haven't taken damage in SHIELD_REGEN_DELAY_MS.
+function tickShieldRegen(state: GameState, deltaMs: number): GameState {
+  const regenPerTick = SHIELD_REGEN_RATE * (deltaMs / 1000);
+  let changed = false;
+  const players = state.players.map((p) => {
+    if (p.status !== 'alive' || p.maxShield === 0) return p;
+    if (p.shieldRegenDelayMs > 0) {
+      changed = true;
+      return { ...p, shieldRegenDelayMs: Math.max(0, p.shieldRegenDelayMs - deltaMs) };
+    }
+    if (p.shield < p.maxShield) {
+      changed = true;
+      return { ...p, shield: Math.min(p.maxShield, p.shield + regenPerTick) };
+    }
+    return p;
+  });
+  return changed ? { ...state, players } : state;
 }
 
 // Age kill feed entries; remove expired ones.
@@ -669,7 +691,7 @@ function applyMeteorDamage(state: GameState, newImpacts: MeteorImpact[]): GameSt
 
     const newStatus = health === 0 ? ('knocked' as const) : p.status;
     const knockedTimerMs = newStatus === 'knocked' ? KNOCKED_TIMER_MS : p.knockedTimerMs;
-    return { ...p, shield, health, status: newStatus, knockedTimerMs };
+    return { ...p, shield, health, status: newStatus, knockedTimerMs, shieldRegenDelayMs: SHIELD_REGEN_DELAY_MS };
   });
 
   return { ...state, players };
@@ -813,7 +835,14 @@ export function fireShot(state: GameState, shooterId: string, targetPos: Vector2
       : target.status;
     const knockedTimerMs = newStatus === 'knocked' ? KNOCKED_TIMER_MS : target.knockedTimerMs;
 
-    players[i] = { ...target, shield, health, status: newStatus, knockedTimerMs };
+    players[i] = {
+      ...target,
+      shield,
+      health,
+      status: newStatus,
+      knockedTimerMs,
+      shieldRegenDelayMs: SHIELD_REGEN_DELAY_MS,
+    };
 
     // Accumulate damage on shooter
     players[shooterIndex] = {

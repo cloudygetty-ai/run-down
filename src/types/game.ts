@@ -155,6 +155,7 @@ export type Player = {
   maxHealth: number;
   shield: number;
   maxShield: number;
+  shieldRegenDelayMs: number; // counts down to 0 after taking damage, then regen starts
   status: PlayerStatus;
   knockedTimerMs: number; // countdown to auto-elimination while knocked (0 when alive/eliminated)
   weapons: [Weapon | null, Weapon | null, Weapon | null]; // 3 slots

@@ -26,6 +26,7 @@ function makePlayer(x: number, y: number): Player {
     maxHealth: 100,
     shield: 0,
     maxShield: 100,
+    shieldRegenDelayMs: 0,
     status: 'alive',
     weapons: [null, null, null],
     activeWeaponSlot: 0,
