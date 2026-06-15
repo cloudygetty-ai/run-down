@@ -27,6 +27,7 @@ type Props = {
   timeEchoZones: TimeEchoZone[];
   helixRelays: HelixRelay[];
   startTime: number;
+  characterAbilityName: string;
   onShoot: () => void;
   onReload: () => void;
   onBuildToggle: () => void;
@@ -108,6 +109,7 @@ export const HUD: React.FC<Props> = ({
   timeEchoZones,
   helixRelays,
   startTime,
+  characterAbilityName,
   onShoot,
   onReload,
   onBuildToggle,
@@ -170,7 +172,7 @@ export const HUD: React.FC<Props> = ({
             {incomingMeteor
               ? `IMPACT ${impactSeconds}s`
               : bombardment.isShrinking
-              ? 'ZONE CLOSING'
+              ? `CLOSING ${phaseSeconds}s`
               : `Zone: ${phaseSeconds}s`}
           </Text>
         </View>
@@ -364,24 +366,27 @@ export const HUD: React.FC<Props> = ({
           <Text style={styles.btnText}>RELOAD</Text>
         </TouchableOpacity>
         {/* Ability button */}
-        <TouchableOpacity
-          style={[
-            styles.abilityBtn,
-            abilityReady && styles.abilityBtnReady,
-            !abilityReady && styles.abilityBtnCooldown,
-            player.abilityActiveMs > 0 && styles.abilityBtnActive,
-          ]}
-          onPress={onAbility}
-          disabled={!abilityReady}
-        >
-          <Text style={styles.abilityBtnText}>
-            {player.abilityActiveMs > 0
-              ? `ACTIVE\n${(player.abilityActiveMs / 1000).toFixed(1)}s`
-              : abilityReady
-              ? 'ABILITY'
-              : `${(player.abilityChargeMs / 1000).toFixed(0)}s`}
-          </Text>
-        </TouchableOpacity>
+        <View style={styles.abilityGroup}>
+          <Text style={styles.abilityNameLabel} numberOfLines={1}>{characterAbilityName}</Text>
+          <TouchableOpacity
+            style={[
+              styles.abilityBtn,
+              abilityReady && styles.abilityBtnReady,
+              !abilityReady && styles.abilityBtnCooldown,
+              player.abilityActiveMs > 0 && styles.abilityBtnActive,
+            ]}
+            onPress={onAbility}
+            disabled={!abilityReady}
+          >
+            <Text style={styles.abilityBtnText}>
+              {player.abilityActiveMs > 0
+                ? `ACTIVE\n${(player.abilityActiveMs / 1000).toFixed(1)}s`
+                : abilityReady
+                ? 'USE'
+                : `${(player.abilityChargeMs / 1000).toFixed(0)}s`}
+            </Text>
+          </TouchableOpacity>
+        </View>
         <TouchableOpacity
           style={[styles.shootBtn, !activeWeapon && styles.btnDisabled]}
           onPress={onShoot}
@@ -681,6 +686,18 @@ const styles = StyleSheet.create({
     borderColor: '#00aa00',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  abilityGroup: {
+    alignItems: 'center',
+    gap: 3,
+  },
+  abilityNameLabel: {
+    color: '#aaaacc',
+    fontSize: 9,
+    fontWeight: 'bold',
+    letterSpacing: 1,
+    maxWidth: 70,
+    textAlign: 'center',
   },
   abilityBtn: {
     width: 70,

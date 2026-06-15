@@ -6,6 +6,7 @@ import { Joystick } from '../components/Joystick';
 import { Minimap } from '../components/Minimap';
 import { useGameStore } from '../services/state';
 import { tickGame, fireShot, InputState } from '../core/gameEngine';
+import { getCharacter } from '../core/characters';
 import { tickBots } from '../services/ai';
 import { startReload, switchWeaponSlot } from '../services/weapons';
 import { BuildPiece, Vector2 } from '../types';
@@ -41,6 +42,10 @@ export const GameScreen: React.FC<Props> = ({ onGameOver }) => {
   // Floating damage numbers — created on hit, auto-expire after 900ms
   const [damageNumbers, setDamageNumbers] = useState<
     Array<{ id: string; x: number; y: number; value: number; bornAt: number }>
+  >([]);
+  // Pickup feedback flashes
+  const [pickupFlashes, setPickupFlashes] = useState<
+    Array<{ id: string; text: string; bornAt: number }>
   >([]);
   // Kill streak feedback
   const prevKillsRef = useRef(0);
@@ -149,6 +154,20 @@ export const GameScreen: React.FC<Props> = ({ onGameOver }) => {
           if (nearby) {
             update(next); // commit movement first
             pickUpLoot(h.id, nearby.id); // then pick up
+            // Pickup feedback
+            const flashes: string[] = [];
+            if (nearby.weapon) flashes.push(`GOT ${nearby.weapon.type.replace(/_/g, ' ').toUpperCase()}`);
+            if (nearby.gear) flashes.push(`GOT ${nearby.gear.name.toUpperCase()}`);
+            if (nearby.shield > 0) flashes.push(`+${nearby.shield} SHIELD`);
+            if (nearby.health > 0) flashes.push(`+${nearby.health} HP`);
+            if (nearby.ammo > 0) flashes.push(`+${nearby.ammo} AMMO`);
+            if (flashes.length > 0) {
+              const now = Date.now();
+              setPickupFlashes((prev) => [
+                ...prev.filter((f) => now - f.bornAt < 1200),
+                ...flashes.map((text, i) => ({ id: `pf_${now}_${i}`, text, bornAt: now + i * 120 })),
+              ]);
+            }
             return;
           }
         }
@@ -353,6 +372,20 @@ export const GameScreen: React.FC<Props> = ({ onGameOver }) => {
         </View>
       )}
 
+      {/* Pickup feedback */}
+      <View style={styles.pickupFeedbackContainer} pointerEvents="none">
+        {pickupFlashes.map((f) => {
+          const age = Date.now() - f.bornAt;
+          if (age >= 1200) return null;
+          const opacity = Math.max(0, 1 - age / 1200);
+          return (
+            <Text key={f.id} style={[styles.pickupFlash, { opacity }]}>
+              {f.text}
+            </Text>
+          );
+        })}
+      </View>
+
       {/* Kill streak banner */}
       {streakLabel && (
         <View style={styles.streakBanner} pointerEvents="none">
@@ -381,6 +414,7 @@ export const GameScreen: React.FC<Props> = ({ onGameOver }) => {
 
       <HUD
         player={human}
+        characterAbilityName={getCharacter(human.characterId).ability.name}
         bombardment={gameState.bombardment}
         incomingMeteors={gameState.incomingMeteors}
         nextSupplyDropMs={gameState.nextSupplyDropMs}
@@ -438,6 +472,22 @@ const styles = StyleSheet.create({
     width: 2,
     height: 24,
     backgroundColor: '#ff3333',
+  },
+  pickupFeedbackContainer: {
+    position: 'absolute',
+    bottom: 180,
+    left: 20,
+    alignItems: 'flex-start',
+    gap: 3,
+  },
+  pickupFlash: {
+    color: '#aaffcc',
+    fontSize: 13,
+    fontWeight: 'bold',
+    textShadowColor: '#000',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+    letterSpacing: 1,
   },
   streakBanner: {
     position: 'absolute',
