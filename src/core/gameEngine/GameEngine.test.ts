@@ -46,6 +46,7 @@ function makePlayer(overrides: Partial<Player> = {}): Player {
         range: 60,
         reloadTime: 0,
         isReloading: false,
+    reloadStartMs: 0,
       },
       null,
       null,
@@ -182,6 +183,7 @@ describe('GameEngine.fireShot', () => {
       range: 400,
       reloadTime: 2000,
       isReloading: false,
+    reloadStartMs: 0,
     };
     const shooter = makePlayer({
       weapons: [arWeapon, null, null],
@@ -210,6 +212,7 @@ describe('GameEngine.fireShot', () => {
       range: 400,
       reloadTime: 2000,
       isReloading: false,
+    reloadStartMs: 0,
     };
     const shooter = makePlayer({
       weapons: [arWeapon, null, null],
@@ -238,6 +241,7 @@ describe('GameEngine.fireShot', () => {
       range: 400,
       reloadTime: 2000,
       isReloading: false,
+    reloadStartMs: 0,
     };
     const shooter = makePlayer({
       weapons: [emptyWeapon, null, null],

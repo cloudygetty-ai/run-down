@@ -97,6 +97,7 @@ export type Weapon = {
   range: number; // max effective range in game units
   reloadTime: number; // ms
   isReloading: boolean;
+  reloadStartMs: number; // Date.now() when reload began; 0 when not reloading
 };
 
 export type BuildingMaterial = 'wood' | 'stone' | 'metal';

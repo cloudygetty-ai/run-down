@@ -265,15 +265,28 @@ export const HUD: React.FC<Props> = ({
             </View>
           </View>
         )}
-        {/* Shield bar */}
+        {/* Shield bar — regen hint when delay is counting down */}
         <View style={styles.barRow}>
           <Text style={styles.barLabel}>SH</Text>
           <View style={styles.barBg}>
             <View
               style={[styles.shieldFill, { width: `${(player.shield / player.maxShield) * 100}%` }]}
             />
+            {player.shieldRegenDelayMs > 0 && player.shield < player.maxShield && (
+              <View
+                style={[
+                  styles.shieldRegenBar,
+                  { width: `${(player.shieldRegenDelayMs / 4000) * 100}%` },
+                ]}
+              />
+            )}
           </View>
-          <Text style={styles.barValue}>{Math.ceil(player.shield)}</Text>
+          <Text style={styles.barValue}>
+            {Math.ceil(player.shield)}
+            {player.shieldRegenDelayMs === 0 && player.shield < player.maxShield && player.maxShield > 0
+              ? ' ↑'
+              : ''}
+          </Text>
         </View>
         {/* Health bar */}
         <View style={styles.barRow}>
@@ -351,14 +364,28 @@ export const HUD: React.FC<Props> = ({
             >
               <Text style={styles.weaponLabel}>{w ? WEAPON_LABELS[w.type] : '—'}</Text>
               {w && (
-                <Text
-                  style={[
-                    styles.ammoLabel,
-                    !w.isReloading && isFinite(w.currentAmmo) && w.currentAmmo <= 5 && styles.ammoLow,
-                  ]}
-                >
-                  {w.isReloading ? 'RLD' : `${w.currentAmmo}/${w.magazineSize}`}
-                </Text>
+                <>
+                  <Text
+                    style={[
+                      styles.ammoLabel,
+                      !w.isReloading && isFinite(w.currentAmmo) && w.currentAmmo <= 5 && styles.ammoLow,
+                    ]}
+                  >
+                    {w.isReloading ? 'RLD' : `${w.currentAmmo}/${w.magazineSize}`}
+                  </Text>
+                  {w.isReloading && w.reloadStartMs > 0 && (
+                    <View style={styles.reloadBarBg}>
+                      <View
+                        style={[
+                          styles.reloadBarFill,
+                          {
+                            width: `${Math.min(100, ((Date.now() - w.reloadStartMs) / (w.reloadTime * player.reloadMult)) * 100)}%`,
+                          },
+                        ]}
+                      />
+                    </View>
+                  )}
+                </>
               )}
             </TouchableOpacity>
           );
@@ -622,7 +649,28 @@ const styles = StyleSheet.create({
     backgroundColor: '#44aaff',
     borderRadius: 6,
   },
-  barValue: { color: '#fff', fontSize: 11, width: 30, textAlign: 'right' },
+  shieldRegenBar: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    height: '100%',
+    backgroundColor: 'rgba(100,200,255,0.25)',
+    borderRadius: 6,
+  },
+  reloadBarBg: {
+    width: '100%',
+    height: 3,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    borderRadius: 2,
+    overflow: 'hidden',
+    marginTop: 2,
+  },
+  reloadBarFill: {
+    height: '100%',
+    backgroundColor: '#ffcc44',
+    borderRadius: 2,
+  },
+  barValue: { color: '#fff', fontSize: 11, width: 34, textAlign: 'right' },
   materialsRow: {
     flexDirection: 'row',
     gap: 8,

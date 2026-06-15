@@ -554,6 +554,7 @@ function tickSupplyDrops(state: GameState, deltaMs: number): GameState {
           range: 400,
           reloadTime: 2000,
           isReloading: false,
+          reloadStartMs: 0,
         };
         updated = { ...updated, weapons };
       }

@@ -27,7 +27,7 @@ import { clearBotBrains } from '../ai';
 // --- Weapon templates ---
 
 function makeWeapon(type: WeaponType, rarity: Rarity): Weapon {
-  const base: Record<WeaponType, Omit<Weapon, 'id' | 'type' | 'rarity' | 'isReloading'>> = {
+  const base: Record<WeaponType, Omit<Weapon, 'id' | 'type' | 'rarity' | 'isReloading' | 'reloadStartMs'>> = {
     // ── Melee ────────────────────────────────────────────────────────────────
     pickaxe: {
       damage: 20,
@@ -271,6 +271,7 @@ function makeWeapon(type: WeaponType, rarity: Rarity): Weapon {
     rarity,
     damage: Math.round(b.damage * rarityMult[rarity]),
     isReloading: false,
+    reloadStartMs: 0,
   };
 }
 

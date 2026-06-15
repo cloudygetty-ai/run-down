@@ -65,7 +65,7 @@ function tickBotReload(state: GameState, bot: Player, brain: BotBrain, nowMs: nu
     // Reload complete — refill magazine
     brain.reloadEndMs = 0;
     const weapons = [...bot.weapons] as Player['weapons'];
-    weapons[bot.activeWeaponSlot] = { ...weapon, currentAmmo: weapon.magazineSize, isReloading: false };
+    weapons[bot.activeWeaponSlot] = { ...weapon, currentAmmo: weapon.magazineSize, isReloading: false, reloadStartMs: 0 };
     return { ...state, players: state.players.map((p) => (p.id === bot.id ? { ...p, weapons } : p)) };
   }
 
@@ -73,7 +73,7 @@ function tickBotReload(state: GameState, bot: Player, brain: BotBrain, nowMs: nu
     // Start reload
     brain.reloadEndMs = nowMs + Math.round(weapon.reloadTime * bot.reloadMult);
     const weapons = [...bot.weapons] as Player['weapons'];
-    weapons[bot.activeWeaponSlot] = { ...weapon, isReloading: true };
+    weapons[bot.activeWeaponSlot] = { ...weapon, isReloading: true, reloadStartMs: nowMs };
     return { ...state, players: state.players.map((p) => (p.id === bot.id ? { ...p, weapons } : p)) };
   }
 

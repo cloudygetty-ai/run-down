@@ -20,6 +20,7 @@ function makeWeapon(overrides = {}) {
     range: 400,
     reloadTime: 2000,
     isReloading: false,
+    reloadStartMs: 0,
     ...overrides,
   };
 }

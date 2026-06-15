@@ -19,6 +19,7 @@ function makeWeapon(overrides: Partial<Weapon> = {}): Weapon {
     range: 400,
     reloadTime: 500, // short for test speed
     isReloading: false,
+    reloadStartMs: 0,
     ...overrides,
   };
 }

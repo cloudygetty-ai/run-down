@@ -32,9 +32,9 @@ export function startReload(player: Player, onComplete: (updated: Player) => voi
 
   reloadTimers.set(weaponId, timer);
 
-  // Mark as reloading immediately
+  // Mark as reloading immediately, record start time for progress bar
   const weapons = [...player.weapons] as Player['weapons'];
-  weapons[player.activeWeaponSlot] = { ...weapon, isReloading: true };
+  weapons[player.activeWeaponSlot] = { ...weapon, isReloading: true, reloadStartMs: Date.now() };
   onComplete({ ...player, weapons });
 }
 
@@ -48,6 +48,7 @@ function completeReload(player: Player): Player {
     ...weapon,
     currentAmmo: weapon.magazineSize,
     isReloading: false,
+    reloadStartMs: 0,
   };
   return { ...player, weapons };
 }
@@ -70,7 +71,7 @@ export function switchWeaponSlot(player: Player, slot: 0 | 1 | 2): Player {
       reloadTimers.delete(oldWeapon.id);
     }
     const weapons = [...player.weapons] as Player['weapons'];
-    weapons[player.activeWeaponSlot] = { ...oldWeapon, isReloading: false };
+    weapons[player.activeWeaponSlot] = { ...oldWeapon, isReloading: false, reloadStartMs: 0 };
     return { ...player, weapons, activeWeaponSlot: slot };
   }
   return { ...player, activeWeaponSlot: slot };
