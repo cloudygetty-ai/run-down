@@ -52,6 +52,9 @@ export const GameScreen: React.FC<Props> = ({ onGameOver }) => {
   const killTimestampsRef = useRef<number[]>([]);
   const [streakLabel, setStreakLabel] = useState<string | null>(null);
   const streakTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Personal elimination notification
+  const [eliminationBanner, setEliminationBanner] = useState<string | null>(null);
+  const eliminationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Show environment name for 3s on match start
   const [showEnvBanner, setShowEnvBanner] = useState(true);
   const envBannerTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -172,7 +175,7 @@ export const GameScreen: React.FC<Props> = ({ onGameOver }) => {
           }
         }
 
-        // Kill streak detection
+        // Kill streak + elimination banner detection
         const humanNext = next.players.find((p) => p.isHuman);
         if (humanNext && humanNext.kills > prevKillsRef.current) {
           prevKillsRef.current = humanNext.kills;
@@ -190,6 +193,13 @@ export const GameScreen: React.FC<Props> = ({ onGameOver }) => {
             setStreakLabel(label);
             if (streakTimeoutRef.current) clearTimeout(streakTimeoutRef.current);
             streakTimeoutRef.current = setTimeout(() => setStreakLabel(null), 2200);
+          }
+          // Personal elimination notification — find who we just eliminated from kill feed
+          const latestEntry = next.killFeed[0];
+          if (latestEntry && latestEntry.killerName === humanNext.name) {
+            setEliminationBanner(`YOU ELIMINATED ${latestEntry.victimName}`);
+            if (eliminationTimeoutRef.current) clearTimeout(eliminationTimeoutRef.current);
+            eliminationTimeoutRef.current = setTimeout(() => setEliminationBanner(null), 2500);
           }
         }
 
@@ -365,6 +375,13 @@ export const GameScreen: React.FC<Props> = ({ onGameOver }) => {
         />
       </View>
 
+      {/* Persistent crosshair */}
+      <View style={styles.crosshairOverlay} pointerEvents="none">
+        <View style={styles.crosshairH} />
+        <View style={styles.crosshairV} />
+        <View style={styles.crosshairDot} />
+      </View>
+
       {hitMarkerVisible && (
         <View style={styles.hitMarkerOverlay} pointerEvents="none">
           <View style={styles.hitMarkerLineH} />
@@ -385,6 +402,13 @@ export const GameScreen: React.FC<Props> = ({ onGameOver }) => {
           );
         })}
       </View>
+
+      {/* Personal elimination notification */}
+      {eliminationBanner && (
+        <View style={styles.eliminationBanner} pointerEvents="none">
+          <Text style={styles.eliminationText}>{eliminationBanner}</Text>
+        </View>
+      )}
 
       {/* Kill streak banner */}
       {streakLabel && (
@@ -455,6 +479,31 @@ const styles = StyleSheet.create({
   joystickLeft: { position: 'absolute', bottom: 30, left: 30 },
   joystickRight: { position: 'absolute', bottom: 50, right: 160 },
   minimapOverlay: { position: 'absolute', top: 50, right: 10 },
+  crosshairOverlay: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  crosshairH: {
+    position: 'absolute',
+    width: 20,
+    height: 1.5,
+    backgroundColor: 'rgba(255,255,255,0.6)',
+  },
+  crosshairV: {
+    position: 'absolute',
+    width: 1.5,
+    height: 20,
+    backgroundColor: 'rgba(255,255,255,0.6)',
+  },
+  crosshairDot: {
+    position: 'absolute',
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+  },
   hitMarkerOverlay: {
     position: 'absolute',
     top: 0, left: 0, right: 0, bottom: 0,
@@ -487,6 +536,23 @@ const styles = StyleSheet.create({
     textShadowColor: '#000',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2,
+    letterSpacing: 1,
+  },
+  eliminationBanner: {
+    position: 'absolute',
+    top: '18%',
+    alignSelf: 'center',
+    backgroundColor: 'rgba(0,0,0,0.75)',
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255,80,80,0.7)',
+  },
+  eliminationText: {
+    color: '#ff8888',
+    fontSize: 14,
+    fontWeight: 'bold',
     letterSpacing: 1,
   },
   streakBanner: {
