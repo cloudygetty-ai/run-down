@@ -8,6 +8,7 @@ import { LootDropView } from './LootDropView';
 import { SupplyDropView } from './SupplyDropView';
 import { MapTerrain } from './MapTerrain';
 import { FractureCoreView } from './FractureCoreView';
+import { HelixRelayView } from './HelixRelayView';
 
 type Props = {
   state: GameState;
@@ -100,6 +101,11 @@ export const GameMap: React.FC<Props> = ({ state, viewportX, viewportY, viewport
       {/* Supply drops */}
       {state.supplyDrops.map((drop) => (
         <SupplyDropView key={drop.id} drop={drop} viewportX={viewportX} viewportY={viewportY} />
+      ))}
+
+      {/* Helix Relays — capture rings on the ground */}
+      {state.helixRelays.map((relay) => (
+        <HelixRelayView key={relay.id} relay={relay} viewportX={viewportX} viewportY={viewportY} />
       ))}
 
       {/* Fracture Cores — dropped by explosive meteors */}
