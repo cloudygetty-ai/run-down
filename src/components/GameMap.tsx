@@ -112,6 +112,34 @@ export const GameMap: React.FC<Props> = ({ state, viewportX, viewportY, viewport
         <LootDropView key={l.id} loot={l} viewportX={viewportX} viewportY={viewportY} />
       ))}
 
+      {/* Build piece ghost — shows where the human's next piece will land */}
+      {(() => {
+        const human = state.players.find((p) => p.isHuman && p.status === 'alive' && p.isBuilding);
+        if (!human) return null;
+        const rad = (human.rotation * Math.PI) / 180;
+        const gx = human.position.x + Math.cos(rad) * 60 - viewportX;
+        const gy = human.position.y + Math.sin(rad) * 60 - viewportY;
+        const rot = Math.round(human.rotation / 90) * 90;
+        const isRamp = human.selectedBuildPiece === 'ramp';
+        const MAT_GHOST: Record<string, string> = { wood: '#cc880044', stone: '#8899aa44', metal: '#aabbcc44' };
+        return (
+          <View
+            style={{
+              position: 'absolute',
+              left: gx - 30,
+              top: gy - (isRamp ? 15 : 30),
+              width: 60,
+              height: isRamp ? 30 : 60,
+              borderRadius: 3,
+              borderWidth: 2,
+              borderColor: MAT_GHOST[human.selectedBuildMaterial] ?? '#ffffff44',
+              backgroundColor: MAT_GHOST[human.selectedBuildMaterial] ?? '#ffffff22',
+              transform: [{ rotate: `${rot}deg` }],
+            }}
+          />
+        );
+      })()}
+
       {/* Players (alive + knocked — knocked shown faded/downed) */}
       {playersToRender.map((p) => (
         <PlayerSprite key={p.id} player={p} viewportX={viewportX} viewportY={viewportY} />

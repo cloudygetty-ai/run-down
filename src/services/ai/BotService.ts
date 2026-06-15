@@ -21,6 +21,7 @@ type BotBrain = {
   lastFireTimeMs: number;
   wanderTarget: Vector2 | null;
   wanderTimer: number; // ms until picking a new wander target
+  reloadEndMs: number; // timestamp when active weapon reload completes (0 = not reloading)
 };
 
 const botBrains = new Map<string, BotBrain>();
@@ -31,6 +32,7 @@ function getBrain(botId: string): BotBrain {
       lastFireTimeMs: 0,
       wanderTarget: null,
       wanderTimer: 0,
+      reloadEndMs: 0,
     });
   }
   return botBrains.get(botId)!;
@@ -55,6 +57,29 @@ export function tickBots(state: GameState, deltaMs: number): GameState {
   return next;
 }
 
+function tickBotReload(state: GameState, bot: Player, brain: BotBrain, nowMs: number): GameState {
+  const weapon = bot.weapons[bot.activeWeaponSlot];
+  if (!weapon || weapon.type === 'pickaxe' || !isFinite(weapon.magazineSize)) return state;
+
+  if (brain.reloadEndMs > 0 && nowMs >= brain.reloadEndMs) {
+    // Reload complete — refill magazine
+    brain.reloadEndMs = 0;
+    const weapons = [...bot.weapons] as Player['weapons'];
+    weapons[bot.activeWeaponSlot] = { ...weapon, currentAmmo: weapon.magazineSize, isReloading: false };
+    return { ...state, players: state.players.map((p) => (p.id === bot.id ? { ...p, weapons } : p)) };
+  }
+
+  if (weapon.currentAmmo === 0 && !weapon.isReloading && brain.reloadEndMs === 0) {
+    // Start reload
+    brain.reloadEndMs = nowMs + Math.round(weapon.reloadTime * bot.reloadMult);
+    const weapons = [...bot.weapons] as Player['weapons'];
+    weapons[bot.activeWeaponSlot] = { ...weapon, isReloading: true };
+    return { ...state, players: state.players.map((p) => (p.id === bot.id ? { ...p, weapons } : p)) };
+  }
+
+  return state;
+}
+
 function tickSingleBot(state: GameState, botId: string, nowMs: number, deltaMs: number): GameState {
   const bot = state.players.find((p) => p.id === botId);
   if (!bot || bot.status !== 'alive') {
@@ -62,25 +87,28 @@ function tickSingleBot(state: GameState, botId: string, nowMs: number, deltaMs: 
   }
 
   const brain = getBrain(botId);
-  const nearestEnemy = findNearestEnemy(bot, state.players);
+
+  // Advance weapon reload before any other decisions
+  const reloadedState = tickBotReload(state, bot, brain, nowMs);
+  const reloadedBot = reloadedState.players.find((p) => p.id === botId) ?? bot;
+
+  const nearestEnemy = findNearestEnemy(reloadedBot, reloadedState.players);
 
   // Priority 1: get inside the shelter zone if outside during bombardment
   if (
-    !isInsideCircle(bot.position, state.bombardment.shelterCenter, state.bombardment.shelterRadius)
+    !isInsideCircle(reloadedBot.position, reloadedState.bombardment.shelterCenter, reloadedState.bombardment.shelterRadius)
   ) {
-    const target = state.bombardment.shelterCenter;
-    const movedState = moveBot(state, bot, target, deltaMs);
-    return movedState;
+    return moveBot(reloadedState, reloadedBot, reloadedState.bombardment.shelterCenter, deltaMs);
   }
 
   // Priority 2: engage enemy if in range
-  if (nearestEnemy && distance(bot.position, nearestEnemy.position) < BOT_AGGRO_RANGE) {
+  if (nearestEnemy && distance(reloadedBot.position, nearestEnemy.position) < BOT_AGGRO_RANGE) {
     // Trigger ability when engaging and it's off cooldown
-    let workState = state;
-    let workBot = bot;
-    if (bot.abilityChargeMs === 0) {
-      workState = triggerPlayerAbility(state, botId);
-      workBot = workState.players.find((p) => p.id === botId) ?? bot;
+    let workState = reloadedState;
+    let workBot = reloadedBot;
+    if (reloadedBot.abilityChargeMs === 0) {
+      workState = triggerPlayerAbility(reloadedState, botId);
+      workBot = workState.players.find((p) => p.id === botId) ?? reloadedBot;
     }
 
     // Pick the best weapon for the current engagement range
@@ -105,38 +133,40 @@ function tickSingleBot(state: GameState, botId: string, nowMs: number, deltaMs: 
   }
 
   // Priority 3: pick up nearby loot
-  const nearLoot = state.lootDrops.find((l) => distance(bot.position, l.position) < BOT_LOOT_RANGE);
+  const nearLoot = reloadedState.lootDrops.find(
+    (l) => distance(reloadedBot.position, l.position) < BOT_LOOT_RANGE,
+  );
   if (nearLoot) {
-    return pickUpLootForBot(state, bot, nearLoot.id);
+    return pickUpLootForBot(reloadedState, reloadedBot, nearLoot.id);
   }
 
   // Priority 4: route toward a landed supply drop within seek range
-  const nearSupply = state.supplyDrops.find(
-    (d) => d.isLanded && distance(bot.position, d.position) < BOT_SUPPLY_SEEK_RANGE,
+  const nearSupply = reloadedState.supplyDrops.find(
+    (d) => d.isLanded && distance(reloadedBot.position, d.position) < BOT_SUPPLY_SEEK_RANGE,
   );
   if (nearSupply) {
-    return moveBot(state, bot, nearSupply.position, deltaMs);
+    return moveBot(reloadedState, reloadedBot, nearSupply.position, deltaMs);
   }
 
   // Priority 5: capture a nearby uncaptured Helix Relay
-  const nearRelay = state.helixRelays.find(
-    (r) => r.captureProgress < 1 && distance(bot.position, r.position) < BOT_RELAY_SEEK_RANGE,
+  const nearRelay = reloadedState.helixRelays.find(
+    (r) => r.captureProgress < 1 && distance(reloadedBot.position, r.position) < BOT_RELAY_SEEK_RANGE,
   );
   if (nearRelay) {
-    return moveBot(state, bot, nearRelay.position, deltaMs);
+    return moveBot(reloadedState, reloadedBot, nearRelay.position, deltaMs);
   }
 
   // Priority 6: wander
   brain.wanderTimer -= deltaMs;
   if (!brain.wanderTarget || brain.wanderTimer <= 0) {
     brain.wanderTarget = {
-      x: clamp(bot.position.x + randomInRange(-200, 200), 50, state.mapWidth - 50),
-      y: clamp(bot.position.y + randomInRange(-200, 200), 50, state.mapHeight - 50),
+      x: clamp(reloadedBot.position.x + randomInRange(-200, 200), 50, reloadedState.mapWidth - 50),
+      y: clamp(reloadedBot.position.y + randomInRange(-200, 200), 50, reloadedState.mapHeight - 50),
     };
     brain.wanderTimer = randomInRange(2000, 6000);
   }
 
-  return moveBot(state, bot, brain.wanderTarget, deltaMs);
+  return moveBot(reloadedState, reloadedBot, brain.wanderTarget, deltaMs);
 }
 
 function moveBot(state: GameState, bot: Player, target: Vector2, deltaMs: number): GameState {
