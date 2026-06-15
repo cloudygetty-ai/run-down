@@ -10,7 +10,7 @@ import { getCharacter } from '../core/characters';
 import { tickBots } from '../services/ai';
 import { startReload, switchWeaponSlot } from '../services/weapons';
 import { BuildPiece, Vector2 } from '../types';
-import { distance } from '../utils';
+import { distance, isInsideCircle } from '../utils';
 import { logger } from '../utils';
 import { TICK_RATE_MS, LOOT_PICKUP_RANGE } from '../core/balance';
 
@@ -374,6 +374,32 @@ export const GameScreen: React.FC<Props> = ({ onGameOver }) => {
           mapTheme={gameState.mapTheme}
         />
       </View>
+
+      {/* Danger vignette — appears at screen edges when HP is low or outside the zone */}
+      {(() => {
+        const lowHealth = human.health < 30;
+        const outsideZone = !isInsideCircle(
+          human.position,
+          gameState.bombardment.shelterCenter,
+          gameState.bombardment.shelterRadius,
+        );
+        const knocked = human.status === 'knocked';
+        const intensity = knocked ? 0.6 : outsideZone ? 0.4 : lowHealth ? 0.3 : 0;
+        if (intensity === 0) return null;
+        return (
+          <View
+            pointerEvents="none"
+            style={[
+              StyleSheet.absoluteFillObject,
+              {
+                borderWidth: 44,
+                borderColor: `rgba(200,0,0,${intensity})`,
+                borderRadius: 0,
+              },
+            ]}
+          />
+        );
+      })()}
 
       {/* Persistent crosshair */}
       <View style={styles.crosshairOverlay} pointerEvents="none">

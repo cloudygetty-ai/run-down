@@ -351,7 +351,12 @@ export const HUD: React.FC<Props> = ({
             >
               <Text style={styles.weaponLabel}>{w ? WEAPON_LABELS[w.type] : '—'}</Text>
               {w && (
-                <Text style={styles.ammoLabel}>
+                <Text
+                  style={[
+                    styles.ammoLabel,
+                    !w.isReloading && isFinite(w.currentAmmo) && w.currentAmmo <= 5 && styles.ammoLow,
+                  ]}
+                >
                   {w.isReloading ? 'RLD' : `${w.currentAmmo}/${w.magazineSize}`}
                 </Text>
               )}
@@ -672,6 +677,7 @@ const styles = StyleSheet.create({
   },
   weaponLabel: { color: '#fff', fontSize: 14, fontWeight: 'bold' },
   ammoLabel: { color: '#aaa', fontSize: 9 },
+  ammoLow: { color: '#ff4444', fontWeight: 'bold' },
 
   actionButtons: {
     position: 'absolute',
