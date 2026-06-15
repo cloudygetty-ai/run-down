@@ -67,7 +67,9 @@ export const BOT_COUNT = 99;
 
 // ── Bot AI ────────────────────────────────────────────────────────────────────
 export const BOT_SPEED = 3;          // units per tick — ~75% of base PLAYER_SPEED, threatening but beatable
-export const BOT_AGGRO_RANGE = 400;  // units — bot notices and chases enemies within this distance
-export const BOT_SHOOT_RANGE = 300;  // units — bot fires when target is closer than this
-export const BOT_LOOT_RANGE = 60;    // units — bot auto-picks up loot within this radius
-export const LOOT_PICKUP_RANGE = 60; // units — player auto-picks up loot within this radius
+export const BOT_AGGRO_RANGE = 400;         // units — bot notices and chases enemies within this distance
+export const BOT_SHOOT_RANGE = 300;         // units — bot fires when target is closer than this
+export const BOT_LOOT_RANGE = 60;           // units — bot auto-picks up loot within this radius
+export const BOT_RELAY_SEEK_RANGE = 600;    // units — bot will route toward an uncaptured relay within this range
+export const BOT_SUPPLY_SEEK_RANGE = 500;   // units — bot will route toward a landed supply drop within this range
+export const LOOT_PICKUP_RANGE = 60;        // units — player auto-picks up loot within this radius

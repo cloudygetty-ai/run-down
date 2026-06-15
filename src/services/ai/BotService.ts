@@ -7,6 +7,8 @@ import {
   BOT_AGGRO_RANGE,
   BOT_SHOOT_RANGE,
   BOT_LOOT_RANGE,
+  BOT_RELAY_SEEK_RANGE,
+  BOT_SUPPLY_SEEK_RANGE,
   TICK_RATE_MS,
 } from '../../core/balance';
 
@@ -100,7 +102,23 @@ function tickSingleBot(state: GameState, botId: string, nowMs: number, deltaMs: 
     return pickUpLootForBot(state, bot, nearLoot.id);
   }
 
-  // Priority 4: wander
+  // Priority 4: route toward a landed supply drop within seek range
+  const nearSupply = state.supplyDrops.find(
+    (d) => d.isLanded && distance(bot.position, d.position) < BOT_SUPPLY_SEEK_RANGE,
+  );
+  if (nearSupply) {
+    return moveBot(state, bot, nearSupply.position, deltaMs);
+  }
+
+  // Priority 5: capture a nearby uncaptured Helix Relay
+  const nearRelay = state.helixRelays.find(
+    (r) => r.captureProgress < 1 && distance(bot.position, r.position) < BOT_RELAY_SEEK_RANGE,
+  );
+  if (nearRelay) {
+    return moveBot(state, bot, nearRelay.position, deltaMs);
+  }
+
+  // Priority 6: wander
   brain.wanderTimer -= deltaMs;
   if (!brain.wanderTarget || brain.wanderTimer <= 0) {
     brain.wanderTarget = {

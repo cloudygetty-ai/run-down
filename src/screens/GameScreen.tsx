@@ -42,6 +42,11 @@ export const GameScreen: React.FC<Props> = ({ onGameOver }) => {
   const [damageNumbers, setDamageNumbers] = useState<
     Array<{ id: string; x: number; y: number; value: number; bornAt: number }>
   >([]);
+  // Kill streak feedback
+  const prevKillsRef = useRef(0);
+  const killTimestampsRef = useRef<number[]>([]);
+  const [streakLabel, setStreakLabel] = useState<string | null>(null);
+  const streakTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Show environment name for 3s on match start
   const [showEnvBanner, setShowEnvBanner] = useState(true);
   const envBannerTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -145,6 +150,27 @@ export const GameScreen: React.FC<Props> = ({ onGameOver }) => {
             update(next); // commit movement first
             pickUpLoot(h.id, nearby.id); // then pick up
             return;
+          }
+        }
+
+        // Kill streak detection
+        const humanNext = next.players.find((p) => p.isHuman);
+        if (humanNext && humanNext.kills > prevKillsRef.current) {
+          prevKillsRef.current = humanNext.kills;
+          const now = Date.now();
+          killTimestampsRef.current = [
+            ...killTimestampsRef.current.filter((t) => now - t < 8000),
+            now,
+          ];
+          const streak = killTimestampsRef.current.length;
+          let label: string | null = null;
+          if (streak === 2) label = 'DOUBLE KILL';
+          else if (streak === 3) label = 'TRIPLE KILL';
+          else if (streak >= 4) label = `${streak}× KILL STREAK`;
+          if (label) {
+            setStreakLabel(label);
+            if (streakTimeoutRef.current) clearTimeout(streakTimeoutRef.current);
+            streakTimeoutRef.current = setTimeout(() => setStreakLabel(null), 2200);
           }
         }
 
@@ -327,6 +353,13 @@ export const GameScreen: React.FC<Props> = ({ onGameOver }) => {
         </View>
       )}
 
+      {/* Kill streak banner */}
+      {streakLabel && (
+        <View style={styles.streakBanner} pointerEvents="none">
+          <Text style={styles.streakText}>{streakLabel}</Text>
+        </View>
+      )}
+
       {/* Floating damage numbers */}
       <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
         {damageNumbers.map((d) => {
@@ -405,6 +438,26 @@ const styles = StyleSheet.create({
     width: 2,
     height: 24,
     backgroundColor: '#ff3333',
+  },
+  streakBanner: {
+    position: 'absolute',
+    top: '22%',
+    alignSelf: 'center',
+    backgroundColor: 'rgba(255,150,0,0.88)',
+    paddingHorizontal: 28,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#ffdd00',
+  },
+  streakText: {
+    color: '#fff',
+    fontSize: 22,
+    fontWeight: 'bold',
+    letterSpacing: 3,
+    textShadowColor: '#000',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
   },
   damageNumber: {
     position: 'absolute',
