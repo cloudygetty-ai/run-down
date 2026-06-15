@@ -7,6 +7,7 @@ import { BuildPieceView } from './BuildPieceView';
 import { LootDropView } from './LootDropView';
 import { SupplyDropView } from './SupplyDropView';
 import { MapTerrain } from './MapTerrain';
+import { FractureCoreView } from './FractureCoreView';
 
 type Props = {
   state: GameState;
@@ -24,6 +25,18 @@ export const GameMap: React.FC<Props> = ({ state, viewportX, viewportY, viewport
   const playersToRender = useMemo(
     () => state.players.filter((p) => p.status === 'alive' || p.status === 'knocked'),
     [state.players],
+  );
+
+  const visibleCores = useMemo(
+    () =>
+      state.fractureCores.filter(
+        (c) =>
+          c.position.x >= viewportX - 40 &&
+          c.position.x <= viewportX + viewportW + 40 &&
+          c.position.y >= viewportY - 40 &&
+          c.position.y <= viewportY + viewportH + 40,
+      ),
+    [state.fractureCores, viewportX, viewportY, viewportW, viewportH],
   );
 
   const visibleLoot = useMemo(
@@ -87,6 +100,11 @@ export const GameMap: React.FC<Props> = ({ state, viewportX, viewportY, viewport
       {/* Supply drops */}
       {state.supplyDrops.map((drop) => (
         <SupplyDropView key={drop.id} drop={drop} viewportX={viewportX} viewportY={viewportY} />
+      ))}
+
+      {/* Fracture Cores — dropped by explosive meteors */}
+      {visibleCores.map((c) => (
+        <FractureCoreView key={c.id} core={c} viewportX={viewportX} viewportY={viewportY} />
       ))}
 
       {/* Loot */}

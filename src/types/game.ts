@@ -161,6 +161,7 @@ export type Player = {
   activeWeaponSlot: 0 | 1 | 2;
   materials: Record<BuildingMaterial, number>;
   kills: number;
+  damageDealt: number; // cumulative damage dealt this match (for end-screen stat)
   isBuilding: boolean;
   selectedBuildPiece: BuildPieceType;
   selectedBuildMaterial: BuildingMaterial;
@@ -307,6 +308,7 @@ export type GamePhase = 'lobby' | 'dropping' | 'playing' | 'game_over';
 export type GameResult = {
   placement: number;
   kills: number;
+  damageDealt: number;
   survivalTimeMs: number;
   winner: string | null;
   environmentId: string;

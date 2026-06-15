@@ -308,6 +308,7 @@ function makePlayer(
     activeWeaponSlot: 0,
     materials: { wood: baseMaterials, stone: 50 + (isHuman ? p.materialsBonus : 0), metal: 25 + (isHuman ? p.materialsBonus : 0) },
     kills: 0,
+    damageDealt: 0,
     isBuilding: false,
     selectedBuildPiece: 'wall',
     selectedBuildMaterial: 'wood',

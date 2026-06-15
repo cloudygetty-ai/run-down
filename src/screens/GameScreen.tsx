@@ -38,6 +38,10 @@ export const GameScreen: React.FC<Props> = ({ onGameOver }) => {
   onGameOverRef.current = onGameOver;
   const [hitMarkerVisible, setHitMarkerVisible] = useState(false);
   const hitMarkerTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Floating damage numbers — created on hit, auto-expire after 900ms
+  const [damageNumbers, setDamageNumbers] = useState<
+    Array<{ id: string; x: number; y: number; value: number; bornAt: number }>
+  >([]);
   // Show environment name for 3s on match start
   const [showEnvBanner, setShowEnvBanner] = useState(true);
   const envBannerTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -100,11 +104,31 @@ export const GameScreen: React.FC<Props> = ({ onGameOver }) => {
                   x: h.position.x + dir.x * weapon.range,
                   y: h.position.y + dir.y * weapon.range,
                 });
-                // Hit marker: detect if any enemy's health decreased
-                if (next.players.some((p, i) => !p.isHuman && p.health < (prevPlayers[i]?.health ?? p.health))) {
+                // Detect hits: collect damage per enemy for marker + floating numbers
+                const hits = next.players
+                  .map((p, i) => ({
+                    p,
+                    delta: !p.isHuman
+                      ? ((prevPlayers[i]?.health ?? p.health) - p.health) +
+                        ((prevPlayers[i]?.shield ?? p.shield) - p.shield)
+                      : 0,
+                  }))
+                  .filter(({ delta }) => delta > 0);
+                if (hits.length > 0) {
                   setHitMarkerVisible(true);
                   if (hitMarkerTimeoutRef.current) clearTimeout(hitMarkerTimeoutRef.current);
                   hitMarkerTimeoutRef.current = setTimeout(() => setHitMarkerVisible(false), 120);
+                  const now = Date.now();
+                  setDamageNumbers((prev) => [
+                    ...prev.filter((d) => now - d.bornAt < 900),
+                    ...hits.map(({ p, delta }) => ({
+                      id: `dmg_${now}_${p.id}`,
+                      x: p.position.x,
+                      y: p.position.y - 20,
+                      value: Math.round(delta),
+                      bornAt: now,
+                    })),
+                  ]);
                 }
               }
             }
@@ -165,10 +189,30 @@ export const GameScreen: React.FC<Props> = ({ onGameOver }) => {
       x: h.position.x + dir.x * weapon.range,
       y: h.position.y + dir.y * weapon.range,
     });
-    if (nextState.players.some((p, i) => !p.isHuman && p.health < (state.players[i]?.health ?? p.health))) {
+    const hits = nextState.players
+      .map((p, i) => ({
+        p,
+        delta: !p.isHuman
+          ? ((state.players[i]?.health ?? p.health) - p.health) +
+            ((state.players[i]?.shield ?? p.shield) - p.shield)
+          : 0,
+      }))
+      .filter(({ delta }) => delta > 0);
+    if (hits.length > 0) {
       setHitMarkerVisible(true);
       if (hitMarkerTimeoutRef.current) clearTimeout(hitMarkerTimeoutRef.current);
       hitMarkerTimeoutRef.current = setTimeout(() => setHitMarkerVisible(false), 120);
+      const now = Date.now();
+      setDamageNumbers((prev) => [
+        ...prev.filter((d) => now - d.bornAt < 900),
+        ...hits.map(({ p, delta }) => ({
+          id: `dmg_${now}_${p.id}`,
+          x: p.position.x,
+          y: p.position.y - 20,
+          value: Math.round(delta),
+          bornAt: now,
+        })),
+      ]);
     }
     update(nextState);
   }, []);
@@ -269,6 +313,7 @@ export const GameScreen: React.FC<Props> = ({ onGameOver }) => {
           supplyDrops={gameState.supplyDrops}
           incomingMeteors={gameState.incomingMeteors}
           helixRelays={gameState.helixRelays}
+          fractureCores={gameState.fractureCores}
           mapWidth={gameState.mapWidth}
           mapHeight={gameState.mapHeight}
           mapTheme={gameState.mapTheme}
@@ -281,6 +326,25 @@ export const GameScreen: React.FC<Props> = ({ onGameOver }) => {
           <View style={styles.hitMarkerLineV} />
         </View>
       )}
+
+      {/* Floating damage numbers */}
+      <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+        {damageNumbers.map((d) => {
+          const age = Date.now() - d.bornAt;
+          if (age >= 900) return null;
+          const screenX = d.x - viewportX;
+          const screenY = d.y - viewportY - age * 0.065;
+          const opacity = Math.max(0, 1 - age / 900);
+          return (
+            <Text
+              key={d.id}
+              style={[styles.damageNumber, { left: screenX - 20, top: screenY, opacity }]}
+            >
+              {d.value}
+            </Text>
+          );
+        })}
+      </View>
 
       <HUD
         player={human}
@@ -341,6 +405,17 @@ const styles = StyleSheet.create({
     width: 2,
     height: 24,
     backgroundColor: '#ff3333',
+  },
+  damageNumber: {
+    position: 'absolute',
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    width: 40,
+    textShadowColor: '#000',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
   envBanner: {
     position: 'absolute',

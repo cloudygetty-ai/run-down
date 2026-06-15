@@ -799,12 +799,14 @@ export function fireShot(state: GameState, shooterId: string, targetPos: Vector2
     let shield = wasKnocked ? 0 : target.shield;
     let health = target.health;
 
+    let shieldAbsorbed = 0;
     if (!wasKnocked && shield > 0) {
-      const absorbed = Math.min(shield, dmg);
-      shield -= absorbed;
-      dmg -= absorbed;
+      shieldAbsorbed = Math.min(shield, dmg);
+      shield -= shieldAbsorbed;
+      dmg -= shieldAbsorbed;
     }
     health = Math.max(0, health - dmg);
+    const totalDamage = shieldAbsorbed + (target.health - health);
 
     const newStatus = health === 0
       ? (wasAlive ? ('knocked' as const) : ('eliminated' as const))
@@ -812,6 +814,12 @@ export function fireShot(state: GameState, shooterId: string, targetPos: Vector2
     const knockedTimerMs = newStatus === 'knocked' ? KNOCKED_TIMER_MS : target.knockedTimerMs;
 
     players[i] = { ...target, shield, health, status: newStatus, knockedTimerMs };
+
+    // Accumulate damage on shooter
+    players[shooterIndex] = {
+      ...players[shooterIndex],
+      damageDealt: players[shooterIndex].damageDealt + totalDamage,
+    };
 
     // Kill credit on the first down (alive → knocked)
     if (wasAlive && health === 0) {
@@ -917,6 +925,7 @@ function checkWinCondition(state: GameState): GameState {
       result: {
         placement,
         kills: human?.kills ?? 0,
+        damageDealt: human?.damageDealt ?? 0,
         survivalTimeMs: Date.now() - state.startTime,
         winner: winner?.name ?? null,
         environmentId: state.environmentId,

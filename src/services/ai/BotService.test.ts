@@ -41,6 +41,7 @@ function makePlayer(overrides: Partial<Player> = {}): Player {
     activeWeaponSlot: 1,
     materials: { wood: 100, stone: 50, metal: 25 },
     kills: 0,
+    damageDealt: 0,
     isBuilding: false,
     selectedBuildPiece: 'wall',
     selectedBuildMaterial: 'wood',

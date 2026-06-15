@@ -31,6 +31,7 @@ function makePlayer(x: number, y: number): Player {
     activeWeaponSlot: 0,
     materials: { wood: 0, stone: 0, metal: 0 },
     kills: 0,
+    damageDealt: 0,
     isBuilding: false,
     selectedBuildPiece: 'wall',
     selectedBuildMaterial: 'wood',

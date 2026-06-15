@@ -62,6 +62,11 @@ export const GameOverScreen: React.FC<Props> = ({ result }) => {
           </View>
         </View>
 
+        <View style={styles.damageRow}>
+          <Text style={styles.damageLabel}>Damage Dealt</Text>
+          <Text style={styles.damageValue}>{result.damageDealt.toLocaleString()}</Text>
+        </View>
+
         {result.winner && !isWin && (
           <View style={styles.winnerRow}>
             <Text style={styles.winnerLabel}>Winner</Text>
@@ -141,6 +146,19 @@ const styles = StyleSheet.create({
   statValueKills: { color: '#ff7733' },
   statValueWin: { color: '#ffcc00' },
   statLabel: { fontSize: 11, color: '#666', marginTop: 2 },
+  damageRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    marginBottom: 16,
+  },
+  damageLabel: { color: '#888', fontSize: 12 },
+  damageValue: { color: '#ff9944', fontSize: 18, fontWeight: 'bold' },
   winnerRow: {
     flexDirection: 'row',
     alignItems: 'center',

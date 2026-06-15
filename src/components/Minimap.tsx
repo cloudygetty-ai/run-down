@@ -1,6 +1,12 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Player, Bombardment, SupplyDrop, IncomingMeteor, MapTheme, HelixRelay } from '../types';
+import { Player, Bombardment, SupplyDrop, IncomingMeteor, MapTheme, HelixRelay, FractureCore } from '../types';
+
+const CORE_MINI_COLORS: Record<string, string> = {
+  cooldown_reduction: '#4488ff',
+  damage_amp:         '#ff4433',
+  ability_mutation:   '#cc44ff',
+};
 
 type Props = {
   players: Player[];
@@ -8,6 +14,7 @@ type Props = {
   supplyDrops: SupplyDrop[];
   incomingMeteors: IncomingMeteor[];
   helixRelays: HelixRelay[];
+  fractureCores: FractureCore[];
   mapWidth: number;
   mapHeight: number;
   mapTheme: MapTheme;
@@ -21,6 +28,7 @@ export const Minimap: React.FC<Props> = ({
   supplyDrops,
   incomingMeteors,
   helixRelays,
+  fractureCores,
   mapWidth,
   mapHeight,
   mapTheme,
@@ -73,6 +81,27 @@ export const Minimap: React.FC<Props> = ({
           borderColor: 'rgba(255, 120, 0, 0.9)',
         }}
       />
+
+      {/* Fracture Cores — tiny colored circles */}
+      {fractureCores.map((core) => {
+        const { x, y } = toMini(core.position.x, core.position.y);
+        const color = CORE_MINI_COLORS[core.effect] ?? '#ffffff';
+        return (
+          <View
+            key={core.id}
+            style={{
+              position: 'absolute',
+              left: x - 3,
+              top: y - 3,
+              width: 6,
+              height: 6,
+              borderRadius: 3,
+              backgroundColor: color,
+              opacity: 0.85,
+            }}
+          />
+        );
+      })}
 
       {/* Incoming meteors — red dots */}
       {incomingMeteors.map((m) => {
