@@ -1,15 +1,13 @@
 import React, { useCallback, useState } from 'react';
-import {
-  ScrollView, StyleSheet, Text, TouchableOpacity, View,
-} from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useDetectorStore } from '../store/detector.store';
 import { useBluetooth } from '../hooks/useBluetooth';
 import { DeviceCard } from '../components/DeviceCard';
 import { SignalBars } from '../components/SignalBars';
 
 export function BluetoothScreen() {
-  const bleDevices = useDetectorStore(s => s.bleDevices);
-  const resetScan = useDetectorStore(s => s.resetScan);
+  const bleDevices = useDetectorStore((s) => s.bleDevices);
+  const resetScan = useDetectorStore((s) => s.resetScan);
   const btScan = useBluetooth();
   const [running, setRunning] = useState(false);
   const [done, setDone] = useState(false);
@@ -29,8 +27,8 @@ export function BluetoothScreen() {
     setDone(true);
   }, [btScan]);
 
-  const cameras = bleDevices.filter(d => d.isCamera);
-  const others = bleDevices.filter(d => !d.isCamera);
+  const cameras = bleDevices.filter((d) => d.isCamera);
+  const others = bleDevices.filter((d) => !d.isCamera);
 
   return (
     <View style={styles.root}>
@@ -55,8 +53,10 @@ export function BluetoothScreen() {
             ]}
           />
           <Text style={styles.statusText}>
-            {running ? 'SCANNING FOR BLE DEVICES...'
-              : done ? `SCAN COMPLETE  ·  ${bleDevices.length} devices`
+            {running
+              ? 'SCANNING FOR BLE DEVICES...'
+              : done
+              ? `SCAN COMPLETE  ·  ${bleDevices.length} devices`
               : 'READY'}
           </Text>
         </View>
@@ -65,35 +65,43 @@ export function BluetoothScreen() {
         {cameras.length > 0 && (
           <>
             <Text style={[styles.sectionLabel, { color: '#EF4444' }]}>
-              BLE CAMERAS  ({cameras.length})
+              BLE CAMERAS ({cameras.length})
             </Text>
-            {cameras.map(d => <DeviceCard key={d.id} device={d} />)}
+            {cameras.map((d) => (
+              <DeviceCard key={d.id} device={d} />
+            ))}
           </>
         )}
 
         {/* Anonymous / suspicious */}
-        {others.filter(d => !d.name).length > 0 && (
+        {others.filter((d) => !d.name).length > 0 && (
           <>
             <Text style={[styles.sectionLabel, { color: '#F59E0B' }]}>
-              ANONYMOUS DEVICES  ({others.filter(d => !d.name).length})
+              ANONYMOUS DEVICES ({others.filter((d) => !d.name).length})
             </Text>
-            {others.filter(d => !d.name).map(d => <DeviceCard key={d.id} device={d} />)}
+            {others
+              .filter((d) => !d.name)
+              .map((d) => (
+                <DeviceCard key={d.id} device={d} />
+              ))}
           </>
         )}
 
         {/* Named non-camera devices */}
-        {others.filter(d => d.name).length > 0 && (
+        {others.filter((d) => d.name).length > 0 && (
           <>
             <Text style={styles.sectionLabel}>KNOWN DEVICES</Text>
-            {others.filter(d => d.name).map(d => (
-              <View key={d.id} style={styles.knownRow}>
-                <SignalBars rssi={d.rssi} color="#5C566E" />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.knownName}>{d.name}</Text>
-                  <Text style={styles.knownRssi}>{d.rssi} dBm</Text>
+            {others
+              .filter((d) => d.name)
+              .map((d) => (
+                <View key={d.id} style={styles.knownRow}>
+                  <SignalBars rssi={d.rssi} color="#5C566E" />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.knownName}>{d.name}</Text>
+                    <Text style={styles.knownRssi}>{d.rssi} dBm</Text>
+                  </View>
                 </View>
-              </View>
-            ))}
+              ))}
           </>
         )}
 
@@ -133,7 +141,12 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 }
 
 const ir = StyleSheet.create({
-  row: { flexDirection: 'row', paddingVertical: 7, borderBottomWidth: 1, borderBottomColor: '#1A1625' },
+  row: {
+    flexDirection: 'row',
+    paddingVertical: 7,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1A1625',
+  },
   label: { width: 80, color: '#3D3650', fontSize: 9, letterSpacing: 2, fontFamily: 'monospace' },
   value: { flex: 1, color: '#7B748C', fontSize: 10, fontFamily: 'monospace' },
 });
@@ -205,5 +218,11 @@ const styles = StyleSheet.create({
   btn: { borderRadius: 14, padding: 18, alignItems: 'center' },
   btnPrimary: { backgroundColor: '#C9A84C' },
   btnStop: { backgroundColor: '#EF4444' },
-  btnText: { color: '#0D0A14', fontSize: 12, letterSpacing: 4, fontFamily: 'monospace', fontWeight: '700' },
+  btnText: {
+    color: '#0D0A14',
+    fontSize: 12,
+    letterSpacing: 4,
+    fontFamily: 'monospace',
+    fontWeight: '700',
+  },
 });

@@ -4,7 +4,7 @@ import { useDetectorStore } from '../store/detector.store';
 
 export function useBluetooth() {
   const abortRef = useRef<AbortController | null>(null);
-  const addBleDevice = useDetectorStore(s => s.addBleDevice);
+  const addBleDevice = useDetectorStore((s) => s.addBleDevice);
 
   const start = useCallback(async () => {
     abortRef.current = new AbortController();

@@ -5,10 +5,10 @@ import { THREAT_COLORS, THREAT_LABELS } from '../services/threat.service';
 import type { ScanResult } from '../types';
 
 export function HistoryScreen() {
-  const history = useDetectorStore(s => s.history);
+  const history = useDetectorStore((s) => s.history);
 
   const totalScans = history.length;
-  const camerasFound = history.filter(s => s.cameraDetected).length;
+  const camerasFound = history.filter((s) => s.cameraDetected).length;
   const avgScore = totalScans
     ? Math.round(history.reduce((a, s) => a + s.threatScore, 0) / totalScans)
     : 0;
@@ -17,7 +17,9 @@ export function HistoryScreen() {
     <View style={styles.root}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.title}>SCAN HISTORY</Text>
-        <Text style={styles.subtitle}>{totalScans} SCAN{totalScans !== 1 ? 'S' : ''} RECORDED</Text>
+        <Text style={styles.subtitle}>
+          {totalScans} SCAN{totalScans !== 1 ? 'S' : ''} RECORDED
+        </Text>
 
         {/* Summary stats */}
         {totalScans > 0 && (
@@ -37,7 +39,7 @@ export function HistoryScreen() {
             </Text>
           </View>
         ) : (
-          history.map(scan => <ScanCard key={scan.id} scan={scan} />)
+          history.map((scan) => <ScanCard key={scan.id} scan={scan} />)
         )}
       </ScrollView>
     </View>
@@ -49,7 +51,7 @@ function ScanCard({ scan }: { scan: ScanResult }) {
   const label = THREAT_LABELS[scan.threatLevel];
   const date = new Date(scan.timestamp);
   const durationSec = Math.round(scan.duration / 1000);
-  const cameras = [...scan.networkDevices, ...scan.bleDevices].filter(d => d.isCamera);
+  const cameras = [...scan.networkDevices, ...scan.bleDevices].filter((d) => d.isCamera);
 
   return (
     <View style={[styles.card, scan.cameraDetected && styles.cardAlert]}>
@@ -69,10 +71,10 @@ function ScanCard({ scan }: { scan: ScanResult }) {
       </View>
 
       <View style={styles.metrics}>
-        <Metric label="DURATION"   value={`${durationSec}s`} />
-        <Metric label="NETWORK"    value={scan.networkDevices.length.toString()} />
-        <Metric label="BLUETOOTH"  value={scan.bleDevices.length.toString()} />
-        <Metric label="MAG PEAK"   value={`${Math.round(scan.magneticAnomalyPeak)}µT`} />
+        <Metric label="DURATION" value={`${durationSec}s`} />
+        <Metric label="NETWORK" value={scan.networkDevices.length.toString()} />
+        <Metric label="BLUETOOTH" value={scan.bleDevices.length.toString()} />
+        <Metric label="MAG PEAK" value={`${Math.round(scan.magneticAnomalyPeak)}µT`} />
       </View>
 
       {scan.cameraDetected && cameras.length > 0 && (
@@ -80,7 +82,8 @@ function ScanCard({ scan }: { scan: ScanResult }) {
           <Text style={styles.cameraListTitle}>CAMERAS DETECTED</Text>
           {cameras.map((c, i) => (
             <Text key={i} style={styles.cameraItem}>
-              {'› '}{('ip' in c) ? c.ip : (c.name ?? 'Unknown BLE device')}
+              {'› '}
+              {'ip' in c ? c.ip : c.name ?? 'Unknown BLE device'}
               {'  '}({c.confidence}% confidence)
             </Text>
           ))}
@@ -125,7 +128,13 @@ const sum = StyleSheet.create({
 
 const met = StyleSheet.create({
   cell: { flex: 1, alignItems: 'center' },
-  val: { color: '#C9A84C', fontSize: 14, fontFamily: 'monospace', fontWeight: '600', marginBottom: 2 },
+  val: {
+    color: '#C9A84C',
+    fontSize: 14,
+    fontFamily: 'monospace',
+    fontWeight: '600',
+    marginBottom: 2,
+  },
   label: { color: '#3D3650', fontSize: 8, letterSpacing: 1, fontFamily: 'monospace' },
 });
 
@@ -161,10 +170,20 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   cardAlert: { borderColor: '#EF444440', backgroundColor: '#150A0A' },
-  cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 },
+  cardTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 14,
+  },
   cardDate: { color: '#4B4560', fontSize: 11, fontFamily: 'monospace', marginBottom: 4 },
   cardLevel: { fontSize: 13, letterSpacing: 3, fontFamily: 'monospace', fontWeight: '700' },
-  scoreBubble: { borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, alignItems: 'center' },
+  scoreBubble: {
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
   scoreNum: { fontSize: 26, fontWeight: '900', fontFamily: 'monospace' },
   scoreUnit: { color: '#3D3650', fontSize: 9, fontFamily: 'monospace' },
   metrics: { flexDirection: 'row' },

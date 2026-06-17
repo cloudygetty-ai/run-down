@@ -1,6 +1,6 @@
 import type { ThreatScore, ThreatLevel, MagneticReading, NetworkDevice, BleDevice } from '../types';
 
-const WEIGHTS = { magnetic: 0.25, network: 0.45, bluetooth: 0.30 } as const;
+const WEIGHTS = { magnetic: 0.25, network: 0.45, bluetooth: 0.3 } as const;
 
 // Magnetic anomaly thresholds in µT above rolling baseline
 const MAG = { low: 8, medium: 20, high: 45, critical: 80 } as const;
@@ -17,16 +17,16 @@ function scoreMagnetic(reading: MagneticReading | null): number {
 
 function scoreNetwork(devices: NetworkDevice[]): number {
   if (!devices.length) return 0;
-  const cameras = devices.filter(d => d.isCamera);
+  const cameras = devices.filter((d) => d.isCamera);
   if (!cameras.length) return Math.min(12, devices.length * 2);
-  return Math.min(100, Math.max(...cameras.map(d => d.confidence)));
+  return Math.min(100, Math.max(...cameras.map((d) => d.confidence)));
 }
 
 function scoreBluetooth(devices: BleDevice[]): number {
   if (!devices.length) return 0;
-  const cameras = devices.filter(d => d.isCamera);
+  const cameras = devices.filter((d) => d.isCamera);
   if (!cameras.length) return Math.min(8, devices.length * 2);
-  return Math.min(100, Math.max(...cameras.map(d => d.confidence)));
+  return Math.min(100, Math.max(...cameras.map((d) => d.confidence)));
 }
 
 export function computeThreatScore(params: {
@@ -39,9 +39,7 @@ export function computeThreatScore(params: {
   const bluetooth = scoreBluetooth(params.bleDevices);
 
   const total = Math.round(
-    magnetic * WEIGHTS.magnetic +
-    network * WEIGHTS.network +
-    bluetooth * WEIGHTS.bluetooth,
+    magnetic * WEIGHTS.magnetic + network * WEIGHTS.network + bluetooth * WEIGHTS.bluetooth,
   );
 
   // Confidence reflects how many sensor channels are active

@@ -4,10 +4,16 @@ import { THREAT_COLORS, THREAT_LABELS } from '../services/threat.service';
 import type { ThreatScore } from '../types';
 
 const SEGMENT_COLORS = [
-  '#22C55E', '#22C55E', '#22C55E',   // 0-29 safe
-  '#84CC16', '#F59E0B',               // 30-49
-  '#F97316', '#F97316',               // 50-69
-  '#EF4444', '#EF4444', '#EF4444',   // 70-100
+  '#22C55E',
+  '#22C55E',
+  '#22C55E', // 0-29 safe
+  '#84CC16',
+  '#F59E0B', // 30-49
+  '#F97316',
+  '#F97316', // 50-69
+  '#EF4444',
+  '#EF4444',
+  '#EF4444', // 70-100
 ];
 
 interface Props {
@@ -46,15 +52,10 @@ export function ThreatMeter({ score, compact = false }: Props) {
   return (
     <View style={styles.wrapper}>
       <Animated.View
-        style={[
-          styles.ring,
-          { width: size, height: size, borderRadius: size / 2, borderColor },
-        ]}
+        style={[styles.ring, { width: size, height: size, borderRadius: size / 2, borderColor }]}
       >
         <View style={styles.inner}>
-          <Text style={[styles.score, { color, fontSize: compact ? 36 : 52 }]}>
-            {score.total}
-          </Text>
+          <Text style={[styles.score, { color, fontSize: compact ? 36 : 52 }]}>{score.total}</Text>
           <Text style={styles.scoreUnit}>THREAT</Text>
         </View>
       </Animated.View>
@@ -63,10 +64,7 @@ export function ThreatMeter({ score, compact = false }: Props) {
 
       <View style={styles.segmentRow}>
         {SEGMENT_COLORS.map((c, i) => (
-          <View
-            key={i}
-            style={[styles.segment, { backgroundColor: i < filled ? c : '#1E1A2E' }]}
-          />
+          <View key={i} style={[styles.segment, { backgroundColor: i < filled ? c : '#1E1A2E' }]} />
         ))}
       </View>
 
@@ -112,7 +110,13 @@ const styles = StyleSheet.create({
   },
   inner: { alignItems: 'center' },
   score: { fontWeight: '900', letterSpacing: -2 },
-  scoreUnit: { color: '#3D3650', fontSize: 9, letterSpacing: 4, fontFamily: 'monospace', marginTop: 2 },
+  scoreUnit: {
+    color: '#3D3650',
+    fontSize: 9,
+    letterSpacing: 4,
+    fontFamily: 'monospace',
+    marginTop: 2,
+  },
   level: { fontSize: 11, letterSpacing: 4, fontFamily: 'monospace', fontWeight: '700' },
   segmentRow: { flexDirection: 'row', gap: 3 },
   segment: { width: 20, height: 6, borderRadius: 2 },

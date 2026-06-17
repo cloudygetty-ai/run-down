@@ -11,13 +11,11 @@ const PULSE_COUNT = 3;
 const PULSE_DURATION = 2200;
 
 export function RadarPulse({ active, color = '#C9A84C', size = 160 }: Props) {
-  const anims = useRef(
-    Array.from({ length: PULSE_COUNT }, () => new Animated.Value(0)),
-  ).current;
+  const anims = useRef(Array.from({ length: PULSE_COUNT }, () => new Animated.Value(0))).current;
 
   useEffect(() => {
     if (!active) {
-      anims.forEach(a => a.setValue(0));
+      anims.forEach((a) => a.setValue(0));
       return;
     }
 
@@ -35,8 +33,8 @@ export function RadarPulse({ active, color = '#C9A84C', size = 160 }: Props) {
       ),
     );
 
-    loops.forEach(l => l.start());
-    return () => loops.forEach(l => l.stop());
+    loops.forEach((l) => l.start());
+    return () => loops.forEach((l) => l.stop());
   }, [active, anims]);
 
   return (
@@ -70,8 +68,12 @@ export function RadarPulse({ active, color = '#C9A84C', size = 160 }: Props) {
       {/* Cross-hair lines */}
       {active && (
         <>
-          <View style={[styles.line, styles.lineH, { borderColor: color + '30', width: size * 0.6 }]} />
-          <View style={[styles.line, styles.lineV, { borderColor: color + '30', height: size * 0.6 }]} />
+          <View
+            style={[styles.line, styles.lineH, { borderColor: color + '30', width: size * 0.6 }]}
+          />
+          <View
+            style={[styles.line, styles.lineV, { borderColor: color + '30', height: size * 0.6 }]}
+          />
         </>
       )}
     </View>

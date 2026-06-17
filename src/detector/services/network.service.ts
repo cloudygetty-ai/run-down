@@ -2,11 +2,33 @@ import type { NetworkDevice } from '../types';
 
 // Strings that appear in camera HTTP responses / headers
 const CAMERA_SIGNATURES = [
-  'hikvision', 'dahua', 'axis', 'foscam', 'amcrest', 'reolink',
-  'lorex', 'wisenet', 'hanwha', 'bosch', 'pelco', 'vivotek',
-  'avigilon', 'ipcam', 'netcam', 'ip camera', 'webcam',
-  'ipcamera', 'cgi-bin/guestimage', 'videoserver', 'dvr', 'nvr',
-  'camera', 'surveillance', 'mjpg', 'mjpeg', 'onvif',
+  'hikvision',
+  'dahua',
+  'axis',
+  'foscam',
+  'amcrest',
+  'reolink',
+  'lorex',
+  'wisenet',
+  'hanwha',
+  'bosch',
+  'pelco',
+  'vivotek',
+  'avigilon',
+  'ipcam',
+  'netcam',
+  'ip camera',
+  'webcam',
+  'ipcamera',
+  'cgi-bin/guestimage',
+  'videoserver',
+  'dvr',
+  'nvr',
+  'camera',
+  'surveillance',
+  'mjpg',
+  'mjpeg',
+  'onvif',
 ] as const;
 
 // Ports commonly opened by IP cameras / DVRs / NVRs
@@ -21,11 +43,7 @@ interface ProbeResult {
   responseTimeMs: number;
 }
 
-async function probeHost(
-  ip: string,
-  port: number,
-  timeoutMs = 1200,
-): Promise<ProbeResult | null> {
+async function probeHost(ip: string, port: number, timeoutMs = 1200): Promise<ProbeResult | null> {
   const start = Date.now();
   try {
     const controller = new AbortController();
@@ -38,12 +56,25 @@ async function probeHost(
     clearTimeout(t);
 
     const headers: Record<string, string> = {};
-    res.headers.forEach((v, k) => { headers[k] = v; });
+    res.headers.forEach((v: string, k: string) => {
+      headers[k] = v;
+    });
 
     let body = '';
-    try { body = await res.text(); } catch { /* ignore */ }
+    try {
+      body = await res.text();
+    } catch {
+      /* ignore */
+    }
 
-    return { ip, port, status: res.status, headers, body: body.slice(0, 3000), responseTimeMs: Date.now() - start };
+    return {
+      ip,
+      port,
+      status: res.status,
+      headers,
+      body: body.slice(0, 3000),
+      responseTimeMs: Date.now() - start,
+    };
   } catch {
     return null;
   }
@@ -54,10 +85,7 @@ function fingerprint(r: ProbeResult): {
   confidence: number;
   cameraType: NetworkDevice['cameraType'];
 } {
-  const haystack = [
-    ...Object.values(r.headers),
-    r.body,
-  ].join(' ').toLowerCase();
+  const haystack = [...Object.values(r.headers), r.body].join(' ').toLowerCase();
 
   let confidence = 0;
   let cameraType: NetworkDevice['cameraType'] = 'unknown';
@@ -103,13 +131,13 @@ export async function scanNetwork(
 
     const batch = ips.slice(i, i + BATCH);
     const probes = await Promise.all(
-      batch.flatMap(ip => CAMERA_PORTS.map(port => probeHost(ip, port))),
+      batch.flatMap((ip) => CAMERA_PORTS.map((port) => probeHost(ip, port))),
     );
 
     for (const result of probes) {
       if (!result) continue;
       const fp = fingerprint(result);
-      const existing = found.find(d => d.ip === result.ip);
+      const existing = found.find((d) => d.ip === result.ip);
 
       if (existing) {
         if (!existing.openPorts.includes(result.port)) {

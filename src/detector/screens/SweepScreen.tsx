@@ -1,8 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import {
-  ScrollView, StyleSheet, Text, TouchableOpacity,
-  Vibration, View,
-} from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, Vibration, View } from 'react-native';
 import { useDetectorStore } from '../store/detector.store';
 import { useMagnetometer } from '../hooks/useMagnetometer';
 import { useNetworkScan } from '../hooks/useNetworkScan';
@@ -18,9 +15,16 @@ const MAX_GRAPH = 60;
 
 export function SweepScreen() {
   const {
-    scanPhase, threatScore, magneticReading,
-    networkDevices, bleDevices, networkScanProgress,
-    startScan, stopScan, saveScan, resetScan,
+    scanPhase,
+    threatScore,
+    magneticReading,
+    networkDevices,
+    bleDevices,
+    networkScanProgress,
+    startScan,
+    stopScan,
+    saveScan,
+    resetScan,
   } = useDetectorStore();
 
   const [graphReadings, setGraphReadings] = useState<MagneticReading[]>([]);
@@ -32,7 +36,7 @@ export function SweepScreen() {
 
   useEffect(() => {
     if (magneticReading) {
-      setGraphReadings(prev => [...prev.slice(-MAX_GRAPH + 1), magneticReading]);
+      setGraphReadings((prev) => [...prev.slice(-MAX_GRAPH + 1), magneticReading]);
     }
   }, [magneticReading]);
 
@@ -66,17 +70,14 @@ export function SweepScreen() {
 
   const threatColor = THREAT_COLORS[threatScore.level];
   const cameraDevices = [
-    ...networkDevices.filter(d => d.isCamera),
-    ...bleDevices.filter(d => d.isCamera),
+    ...networkDevices.filter((d) => d.isCamera),
+    ...bleDevices.filter((d) => d.isCamera),
   ];
   const allDevices = [...networkDevices, ...bleDevices];
 
   return (
     <View style={styles.root}>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.pageTitle}>ALL-SENSOR SWEEP</Text>
         <Text style={styles.pageSubtitle}>MAGNETIC · NETWORK · BLUETOOTH</Text>
 
@@ -90,11 +91,7 @@ export function SweepScreen() {
         <View style={styles.grid}>
           <GridStat label="NET" value={networkDevices.length} sub={`${networkScanProgress}%`} />
           <GridStat label="BLE" value={bleDevices.length} />
-          <GridStat
-            label="CAMS"
-            value={cameraDevices.length}
-            alert={cameraDevices.length > 0}
-          />
+          <GridStat label="CAMS" value={cameraDevices.length} alert={cameraDevices.length > 0} />
           <GridStat
             label="µT"
             value={magneticReading ? magneticReading.anomaly.toFixed(0) : '—'}
@@ -105,15 +102,10 @@ export function SweepScreen() {
         {/* Network progress */}
         {isScanning && networkScanProgress < 100 && (
           <View style={styles.progressWrap}>
-            <Text style={styles.progressLabel}>
-              NETWORK SCAN  {networkScanProgress}%
-            </Text>
+            <Text style={styles.progressLabel}>NETWORK SCAN {networkScanProgress}%</Text>
             <View style={styles.progressTrack}>
               <View
-                style={[
-                  styles.progressFill,
-                  { width: `${networkScanProgress}%` as `${number}%` },
-                ]}
+                style={[styles.progressFill, { width: `${networkScanProgress}%` as `${number}%` }]}
               />
             </View>
           </View>
@@ -128,23 +120,23 @@ export function SweepScreen() {
             <Text style={styles.alertBannerText}>
               {cameraDevices.length} CAMERA{cameraDevices.length > 1 ? 'S' : ''} DETECTED
             </Text>
-            <Text style={styles.alertBannerSub}>
-              Verify each device below immediately
-            </Text>
+            <Text style={styles.alertBannerSub}>Verify each device below immediately</Text>
           </View>
         )}
 
         {/* Device list */}
         {allDevices.length > 0 && (
           <View style={styles.deviceSection}>
-            <Text style={styles.sectionLabel}>
-              DETECTED DEVICES  ({allDevices.length})
-            </Text>
+            <Text style={styles.sectionLabel}>DETECTED DEVICES ({allDevices.length})</Text>
             {/* Show camera devices first */}
-            {cameraDevices.map(d => <DeviceCard key={d.id} device={d} />)}
+            {cameraDevices.map((d) => (
+              <DeviceCard key={d.id} device={d} />
+            ))}
             {allDevices
-              .filter(d => !d.isCamera)
-              .map(d => <DeviceCard key={d.id} device={d} />)}
+              .filter((d) => !d.isCamera)
+              .map((d) => (
+                <DeviceCard key={d.id} device={d} />
+              ))}
           </View>
         )}
 
@@ -152,8 +144,8 @@ export function SweepScreen() {
           <View style={styles.idleHint}>
             <Text style={styles.idleHintText}>
               Tap SCAN to launch all detectors simultaneously.{'\n'}
-              Sweep your phone slowly around the room — aim for corners,
-              vents, clocks, and smoke detectors.
+              Sweep your phone slowly around the room — aim for corners, vents, clocks, and smoke
+              detectors.
             </Text>
           </View>
         )}

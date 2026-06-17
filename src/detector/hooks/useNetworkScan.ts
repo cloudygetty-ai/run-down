@@ -4,8 +4,8 @@ import { useDetectorStore } from '../store/detector.store';
 
 export function useNetworkScan() {
   const abortRef = useRef<AbortController | null>(null);
-  const addNetworkDevice = useDetectorStore(s => s.addNetworkDevice);
-  const setNetworkProgress = useDetectorStore(s => s.setNetworkProgress);
+  const addNetworkDevice = useDetectorStore((s) => s.addNetworkDevice);
+  const setNetworkProgress = useDetectorStore((s) => s.setNetworkProgress);
 
   const start = useCallback(async () => {
     abortRef.current = new AbortController();

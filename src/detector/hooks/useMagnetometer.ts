@@ -3,7 +3,7 @@ import { magnetometerService } from '../services/magnetometer.service';
 import { useDetectorStore } from '../store/detector.store';
 
 export function useMagnetometer(active: boolean): void {
-  const setMagneticReading = useDetectorStore(s => s.setMagneticReading);
+  const setMagneticReading = useDetectorStore((s) => s.setMagneticReading);
 
   useEffect(() => {
     if (!active) return;

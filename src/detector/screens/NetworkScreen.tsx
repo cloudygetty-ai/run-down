@@ -1,16 +1,11 @@
 import React, { useCallback, useState } from 'react';
-import {
-  ScrollView, StyleSheet, Text,
-  TouchableOpacity, View,
-} from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useDetectorStore } from '../store/detector.store';
 import { useNetworkScan } from '../hooks/useNetworkScan';
 import { DeviceCard } from '../components/DeviceCard';
 
 export function NetworkScreen() {
-  const {
-    networkDevices, networkScanProgress, resetScan,
-  } = useDetectorStore();
+  const { networkDevices, networkScanProgress, resetScan } = useDetectorStore();
 
   const netScan = useNetworkScan();
   const [running, setRunning] = useState(false);
@@ -31,8 +26,8 @@ export function NetworkScreen() {
     setDone(true);
   }, [netScan]);
 
-  const cameras = networkDevices.filter(d => d.isCamera);
-  const others = networkDevices.filter(d => !d.isCamera);
+  const cameras = networkDevices.filter((d) => d.isCamera);
+  const others = networkDevices.filter((d) => !d.isCamera);
 
   return (
     <View style={styles.root}>
@@ -76,7 +71,9 @@ export function NetworkScreen() {
         {cameras.length > 0 && (
           <>
             <SectionLabel label={`CAMERAS DETECTED  (${cameras.length})`} alert />
-            {cameras.map(d => <DeviceCard key={d.id} device={d} />)}
+            {cameras.map((d) => (
+              <DeviceCard key={d.id} device={d} />
+            ))}
           </>
         )}
 
@@ -84,7 +81,9 @@ export function NetworkScreen() {
         {others.length > 0 && (
           <>
             <SectionLabel label={`OTHER DEVICES  (${others.length})`} />
-            {others.map(d => <DeviceCard key={d.id} device={d} />)}
+            {others.map((d) => (
+              <DeviceCard key={d.id} device={d} />
+            ))}
           </>
         )}
 
@@ -134,19 +133,29 @@ function Row({ label, value }: { label: string; value: string }) {
 }
 
 function SectionLabel({ label, alert }: { label: string; alert?: boolean }) {
-  return (
-    <Text style={[sectionStyles.label, alert && { color: '#EF4444' }]}>{label}</Text>
-  );
+  return <Text style={[sectionStyles.label, alert && { color: '#EF4444' }]}>{label}</Text>;
 }
 
 const rowStyles = StyleSheet.create({
-  row: { flexDirection: 'row', paddingVertical: 7, borderBottomWidth: 1, borderBottomColor: '#1A1625' },
+  row: {
+    flexDirection: 'row',
+    paddingVertical: 7,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1A1625',
+  },
   label: { width: 90, color: '#3D3650', fontSize: 9, letterSpacing: 2, fontFamily: 'monospace' },
   value: { flex: 1, color: '#7B748C', fontSize: 10, fontFamily: 'monospace' },
 });
 
 const sectionStyles = StyleSheet.create({
-  label: { color: '#3D3650', fontSize: 9, letterSpacing: 4, fontFamily: 'monospace', marginTop: 20, marginBottom: 10 },
+  label: {
+    color: '#3D3650',
+    fontSize: 9,
+    letterSpacing: 4,
+    fontFamily: 'monospace',
+    marginTop: 20,
+    marginBottom: 10,
+  },
 });
 
 const styles = StyleSheet.create({
@@ -203,5 +212,11 @@ const styles = StyleSheet.create({
   btn: { borderRadius: 14, padding: 18, alignItems: 'center' },
   btnPrimary: { backgroundColor: '#C9A84C' },
   btnStop: { backgroundColor: '#EF4444' },
-  btnText: { color: '#0D0A14', fontSize: 12, letterSpacing: 4, fontFamily: 'monospace', fontWeight: '700' },
+  btnText: {
+    color: '#0D0A14',
+    fontSize: 12,
+    letterSpacing: 4,
+    fontFamily: 'monospace',
+    fontWeight: '700',
+  },
 });

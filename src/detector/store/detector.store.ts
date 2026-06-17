@@ -1,7 +1,11 @@
 import { create } from 'zustand';
 import type {
-  MagneticReading, NetworkDevice, BleDevice,
-  ScanResult, ThreatScore, ScanPhase,
+  MagneticReading,
+  NetworkDevice,
+  BleDevice,
+  ScanResult,
+  ThreatScore,
+  ScanPhase,
 } from '../types';
 import { computeThreatScore } from '../services/threat.service';
 
@@ -71,10 +75,9 @@ export const useDetectorStore = create<DetectorState>((set, get) => ({
   addNetworkDevice: (device) => {
     const { magneticReading, bleDevices } = get();
     const prev = get().networkDevices;
-    const idx = prev.findIndex(d => d.id === device.id);
-    const networkDevices = idx >= 0
-      ? prev.map((d, i) => (i === idx ? device : d))
-      : [...prev, device];
+    const idx = prev.findIndex((d) => d.id === device.id);
+    const networkDevices =
+      idx >= 0 ? prev.map((d, i) => (i === idx ? device : d)) : [...prev, device];
     set({ networkDevices, threatScore: recompute(magneticReading, networkDevices, bleDevices) });
   },
 
@@ -87,7 +90,8 @@ export const useDetectorStore = create<DetectorState>((set, get) => ({
   setNetworkProgress: (networkScanProgress) => set({ networkScanProgress }),
 
   saveScan: () => {
-    const { magneticReading, networkDevices, bleDevices, threatScore, scanStartTime, history } = get();
+    const { magneticReading, networkDevices, bleDevices, threatScore, scanStartTime, history } =
+      get();
     const result: ScanResult = {
       id: `scan-${Date.now()}`,
       timestamp: Date.now(),

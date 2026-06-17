@@ -17,19 +17,19 @@ interface TabDef {
 }
 
 const TABS: TabDef[] = [
-  { id: 'sweep',      label: 'SWEEP',   icon: '◎' },
-  { id: 'network',    label: 'NET',     icon: '⊞' },
-  { id: 'magnetic',   label: 'MAG',     icon: '⊕' },
-  { id: 'bluetooth',  label: 'BLE',     icon: '◈' },
-  { id: 'history',    label: 'LOG',     icon: '≡' },
+  { id: 'sweep', label: 'SWEEP', icon: '◎' },
+  { id: 'network', label: 'NET', icon: '⊞' },
+  { id: 'magnetic', label: 'MAG', icon: '⊕' },
+  { id: 'bluetooth', label: 'BLE', icon: '◈' },
+  { id: 'history', label: 'LOG', icon: '≡' },
 ];
 
 export function DetectorApp() {
   const [activeTab, setActiveTab] = useState<Tab>('sweep');
-  const threatScore = useDetectorStore(s => s.threatScore);
-  const scanPhase = useDetectorStore(s => s.scanPhase);
-  const cameraCount = useDetectorStore(s =>
-    [...s.networkDevices, ...s.bleDevices].filter(d => d.isCamera).length,
+  const threatScore = useDetectorStore((s) => s.threatScore);
+  const scanPhase = useDetectorStore((s) => s.scanPhase);
+  const cameraCount = useDetectorStore(
+    (s) => [...s.networkDevices, ...s.bleDevices].filter((d) => d.isCamera).length,
   );
 
   const threatColor = THREAT_COLORS[threatScore.level];
@@ -40,7 +40,9 @@ export function DetectorApp() {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <View style={[styles.liveIndicator, { backgroundColor: isActive ? '#22C55E' : '#3D3650' }]} />
+          <View
+            style={[styles.liveIndicator, { backgroundColor: isActive ? '#22C55E' : '#3D3650' }]}
+          />
           <Text style={styles.appName}>HIDDEN CAM DETECTOR</Text>
         </View>
         {isActive && (
@@ -54,24 +56,22 @@ export function DetectorApp() {
           </View>
         )}
         {threatScore.total > 0 && (
-          <Text style={[styles.headerScore, { color: threatColor }]}>
-            {threatScore.total}
-          </Text>
+          <Text style={[styles.headerScore, { color: threatColor }]}>{threatScore.total}</Text>
         )}
       </View>
 
       {/* Screen */}
       <View style={styles.screen}>
-        {activeTab === 'sweep'     && <SweepScreen />}
-        {activeTab === 'network'   && <NetworkScreen />}
-        {activeTab === 'magnetic'  && <MagnetometerScreen />}
+        {activeTab === 'sweep' && <SweepScreen />}
+        {activeTab === 'network' && <NetworkScreen />}
+        {activeTab === 'magnetic' && <MagnetometerScreen />}
         {activeTab === 'bluetooth' && <BluetoothScreen />}
-        {activeTab === 'history'   && <HistoryScreen />}
+        {activeTab === 'history' && <HistoryScreen />}
       </View>
 
       {/* Tab bar */}
       <View style={styles.tabBar}>
-        {TABS.map(tab => {
+        {TABS.map((tab) => {
           const active = tab.id === activeTab;
           return (
             <TouchableOpacity
@@ -80,12 +80,8 @@ export function DetectorApp() {
               onPress={() => setActiveTab(tab.id)}
               activeOpacity={0.7}
             >
-              <Text style={[styles.tabIcon, active && styles.tabIconActive]}>
-                {tab.icon}
-              </Text>
-              <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>
-                {tab.label}
-              </Text>
+              <Text style={[styles.tabIcon, active && styles.tabIconActive]}>{tab.icon}</Text>
+              <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{tab.label}</Text>
               {active && <View style={styles.tabIndicator} />}
             </TouchableOpacity>
           );
@@ -129,7 +125,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
   },
-  alertBadgeText: { color: '#EF4444', fontSize: 9, letterSpacing: 2, fontFamily: 'monospace', fontWeight: '700' },
+  alertBadgeText: {
+    color: '#EF4444',
+    fontSize: 9,
+    letterSpacing: 2,
+    fontFamily: 'monospace',
+    fontWeight: '700',
+  },
   headerScore: { fontSize: 18, fontWeight: '700', fontFamily: 'monospace' },
 
   screen: { flex: 1 },

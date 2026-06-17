@@ -12,9 +12,9 @@ const BAR_GAP = 1;
 const ANOMALY_THRESHOLD = 15; // µT — above this = suspicious
 
 export function MagneticGraph({ readings }: Props) {
-  const maxAnomaly = Math.max(ANOMALY_THRESHOLD * 2, ...readings.map(r => r.anomaly));
+  const maxAnomaly = Math.max(ANOMALY_THRESHOLD * 2, ...readings.map((r) => r.anomaly));
   const latest = readings[readings.length - 1];
-  const peak = readings.length ? Math.max(...readings.map(r => r.anomaly)) : 0;
+  const peak = readings.length ? Math.max(...readings.map((r) => r.anomaly)) : 0;
 
   return (
     <View style={styles.card}>
@@ -26,10 +26,7 @@ export function MagneticGraph({ readings }: Props) {
       <View style={styles.graphArea}>
         {/* Threshold line */}
         <View
-          style={[
-            styles.thresholdLine,
-            { bottom: (ANOMALY_THRESHOLD / maxAnomaly) * GRAPH_H },
-          ]}
+          style={[styles.thresholdLine, { bottom: (ANOMALY_THRESHOLD / maxAnomaly) * GRAPH_H }]}
         />
 
         {/* Bars */}
@@ -54,7 +51,11 @@ export function MagneticGraph({ readings }: Props) {
       </View>
 
       <View style={styles.footer}>
-        <Stat label="NOW" value={`${(latest?.anomaly ?? 0).toFixed(1)} µT`} hot={(latest?.anomaly ?? 0) > ANOMALY_THRESHOLD} />
+        <Stat
+          label="NOW"
+          value={`${(latest?.anomaly ?? 0).toFixed(1)} µT`}
+          hot={(latest?.anomaly ?? 0) > ANOMALY_THRESHOLD}
+        />
         <Stat label="BASE" value={`${(latest?.baseline ?? 0).toFixed(1)} µT`} />
         <Stat label="PEAK" value={`${peak.toFixed(1)} µT`} hot={peak > ANOMALY_THRESHOLD} />
         <Stat label="MAG" value={`${(latest?.magnitude ?? 0).toFixed(0)} µT`} />
@@ -94,5 +95,11 @@ const styles = StyleSheet.create({
   footer: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 },
   stat: { alignItems: 'center' },
   statVal: { color: '#C9A84C', fontSize: 12, fontFamily: 'monospace', fontWeight: '600' },
-  statLabel: { color: '#3D3650', fontSize: 8, letterSpacing: 2, fontFamily: 'monospace', marginTop: 2 },
+  statLabel: {
+    color: '#3D3650',
+    fontSize: 8,
+    letterSpacing: 2,
+    fontFamily: 'monospace',
+    marginTop: 2,
+  },
 });

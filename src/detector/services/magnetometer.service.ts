@@ -74,12 +74,16 @@ class MagnetometerService {
       this.readings.shift();
     }
 
-    const baseline =
-      this.readings.reduce((a, b) => a + b, 0) / this.readings.length;
+    const baseline = this.readings.reduce((a, b) => a + b, 0) / this.readings.length;
     const anomaly = Math.abs(magnitude - baseline);
 
     this.subscriber?.({
-      x, y, z, magnitude, baseline, anomaly,
+      x,
+      y,
+      z,
+      magnitude,
+      baseline,
+      anomaly,
       timestamp: Date.now(),
     });
   }

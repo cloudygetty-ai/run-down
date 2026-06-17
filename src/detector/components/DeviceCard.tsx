@@ -17,16 +17,14 @@ export function DeviceCard({ device }: Props) {
   const isCamera = device.isCamera;
   const accent = isCamera ? '#EF4444' : '#C9A84C';
 
-  const title = isNet(device)
-    ? (device.hostname ?? device.ip)
-    : (device.name ?? 'Unknown Device');
+  const title = isNet(device) ? device.hostname ?? device.ip : device.name ?? 'Unknown Device';
 
   const sub = isNet(device)
     ? `${device.ip}  ·  ports: ${device.openPorts.join(', ')}`
     : `RSSI ${device.rssi} dBm`;
 
   const typeTag = isNet(device)
-    ? (device.cameraType?.replace('_', ' ').toUpperCase() ?? 'NETWORK DEVICE')
+    ? device.cameraType?.replace('_', ' ').toUpperCase() ?? 'NETWORK DEVICE'
     : 'BLUETOOTH DEVICE';
 
   return (
@@ -34,16 +32,16 @@ export function DeviceCard({ device }: Props) {
       <View style={styles.row}>
         <View style={styles.info}>
           <Text style={[styles.tag, { color: accent }]}>{typeTag}</Text>
-          <Text style={styles.title} numberOfLines={1}>{title}</Text>
+          <Text style={styles.title} numberOfLines={1}>
+            {title}
+          </Text>
           <Text style={styles.sub}>{sub}</Text>
         </View>
 
         {!isNet(device) && <SignalBars rssi={device.rssi} color={accent} />}
 
         <View style={[styles.badge, { backgroundColor: accent + '18' }]}>
-          <Text style={[styles.confidence, { color: accent }]}>
-            {device.confidence}%
-          </Text>
+          <Text style={[styles.confidence, { color: accent }]}>{device.confidence}%</Text>
         </View>
       </View>
 
@@ -59,7 +57,9 @@ export function DeviceCard({ device }: Props) {
       {!isNet(device) && device.cameraIndicators.length > 0 && (
         <View style={styles.indicators}>
           {device.cameraIndicators.map((ind, i) => (
-            <Text key={i} style={styles.indicator}>{ind}</Text>
+            <Text key={i} style={styles.indicator}>
+              {ind}
+            </Text>
           ))}
         </View>
       )}
@@ -94,7 +94,13 @@ const styles = StyleSheet.create({
     borderTopColor: '#EF444425',
   },
   alertDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#EF4444' },
-  alertText: { color: '#EF4444', fontSize: 10, letterSpacing: 3, fontFamily: 'monospace', fontWeight: '700' },
+  alertText: {
+    color: '#EF4444',
+    fontSize: 10,
+    letterSpacing: 3,
+    fontFamily: 'monospace',
+    fontWeight: '700',
+  },
   indicators: { marginTop: 8 },
   indicator: { color: '#5C566E', fontSize: 10, fontFamily: 'monospace', marginBottom: 2 },
 });

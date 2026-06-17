@@ -2,21 +2,36 @@ import type { BleDevice } from '../types';
 
 // Name patterns strongly associated with IP/BLE cameras
 const CAMERA_NAME_RE = [
-  /\bcam(era)?\b/i, /\bipc\b/i, /\bdvr\b/i, /\bnvr\b/i,
-  /\bspy\b/i, /\bhidden\b/i, /reolink/i, /dahua/i,
-  /hikvision/i, /foscam/i, /blink/i, /wyze\s*cam/i,
-  /arlo/i, /ring\s*cam/i, /nest\s*cam/i, /eufycam/i,
+  /\bcam(era)?\b/i,
+  /\bipc\b/i,
+  /\bdvr\b/i,
+  /\bnvr\b/i,
+  /\bspy\b/i,
+  /\bhidden\b/i,
+  /reolink/i,
+  /dahua/i,
+  /hikvision/i,
+  /foscam/i,
+  /blink/i,
+  /wyze\s*cam/i,
+  /arlo/i,
+  /ring\s*cam/i,
+  /nest\s*cam/i,
+  /eufycam/i,
 ];
 
 // Known BLE manufacturer IDs mapped to camera vendors
 // TODO[P1]: Expand from full IEEE OUI database
 const CAMERA_MANUFACTURER_IDS: number[] = [
-  0x01E4, // Axis Communications
-  0x033B, // Sony (some surveillance)
-  0x04E8, // Samsung Techwin
+  0x01e4, // Axis Communications
+  0x033b, // Sony (some surveillance)
+  0x04e8, // Samsung Techwin
 ];
 
-export function analyzeDevice(name?: string, manufacturerId?: number): {
+export function analyzeDevice(
+  name?: string,
+  manufacturerId?: number,
+): {
   isCamera: boolean;
   indicators: string[];
   confidence: number;
@@ -62,9 +77,7 @@ class BluetoothService {
     durationMs = 12000,
     signal?: AbortSignal,
   ): Promise<BleDevice[]> {
-    return this.useMock
-      ? this.mockScan(onDevice, durationMs, signal)
-      : Promise.resolve([]);
+    return this.useMock ? this.mockScan(onDevice, durationMs, signal) : Promise.resolve([]);
   }
 
   private mockScan(
@@ -76,9 +89,9 @@ class BluetoothService {
       { name: 'iPhone 14', rssi: -68 },
       { name: 'AirPods Pro', rssi: -72 },
       { name: 'MacBook Air', rssi: -81 },
-      { name: undefined, rssi: -54 },  // anonymous — mildly suspicious
+      { name: undefined, rssi: -54 }, // anonymous — mildly suspicious
       { name: 'Smart TV', rssi: -77 },
-      { name: undefined, rssi: -47 },  // anonymous, close range
+      { name: undefined, rssi: -47 }, // anonymous, close range
       { name: 'BT Speaker', rssi: -85 },
       { name: 'iPad mini', rssi: -63 },
     ];
@@ -87,7 +100,7 @@ class BluetoothService {
     let idx = 0;
     const interval = Math.floor(durationMs / pool.length);
 
-    return new Promise(resolve => {
+    return new Promise((resolve) => {
       const tick = setInterval(() => {
         if (signal?.aborted || idx >= pool.length) {
           clearInterval(tick);
@@ -109,7 +122,10 @@ class BluetoothService {
         onDevice(device);
       }, interval);
 
-      setTimeout(() => { clearInterval(tick); resolve(found); }, durationMs);
+      setTimeout(() => {
+        clearInterval(tick);
+        resolve(found);
+      }, durationMs);
     });
   }
 }
