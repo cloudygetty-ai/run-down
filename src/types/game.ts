@@ -307,6 +307,19 @@ export type MapTheme = {
 
 export type GamePhase = 'lobby' | 'dropping' | 'playing' | 'game_over';
 
+// Vex's phase-skip leaves a holographic decoy at her origin that draws bot fire.
+export type Decoy = {
+  id: string;
+  ownerId: string;
+  position: Vector2;
+  ttlMs: number; // ms remaining before it despawns
+};
+
+export type DropPhasePlayer = {
+  playerId: string;
+  altitude: number; // 0 = landed, > 0 = still descending in units above ground
+};
+
 export type GameResult = {
   placement: number;
   kills: number;
@@ -314,12 +327,6 @@ export type GameResult = {
   survivalTimeMs: number;
   winner: string | null;
   environmentId: string;
-};
-
-export type MapTile = {
-  type: 'ground' | 'water' | 'mountain' | 'building_floor';
-  elevation: number;
-  hasLoot: boolean;
 };
 
 export type GameState = {
@@ -357,4 +364,8 @@ export type GameState = {
   environmentId: string;
   mapTheme: MapTheme;
   outsideZoneDps: number; // extra HP/s drained from players outside the shelter zone
+  // Vex ability — holographic decoys left at teleport origin
+  decoys: Decoy[];
+  // Dropping phase — altitude per player (cleared to [] once all land)
+  dropPhase: DropPhasePlayer[];
 };

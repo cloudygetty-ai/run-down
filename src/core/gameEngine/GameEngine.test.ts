@@ -103,6 +103,8 @@ function makeGameState(overrides: Partial<GameState> = {}): GameState {
     environmentId: 'fractured_metropolis',
     mapTheme: { bgColor: '#12121e', groundColor: '#1e1e30', accentColor: '#7788ff' },
     outsideZoneDps: 0,
+    decoys: [],
+    dropPhase: [],
     ...overrides,
   };
 }

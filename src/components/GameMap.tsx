@@ -9,6 +9,7 @@ import { SupplyDropView } from './SupplyDropView';
 import { MapTerrain } from './MapTerrain';
 import { FractureCoreView } from './FractureCoreView';
 import { HelixRelayView } from './HelixRelayView';
+import { DecoyView } from './DecoyView';
 
 type Props = {
   state: GameState;
@@ -193,6 +194,11 @@ export const GameMap: React.FC<Props> = ({ state, viewportX, viewportY, viewport
           />
         );
       })()}
+
+      {/* Vex decoys — holographic echoes that fool bots */}
+      {state.decoys.map((d) => (
+        <DecoyView key={d.id} decoy={d} viewportX={viewportX} viewportY={viewportY} />
+      ))}
 
       {/* Players (alive + knocked — knocked shown faded/downed) */}
       {playersToRender.map((p) => (

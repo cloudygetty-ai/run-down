@@ -52,6 +52,14 @@ export const SUPPLY_DROP_PICKUP_RADIUS = 100;
 // ── Bounty system ─────────────────────────────────────────────────────────────
 export const BOUNTY_KILL_THRESHOLD = 3; // ≥ this many kills to become bounty target
 
+// ── Dropping phase ────────────────────────────────────────────────────────────
+export const DROP_DESCENT_RATE = 120;  // altitude units lost per second during drop
+export const DROP_STEER_SPEED = 3;    // horizontal units per tick while steering in drop phase
+
+// ── Vex decoy ─────────────────────────────────────────────────────────────────
+export const DECOY_TTL_MS = 5000;     // ms before a Vex decoy despawns
+export const DECOY_BOT_AGGRO_RANGE = 350; // bots within this range treat decoy as highest-priority target
+
 // ── Shield regeneration ───────────────────────────────────────────────────────
 export const SHIELD_REGEN_DELAY_MS = 4000; // ms after last damage before regen starts
 export const SHIELD_REGEN_RATE = 20;       // shield per second

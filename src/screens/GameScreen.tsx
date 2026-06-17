@@ -80,7 +80,7 @@ export const GameScreen: React.FC<Props> = ({ onGameOver }) => {
       // WHY: always read from getState() — never close over stale state
       const { gameState: state, updateGameState: update, pickUpLoot } = useGameStore.getState();
 
-      if (state.phase !== 'playing') {
+      if (state.phase !== 'playing' && state.phase !== 'dropping') {
         clearInterval(tickIntervalRef.current!);
         return;
       }
@@ -484,6 +484,22 @@ export const GameScreen: React.FC<Props> = ({ onGameOver }) => {
         onAbility={triggerAbility}
       />
 
+      {/* Dropping phase overlay — shown while players are still descending */}
+      {gameState.phase === 'dropping' && (() => {
+        const humanDrop = gameState.dropPhase.find((dp) => {
+          const p = gameState.players.find((pl) => pl.id === dp.playerId);
+          return p?.isHuman;
+        });
+        const altitude = humanDrop?.altitude ?? 0;
+        return (
+          <View style={styles.dropOverlay} pointerEvents="none">
+            <Text style={styles.dropLabel}>DROPPING</Text>
+            <Text style={styles.dropAltitude}>{Math.ceil(altitude)}m</Text>
+            <Text style={styles.dropHint}>Steer with left stick</Text>
+          </View>
+        );
+      })()}
+
       {/* Environment name banner — shown for 3s on match start */}
       {showEnvBanner && (
         <View
@@ -501,6 +517,21 @@ export const GameScreen: React.FC<Props> = ({ onGameOver }) => {
 };
 
 const styles = StyleSheet.create({
+  dropOverlay: {
+    position: 'absolute',
+    top: 80,
+    alignSelf: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(100,180,255,0.4)',
+  },
+  dropLabel: { color: '#88ccff', fontSize: 11, fontWeight: 'bold', letterSpacing: 3 },
+  dropAltitude: { color: '#ffffff', fontSize: 28, fontWeight: 'bold' },
+  dropHint: { color: 'rgba(255,255,255,0.5)', fontSize: 10, marginTop: 2 },
   container: { flex: 1, backgroundColor: '#000' },
   joystickLeft: { position: 'absolute', bottom: 30, left: 30 },
   joystickRight: { position: 'absolute', bottom: 50, right: 160 },

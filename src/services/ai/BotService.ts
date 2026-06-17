@@ -11,6 +11,7 @@ import {
   BOT_SUPPLY_SEEK_RANGE,
   BOT_CORE_SEEK_RANGE,
   BOT_STRAFE_SPEED,
+  DECOY_BOT_AGGRO_RANGE,
   TICK_RATE_MS,
 } from '../../core/balance';
 
@@ -105,6 +106,23 @@ function tickSingleBot(state: GameState, botId: string, nowMs: number, deltaMs: 
     !isInsideCircle(reloadedBot.position, reloadedState.bombardment.shelterCenter, reloadedState.bombardment.shelterRadius)
   ) {
     return moveBot(reloadedState, reloadedBot, reloadedState.bombardment.shelterCenter, deltaMs);
+  }
+
+  // Priority 1.5: Vex decoy — bots are fooled by decoys (they're not the owner's)
+  const nearDecoy = reloadedState.decoys.find(
+    (d) => d.ownerId !== botId && distance(reloadedBot.position, d.position) < DECOY_BOT_AGGRO_RANGE,
+  );
+  if (nearDecoy) {
+    const dist = distance(reloadedBot.position, nearDecoy.position);
+    let updatedState = dist < BOT_SHOOT_RANGE
+      ? moveBotStrafe(reloadedState, reloadedBot, nearDecoy.position, brain.strafeDir, deltaMs)
+      : moveBot(reloadedState, reloadedBot, nearDecoy.position, deltaMs);
+    const weapon = reloadedBot.weapons[reloadedBot.activeWeaponSlot];
+    if (weapon && dist < BOT_SHOOT_RANGE && canFire(weapon, brain.lastFireTimeMs, nowMs)) {
+      brain.lastFireTimeMs = nowMs;
+      updatedState = fireShot(updatedState, botId, nearDecoy.position);
+    }
+    return updatedState;
   }
 
   // Priority 2: engage enemy if in range

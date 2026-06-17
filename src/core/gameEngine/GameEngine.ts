@@ -13,6 +13,7 @@ import {
   Rarity,
   KillFeedEntry,
   GearSlot,
+  Decoy,
 } from '../../types';
 import { tickBombardment, tickIncomingMeteors } from '../meteor';
 import { resolvePlayerWallCollision, isPlayerHitByBullet, checkBulletHit } from '../physics';
@@ -58,6 +59,9 @@ import {
   KILL_FEED_MAX,
   SHIELD_REGEN_DELAY_MS,
   SHIELD_REGEN_RATE,
+  DECOY_TTL_MS,
+  DROP_DESCENT_RATE,
+  DROP_STEER_SPEED,
 } from '../balance';
 
 export type InputState = {
@@ -87,6 +91,12 @@ export function triggerPlayerAbility(state: GameState, playerId: string): GameSt
     switch (character.id) {
       case 'vex': {
         const rad = (player.rotation * Math.PI) / 180;
+        const decoy: Decoy = {
+          id: `decoy_${state.tickCount}`,
+          ownerId: player.id,
+          position: { ...player.position },
+          ttlMs: DECOY_TTL_MS,
+        };
         updated = {
           ...updated,
           position: {
@@ -94,7 +104,9 @@ export function triggerPlayerAbility(state: GameState, playerId: string): GameSt
             y: clamp(player.position.y + Math.sin(rad) * 250, 0, state.mapHeight),
           },
         };
-        break;
+        const players = [...state.players];
+        players[playerIndex] = updated;
+        return { ...state, players, decoys: [...state.decoys, decoy] };
       }
       case 'voss':
         updated = { ...updated, health: Math.min(updated.maxHealth, updated.health + 80) };
@@ -143,6 +155,10 @@ export function triggerPlayerAbility(state: GameState, playerId: string): GameSt
 // Pure tick function — takes current state + input and returns new state.
 // WHY: keeping this pure makes it trivially testable without mocks.
 export function tickGame(state: GameState, humanInput: InputState, deltaMs: number): GameState {
+  if (state.phase === 'dropping') {
+    return tickDropPhase(state, humanInput, deltaMs);
+  }
+
   if (state.phase !== 'playing') {
     return state;
   }
@@ -156,6 +172,7 @@ export function tickGame(state: GameState, humanInput: InputState, deltaMs: numb
 
     next = tickAbilityTimers(next, deltaMs);
     next = tickShieldRegen(next, deltaMs);
+    next = tickDecoys(next, deltaMs);
     next = tickEnvironmentHazard(next, deltaMs);
     next = tickKnockedPlayers(next, deltaMs);
     next = tickKillFeed(next, deltaMs);
@@ -279,6 +296,58 @@ function tickKnockedPlayers(state: GameState, deltaMs: number): GameState {
 
   if (!changed) return state;
   return { ...state, players, killFeed, lootDrops };
+}
+
+// Tick the dropping phase: all players descend; human can steer with input.
+// Transitions to 'playing' the moment the human player's altitude hits 0.
+function tickDropPhase(state: GameState, input: InputState, deltaMs: number): GameState {
+  const descentPerTick = DROP_DESCENT_RATE * (deltaMs / 1000);
+
+  const dropPhase = state.dropPhase.map((dp) => ({
+    ...dp,
+    altitude: Math.max(0, dp.altitude - descentPerTick),
+  }));
+
+  // Human can steer horizontally during drop (joystick input still active)
+  let players = state.players;
+  const humanDrop = dropPhase.find((dp) => {
+    const p = state.players.find((pl) => pl.id === dp.playerId);
+    return p?.isHuman;
+  });
+  if (humanDrop) {
+    const steerSpeed = DROP_STEER_SPEED * (deltaMs / TICK_RATE_MS);
+    players = state.players.map((p) => {
+      if (!p.isHuman) return p;
+      return {
+        ...p,
+        position: {
+          x: clamp(p.position.x + input.moveVector.x * steerSpeed, 0, state.mapWidth),
+          y: clamp(p.position.y + input.moveVector.y * steerSpeed, 0, state.mapHeight),
+        },
+      };
+    });
+  }
+
+  // Transition to playing once the human has landed
+  const humanAltitude = dropPhase.find((dp) => {
+    const p = state.players.find((pl) => pl.id === dp.playerId);
+    return p?.isHuman;
+  })?.altitude ?? 0;
+
+  if (humanAltitude <= 0) {
+    return { ...state, players, dropPhase: [], phase: 'playing', startTime: Date.now() };
+  }
+
+  return { ...state, players, dropPhase };
+}
+
+// Age and remove expired Vex decoys.
+function tickDecoys(state: GameState, deltaMs: number): GameState {
+  if (state.decoys.length === 0) return state;
+  const decoys = state.decoys
+    .map((d) => ({ ...d, ttlMs: d.ttlMs - deltaMs }))
+    .filter((d) => d.ttlMs > 0);
+  return { ...state, decoys };
 }
 
 // Regen shield for players who haven't taken damage in SHIELD_REGEN_DELAY_MS.

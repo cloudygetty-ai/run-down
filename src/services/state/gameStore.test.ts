@@ -63,10 +63,18 @@ describe('gameStore — initial state', () => {
 // ─── startGame ────────────────────────────────────────────────────────────────
 
 describe('gameStore.startGame', () => {
-  it('transitions phase from lobby to playing', () => {
+  it('transitions phase from lobby to dropping', () => {
     useGameStore.getState().startGame();
     const { gameState } = useGameStore.getState();
-    expect(gameState.phase).toBe('playing');
+    expect(gameState.phase).toBe('dropping');
+  });
+
+  it('populates dropPhase with one entry per player', () => {
+    const { gameState } = useGameStore.getState();
+    const playerCount = gameState.players.length;
+    useGameStore.getState().startGame();
+    const next = useGameStore.getState().gameState;
+    expect(next.dropPhase).toHaveLength(playerCount);
   });
 
   it('sets startTime to a recent timestamp', () => {
@@ -232,5 +240,51 @@ describe('gameStore.placeBuildPiece', () => {
   it('does nothing for an unknown player id', () => {
     useGameStore.getState().placeBuildPiece(makePiece('ghost_player'));
     expect(useGameStore.getState().gameState.buildPieces).toHaveLength(0);
+  });
+});
+
+// ─── selectCharacter ──────────────────────────────────────────────────────────
+
+describe('gameStore.selectCharacter', () => {
+  it('updates selectedCharacterId', () => {
+    useGameStore.getState().selectCharacter('brutus');
+    expect(useGameStore.getState().gameState.selectedCharacterId).toBe('brutus');
+  });
+
+  it('persists selection across resetGame', () => {
+    useGameStore.getState().selectCharacter('nyra');
+    useGameStore.getState().resetGame();
+    expect(useGameStore.getState().gameState.selectedCharacterId).toBe('nyra');
+  });
+});
+
+// ─── selectEnvironment ────────────────────────────────────────────────────────
+
+describe('gameStore.selectEnvironment', () => {
+  it('updates environmentId', () => {
+    useGameStore.getState().selectEnvironment('ashfall_crater');
+    expect(useGameStore.getState().gameState.environmentId).toBe('ashfall_crater');
+  });
+
+  it('updates mapTheme to match the chosen environment', () => {
+    useGameStore.getState().selectEnvironment('ashfall_crater');
+    const { mapTheme } = useGameStore.getState().gameState;
+    expect(mapTheme.bgColor).toBeDefined();
+    expect(mapTheme.bgColor.startsWith('#')).toBe(true);
+  });
+});
+
+// ─── switchBuildMaterial ──────────────────────────────────────────────────────
+
+describe('gameStore.switchBuildMaterial', () => {
+  it('cycles wood → stone → metal → wood', () => {
+    const human = () => useGameStore.getState().gameState.players.find((p) => p.isHuman)!;
+    expect(human().selectedBuildMaterial).toBe('wood');
+    useGameStore.getState().switchBuildMaterial();
+    expect(human().selectedBuildMaterial).toBe('stone');
+    useGameStore.getState().switchBuildMaterial();
+    expect(human().selectedBuildMaterial).toBe('metal');
+    useGameStore.getState().switchBuildMaterial();
+    expect(human().selectedBuildMaterial).toBe('wood');
   });
 });

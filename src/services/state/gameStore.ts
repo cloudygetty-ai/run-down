@@ -11,6 +11,7 @@ import {
   Vector2,
   HelixRelay,
   GearSlot,
+  DropPhasePlayer,
 } from '../../types';
 import { createInitialBombardment } from '../../core/meteor';
 import { getCharacter, DEFAULT_CHARACTER_ID, CHARACTERS } from '../../core/characters';
@@ -488,6 +489,10 @@ function buildInitialState(characterId = DEFAULT_CHARACTER_ID, environmentId: st
     environmentId,
     mapTheme: env.theme,
     outsideZoneDps: env.outsideZoneDps,
+    // Vex decoys — empty until ability fires
+    decoys: [],
+    // Drop phase — populated when startGame transitions to 'dropping'
+    dropPhase: [],
   };
 }
 
@@ -510,9 +515,20 @@ export const useGameStore = create<GameStore>((set, get) => ({
   gameState: buildInitialState(),
 
   startGame: () => {
-    set((s) => ({
-      gameState: { ...s.gameState, phase: 'playing', startTime: Date.now() },
-    }));
+    set((s) => {
+      const dropPhase: DropPhasePlayer[] = s.gameState.players.map((p) => ({
+        playerId: p.id,
+        altitude: 600 + Math.random() * 200, // stagger drops so bots don't all land at once
+      }));
+      return {
+        gameState: {
+          ...s.gameState,
+          phase: 'dropping',
+          startTime: Date.now(),
+          dropPhase,
+        },
+      };
+    });
   },
 
   resetGame: () => {
