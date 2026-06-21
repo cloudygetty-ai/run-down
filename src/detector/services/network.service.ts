@@ -93,16 +93,24 @@ function fingerprint(r: ProbeResult): {
   for (const sig of CAMERA_SIGNATURES) {
     if (haystack.includes(sig)) {
       confidence += sig === 'dvr' || sig === 'nvr' ? 25 : 18;
-      if (sig === 'dvr') cameraType = 'dvr';
-      else if (sig === 'nvr') cameraType = 'nvr';
-      else if (cameraType === 'unknown') cameraType = 'ip_camera';
+      if (sig === 'dvr') {
+        cameraType = 'dvr';
+      } else if (sig === 'nvr') {
+        cameraType = 'nvr';
+      } else if (cameraType === 'unknown') {
+        cameraType = 'ip_camera';
+      }
     }
   }
 
   // RTSP port is a strong camera signal
-  if (r.port === 554 || r.port === 8554) confidence += 20;
+  if (r.port === 554 || r.port === 8554) {
+    confidence += 20;
+  }
   // Device responded — adds a baseline signal
-  if (r.status > 0) confidence += 5;
+  if (r.status > 0) {
+    confidence += 5;
+  }
 
   return {
     isCamera: confidence >= 22,
@@ -127,7 +135,9 @@ export async function scanNetwork(
   const BATCH = 16; // concurrent probes
 
   for (let i = 0; i < ips.length; i += BATCH) {
-    if (signal?.aborted) break;
+    if (signal?.aborted) {
+      break;
+    }
 
     const batch = ips.slice(i, i + BATCH);
     const probes = await Promise.all(
@@ -135,7 +145,9 @@ export async function scanNetwork(
     );
 
     for (const result of probes) {
-      if (!result) continue;
+      if (!result) {
+        continue;
+      }
       const fp = fingerprint(result);
       const existing = found.find((d) => d.ip === result.ip);
 
@@ -144,8 +156,12 @@ export async function scanNetwork(
           existing.openPorts.push(result.port);
         }
         existing.confidence = Math.max(existing.confidence, fp.confidence);
-        if (fp.isCamera) existing.isCamera = true;
-        if (fp.cameraType !== 'unknown') existing.cameraType = fp.cameraType;
+        if (fp.isCamera) {
+          existing.isCamera = true;
+        }
+        if (fp.cameraType !== 'unknown') {
+          existing.cameraType = fp.cameraType;
+        }
         existing.lastSeen = Date.now();
       } else {
         const device: NetworkDevice = {

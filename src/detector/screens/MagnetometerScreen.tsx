@@ -38,7 +38,9 @@ export function MagnetometerScreen() {
   useMagnetometer(true);
 
   useEffect(() => {
-    if (!magneticReading) return;
+    if (!magneticReading) {
+      return;
+    }
     setReadings((prev) => [...prev.slice(-120), magneticReading]);
     setPeak((prev) => Math.max(prev, magneticReading.anomaly));
   }, [magneticReading]);

@@ -8,11 +8,21 @@ interface Props {
 }
 
 function rssiBars(rssi: number): number {
-  if (rssi === 0) return 0;
-  if (rssi >= -50) return 5;
-  if (rssi >= -60) return 4;
-  if (rssi >= -70) return 3;
-  if (rssi >= -80) return 2;
+  if (rssi === 0) {
+    return 0;
+  }
+  if (rssi >= -50) {
+    return 5;
+  }
+  if (rssi >= -60) {
+    return 4;
+  }
+  if (rssi >= -70) {
+    return 3;
+  }
+  if (rssi >= -80) {
+    return 2;
+  }
   return 1;
 }
 

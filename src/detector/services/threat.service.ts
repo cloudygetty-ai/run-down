@@ -6,26 +6,44 @@ const WEIGHTS = { magnetic: 0.25, network: 0.45, bluetooth: 0.3 } as const;
 const MAG = { low: 8, medium: 20, high: 45, critical: 80 } as const;
 
 function scoreMagnetic(reading: MagneticReading | null): number {
-  if (!reading) return 0;
+  if (!reading) {
+    return 0;
+  }
   const a = reading.anomaly;
-  if (a < MAG.low) return 0;
-  if (a < MAG.medium) return 25;
-  if (a < MAG.high) return 55;
-  if (a < MAG.critical) return 80;
+  if (a < MAG.low) {
+    return 0;
+  }
+  if (a < MAG.medium) {
+    return 25;
+  }
+  if (a < MAG.high) {
+    return 55;
+  }
+  if (a < MAG.critical) {
+    return 80;
+  }
   return 100;
 }
 
 function scoreNetwork(devices: NetworkDevice[]): number {
-  if (!devices.length) return 0;
+  if (!devices.length) {
+    return 0;
+  }
   const cameras = devices.filter((d) => d.isCamera);
-  if (!cameras.length) return Math.min(12, devices.length * 2);
+  if (!cameras.length) {
+    return Math.min(12, devices.length * 2);
+  }
   return Math.min(100, Math.max(...cameras.map((d) => d.confidence)));
 }
 
 function scoreBluetooth(devices: BleDevice[]): number {
-  if (!devices.length) return 0;
+  if (!devices.length) {
+    return 0;
+  }
   const cameras = devices.filter((d) => d.isCamera);
-  if (!cameras.length) return Math.min(8, devices.length * 2);
+  if (!cameras.length) {
+    return Math.min(8, devices.length * 2);
+  }
   return Math.min(100, Math.max(...cameras.map((d) => d.confidence)));
 }
 
@@ -57,10 +75,18 @@ export function computeThreatScore(params: {
 }
 
 export function levelFromScore(score: number): ThreatLevel {
-  if (score >= 75) return 'critical';
-  if (score >= 55) return 'high';
-  if (score >= 35) return 'medium';
-  if (score >= 15) return 'low';
+  if (score >= 75) {
+    return 'critical';
+  }
+  if (score >= 55) {
+    return 'high';
+  }
+  if (score >= 35) {
+    return 'medium';
+  }
+  if (score >= 15) {
+    return 'low';
+  }
   return 'safe';
 }
 
