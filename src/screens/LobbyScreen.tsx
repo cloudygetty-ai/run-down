@@ -12,11 +12,13 @@ import { useGameStore } from '../services/state';
 import { clearBotBrains } from '../services/ai';
 import { CHARACTERS } from '../core/characters';
 import { ENVIRONMENTS } from '../core/environments';
+import { LoreChat } from '../components/LoreChat';
+import { ANTHROPIC_API_KEY } from '../config';
 
 export const LobbyScreen: React.FC = () => {
   const { gameState, startGame, selectCharacter, selectEnvironment } = useGameStore();
   const [detailId, setDetailId] = useState<string | null>(null);
-  const [tab, setTab] = useState<'operative' | 'environment'>('operative');
+  const [tab, setTab] = useState<'operative' | 'environment' | 'lore'>('operative');
   const selectedId = gameState.selectedCharacterId;
   const selectedEnvId = gameState.environmentId;
   const detailChar = CHARACTERS.find((c) => c.id === detailId) ?? null;
@@ -49,6 +51,14 @@ export const LobbyScreen: React.FC = () => {
         >
           <Text style={[styles.tabText, tab === 'environment' && styles.tabTextActive]}>
             ENVIRONMENT
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, tab === 'lore' && styles.tabActive]}
+          onPress={() => setTab('lore')}
+        >
+          <Text style={[styles.tabText, tab === 'lore' && { color: '#7788ff' }]}>
+            LORE
           </Text>
         </TouchableOpacity>
       </View>
@@ -212,6 +222,13 @@ export const LobbyScreen: React.FC = () => {
             );
           })}
         </ScrollView>
+      )}
+
+      {/* — LORE TAB — */}
+      {tab === 'lore' && (
+        <View style={styles.loreContainer}>
+          <LoreChat apiKey={ANTHROPIC_API_KEY} />
+        </View>
       )}
 
       <TouchableOpacity style={styles.playBtn} onPress={handleStart}>
@@ -428,6 +445,9 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
 
+  loreContainer: {
+    flex: 1,
+  },
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.82)',

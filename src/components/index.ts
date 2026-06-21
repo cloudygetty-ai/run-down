@@ -5,3 +5,4 @@ export * from './BuildPieceView';
 export * from './LootDropView';
 export * from './Joystick';
 export * from './HUD';
+export * from './LoreChat';
