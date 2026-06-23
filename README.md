@@ -1,188 +1,239 @@
-# Run Down
+# RUN DOWN
+### *Starfall Royale — Last operator standing.*
 
-<p align="center">
-  <img src="https://img.shields.io/badge/React_Native-0.72-61DAFB?style=flat-square&logo=react" />
-  <img src="https://img.shields.io/badge/TypeScript-5.0-3178C6?style=flat-square&logo=typescript" />
-  <img src="https://img.shields.io/badge/Zustand-4.4-orange?style=flat-square" />
-  <img src="https://img.shields.io/github/actions/workflow/status/cloudygetty-ai/run-down/ci.yml?style=flat-square&label=CI" />
-  <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" />
-</p>
-
-> Mobile battle royale. 100 players. Meteors rain from orbit. Last one standing wins.
->
-> No storm. No circle. Just rocks falling from the sky.
+> Built on the `claude/starfall-royale-prototype-0YwGL` branch.  
+> TypeScript prototype → C++17 standalone port.
 
 ---
 
-## Gameplay
+## THE STORY
 
-- **100 players** spawn across a 1600×1600 map
-- **Meteor bombardment** replaces the shrinking zone — 6 phases, each tightening the safe shelter radius
-- Stay inside the **shelter zone** or take continuous meteor damage
-- Loot weapons, shoot enemies, build cover
-- **Bot AI** fills the lobby — bots flee meteors, engage enemies, and loot drops
+**HELIX CORPORATION**  
+They rebuilt the world. Then decided who got to live in it.
 
-### Controls (mobile)
+After the Resource Collapse of 2041, Helix Corp emerged as the sole architect of civilization — controlling food, medicine, and the orbital infrastructure that kept satellites alive. Compliance was not optional. Resistance was logged, catalogued, and eventually... resolved.
 
-| Input | Action |
-|---|---|
-| Left joystick | Move |
-| Right side tap | Aim + shoot |
-| Reload button | Reload active weapon |
-| Build toggle | Switch to build mode |
-| Weapon slots (1–3) | Tap to switch |
+**S.I.G.I.L.**  
+*Strategic Interdiction and Guided Impact Lattice.*  
+A network of kinetic bombardment platforms in low orbit. Each node can place a precision meteorite strike anywhere on the surface within 90 seconds. Helix deployed it to end two border conflicts. Then they kept it running. Nobody asked why.
+
+**THE PROVING GROUND**  
+Operatives who know too much. Defectors. Rivals. Anyone Helix wants gone but can't officially touch. They're dropped into a designated zone and the SIGIL clock starts ticking. Only the last one standing leaves.
+
+Helix calls it "resolution". Everyone else calls it the **Run Down**.
 
 ---
 
-## Architecture
+## OPERATORS
 
-### Game Loop (50ms tick)
+15 characters — each with a unique passive, ability, and voice.
 
-```
-Input → moveHumanPlayer → tickBots → tickBombardment → applyMeteorDamage → checkWinCondition → Zustand → render
-```
-
-The tick function (`GameEngine.ts`) is **pure** — takes `(GameState, InputState, deltaMs)` → returns `GameState`. No side effects, no mocks needed in tests.
-
-### Meteor Phases
-
-| Phase | Shelter Radius | Damage/hit | Strike interval |
-|---|---|---|---|
-| 1 | 800 | 25 HP | 8s |
-| 2 | 500 | 35 HP | 6s |
-| 3 | 300 | 50 HP | 4s |
-| 4 | 150 | 65 HP | 3s |
-| 5 | 50 | 80 HP | 2s |
-| 6 | 10 | 100 HP | 1s |
-
-### Bot AI Priority
-
-1. Flee to shelter (if outside zone)
-2. Engage nearest enemy (if within 400 units)
-3. Pick up loot (if within 60 units)
-4. Wander randomly
-
-### Weapon Stats
-
-| Type | Damage | Fire Rate | Mag | Range |
+| ID | Name | Title | Passive | Ability |
 |---|---|---|---|---|
-| Assault Rifle | 35 | 5/s | 30 | 400 |
-| SMG | 17 | 10/s | 35 | 200 |
-| Shotgun | 110 | 0.8/s | 5 | 120 |
-| Sniper | 100 | 0.5/s | 4 | 800 |
-| Pickaxe | 20 | 0.9/s | ∞ | 60 |
-
-Rarity multiplier applies to damage: Common 1.0× → Legendary 1.5×
-
----
-
-## Project Structure
-
-```
-src/
-├── core/
-│   ├── gameEngine/       — pure tick function, shot resolution
-│   ├── meteor/           — 6-phase bombardment, shelter zone shrink
-│   └── physics/          — collision detection, bullet hit
-├── services/
-│   ├── ai/               — bot decision loop (flee, engage, loot, wander)
-│   ├── weapons/          — fire rate, spread, reload timers
-│   └── state/            — Zustand global store, initial state factory
-├── screens/
-│   ├── LobbyScreen.tsx
-│   ├── GameScreen.tsx
-│   └── GameOverScreen.tsx
-├── components/
-│   ├── GameMap.tsx
-│   ├── HUD.tsx
-│   ├── Joystick.tsx
-│   ├── PlayerSprite.tsx
-│   ├── MeteorZoneOverlay.tsx
-│   ├── LootDropView.tsx
-│   └── BuildPieceView.tsx
-├── utils/                — math helpers (lerp, clamp, normalize, distance)
-└── types/                — TypeScript interfaces (GameState, Player, Weapon…)
-```
+| `vex` | Vex "Glitch" Calder | The Phantom | +10% speed, 25% faster reloads | Phase Skip — teleport 250 units |
+| `brutus` | Brutus Hale | The Wall | +80 max HP | Titan Guard — absorb all damage 6s, release as shockwave |
+| `nyra` | Nyra Solis | The Solar | Starts with 75 shield | Solar Bloom — heal 60 HP, mark enemies +40% dmg 5s |
+| `kade` | Kade "Lockjaw" Mercer | The Tracker | +15 HP on kill | Trapline — mark all enemies, +40% outgoing dmg 6s |
+| `iris` | Iris Venn | The Fracture | 15% incoming dmg deflected | Mind Fracture — enemies can't target 4s |
+| `rook` | Rook Ashfall | The Smoke | +20 HP, +20 shield | Smoke Reign — damage immunity 3s, double speed |
+| `talon` | Talon Rhee | The Predator | All weapons +15% dmg | Predator Leap — launch 200 units, target +50% dmg 5s |
+| `voss` | Dr. Quillan "Pulse" Voss | The Surgeon | +25 max HP, starts with 50 shield | Bio Surge — instant heal 80 HP |
+| `sable` | Sable Korr | The Tether | 20% faster reloads | Shadow Bind — all damage dealt +45% 5s |
+| `orin` | Orin "Scrap" Dax | The Salvager | Starts with triple mats | Junk Fortress — instant +100 materials |
+| `lyric` | Lyric Vale | The Resonance | All weapons +20% dmg | Sonic Crescendo — knockback + +50% dmg 5s |
+| `magnus` | Magnus Drift | The Gravity | +25% dmg, -10% speed | Gravity Well — pull enemies to center, +50% dmg 5s |
+| `eira` | Eira Frost | The Glacier | 20% incoming dmg deflected | Cryo Veil — damage immunity 4s, ice barriers |
+| `jax` | Jax "Overclock" Renn | The Overclocked | +25% movement speed | Adrenal Override — double fire rate + speed 5s, drains 5 HP/s |
+| `kael` | Kael Umbra | The Void | 15% dmg resistance, 20% faster reloads | Void Step — intangible 5s, passes through obstacles |
 
 ---
 
-## Setup
+## MECHANICS
 
-### Prerequisites
+### SIGIL Bombardment — 6 Phases
 
-- Node.js 18+
-- React Native CLI
-- Android Studio (Android) or Xcode 14+ (iOS)
+```
+Calm → Warning → Inbound → Impact → Aftershock → Clear → Calm...
+```
 
-### Install
+- **Calm** — SIGIL is targeting. Timer counts down (delayed if you hold relays).
+- **Warning** — Each operator broadcasts their meteor quip. Strike zones appear.
+- **Inbound** — Kinetic rods begin descent. `⊙` markers show impact zones. 2–8 seconds to move.
+- **Impact** — Primary strikes land. Craters form. **Fracture Cores spawn** at each impact site.
+- **Aftershock** — Secondary strikes scatter near original positions.
+- **Clear** — Debris settles. Safe zone shrinks. Next cycle begins faster.
+
+### Fracture Cores `⬡`
+
+Crystallized spacetime energy left at impact craters.
+
+- **Pick up** — Walk over a `⬡` tile.
+- **Effect** — Ability cooldown reduced. All damage increased. Cooldown drains 50% faster.
+- **Cost** — After 8 seconds, drains 5 HP/sec until it kills you.
+
+High risk. High upside. Use the window.
+
+### Helix Relays `▣`
+
+SIGIL targeting infrastructure. Three per map.
+
+- **Capture** — Stand on the relay tile for 5 seconds.
+- **Effect** — Disrupts SIGIL coordination. Each captured relay adds 8 seconds to the next bombardment cycle. Supply cache reward: +40 HP, +30 shield, full ammo.
+- **Cooldown** — 60 seconds before the relay reactivates.
+
+Control the relays. Buy time. Bleed Helix dry.
+
+### Safe Zone
+
+The Proving Ground contracts each cycle. Outside the boundary:
+- 1.5 HP/sec storm damage on first cycle, increases each round.
+- Damage resistance passives apply.
+- Move toward `safeCenter` — it never moves.
+
+### Weapons
+
+| Weapon | Rarity | Damage | Range | Fire Rate |
+|---|---|---|---|---|
+| Pistol | Common | 12 | 7 | 2.0/s |
+| SMG | Common | 8 | 5 | 5.0/s |
+| Shotgun | Rare | 32 | 3 | 1.0/s |
+| AR | Rare | 18 | 9 | 3.0/s |
+| Sniper | Epic | 60 | 16 | 0.5/s |
+| Gold SCAR | Legendary | 30 | 10 | 4.0/s |
+| Rocket | Legendary | 80 | 8 | 0.3/s |
+
+Loot crates also restore 25 shield and 20 building materials.
+
+---
+
+## BUILD
+
+### Requirements
+
+- `g++` with C++17 support (`g++ 9+`)
+- Linux, macOS, or Windows (MSVC / MinGW)
+- No external dependencies
+
+### Compile
 
 ```bash
-git clone https://github.com/cloudygetty-ai/run-down.git
+git clone https://github.com/cloudygetty-ai/run-down
 cd run-down
-npm install
-cp config.example.js config.js
+git checkout claude/starfall-royale-prototype-0YwGL
+
+# Build
+make
+
+# Or manually
+g++ -std=c++17 -O2 -Wall main.cpp -o rundown
 ```
 
 ### Run
 
 ```bash
-# iOS
-npm run ios
+# Full game — story → character select → match → game over
+./rundown
 
-# Android
-npm run android
+# Skip story screens
+./rundown --nostory
 
-# Metro only
-npm start
+# Headless bot simulation (CI/balance testing)
+./rundown --sim
 ```
 
-### Browser demo
+---
 
-Open `demo.html` directly in Chrome — no server needed. Runs at native 4K on high-DPI displays.
+## CONTROLS
+
+| Key | Action |
+|---|---|
+| `W A S D` | Move |
+| `SPACE` | Shoot nearest target |
+| `E` | Activate ability |
+| `B` | Build wall (costs 10 mats) |
+| `Q` | Quit |
 
 ---
 
-## Development
+## PROJECT STRUCTURE
 
-```bash
-npm run type-check   # tsc --noEmit
-npm run lint         # eslint src/
-npm test             # jest (co-located *.test.ts files)
-npm test -- --coverage
+```
+run-down/
+├── main.cpp                  — Game loop, input, screens, sim mode
+├── Makefile
+└── src/
+    ├── types.h               — Vec2, Entity, Weapon, Ability, Bullet, Tile, all structs
+    ├── characters.h          — All 15 operators: passives, abilities, lore, meteor quips
+    ├── world.h               — Map generation, SIGIL 6-phase meteor, relays, fracture cores, safe zone
+    ├── physics.h             — Substep bullet travel (no tunneling), LOS, explosion splash
+    ├── combat.h              — Loot table, damage calc, tryShoot, tickEntity, activateAbility
+    ├── ai.h                  — Bot FSM: Wander/Loot/Hunt/Flee/CaptureRelay, bullet spawning
+    ├── renderer.h            — ANSI terminal: story screens, character select, game HUD, game over
+    └── platform.h            — Cross-platform raw input (Windows + POSIX)
 ```
 
-Tests are co-located: `Module.ts` → `Module.test.ts`. All tests must pass and lint must be clean before merge.
+---
+
+## ARCHITECTURE
+
+```
+main.cpp
+  │
+  ├── showStoryScreen()        → 5 lore beats, key-gated
+  ├── showCharacterSelect()    → stat bars, ability preview, ↑↓ navigate
+  │
+  └── Game
+        ├── World              → map + all world systems
+        │     ├── tickMeteor()
+        │     ├── tickSafeZone()
+        │     ├── tickRelays()
+        │     └── tickFractureCores()
+        │
+        ├── entities[]         → player + 14 bots (one per unused character)
+        ├── bullets[]          → live projectiles (physics substep)
+        │
+        ├── update(dt)
+        │     ├── tickEntities()
+        │     ├── tickBots() → botThink() per bot
+        │     ├── tickBullets() → HitEvent[] → applyDamage()
+        │     └── world.tick*()
+        │
+        └── renderFrame()      → ANSI map + HUD
+```
+
+**Bot state machine:** `Wander → Hunt / Loot / CaptureRelay / Flee → UseAbility`
+
+Bots are character-aware — passives affect speed, damage, and resistance; ability heuristics fire on low HP, close combat, meteor threat, or storm exposure.
 
 ---
 
-## Path Aliases
+## TYPESCRIPT PROTOTYPE
 
-Configured in `tsconfig.json` and `babel.config.js`:
+The full React Native game prototype lives on this branch:
 
-| Alias | Resolves to |
-|---|---|
-| `@core/*` | `src/core/*` |
-| `@services/*` | `src/services/*` |
-| `@screens/*` | `src/screens/*` |
-| `@components/*` | `src/components/*` |
-| `@utils/*` | `src/utils/*` |
-| `@types/*` | `src/types/*` |
+```
+src/
+├── core/         — gameEngine, meteor phases, physics
+├── services/     — ai, weapons, state (Zustand)
+├── screens/      — LobbyScreen, GameScreen, GameOverScreen
+├── components/   — GameMap, HUD, Joystick, MeteorZoneOverlay, BuildPieceView
+└── types/        — TypeScript interfaces
+```
 
----
-
-## Tech Stack
-
-| Layer | Library |
-|---|---|
-| Framework | React Native 0.72 |
-| Language | TypeScript 5.0 (strict) |
-| State | Zustand 4.4 |
-| Persistence | AsyncStorage |
-| Testing | Jest + React Native Testing Library |
-| Linting | ESLint + @react-native config |
+The C++ port in `cpp/` is a faithful translation of the core engine — same tick logic, same character data, same 6-phase SIGIL system — compiled to a standalone terminal executable.
 
 ---
 
-## License
+## ROADMAP
 
-MIT
+- [ ] SDL2 graphics layer — sprite rendering, particle effects for meteor impacts
+- [ ] Touch / virtual joystick for mobile SDL2 port
+- [ ] Fracture Core visual effect (pulsing glow radius)
+- [ ] Sound events (impact, ability activation, kill)
+- [ ] Network multiplayer via UDP (authoritative server tick)
+- [ ] Save / leaderboard persistence
+
+---
+
+*cloudygetty-ai · Run Down / Starfall Royale*  
+*C++17 engine port — zero dependencies, full operator roster*
