@@ -21,6 +21,7 @@ export const CHARACTERS: Character[] = [
     title: 'The Phantom',
     lore: 'Quantum systems engineer who learned to weaponize lag. Blinks in and out of reality like a bad signal.',
     meteorQuip: 'I felt that before it landed. I hate this.',
+    headgearType: 'ECHO VISOR',
     portraitSource: PORTRAITS.vex,
     accentColor: '#aa44ff',
     passive: {
@@ -43,6 +44,7 @@ export const CHARACTERS: Character[] = [
     title: 'The Wall',
     lore: 'Walked through a building collapse once. The building lost.',
     meteorQuip: 'Good. Something to hit back.',
+    headgearType: 'IMPACT SHELL',
     portraitSource: PORTRAITS.brutus,
     accentColor: '#888888',
     passive: {
@@ -64,6 +66,7 @@ export const CHARACTERS: Character[] = [
     title: 'The Solar',
     lore: 'Channelled solar energy into her biology. Warm to the touch. Lethal at range.',
     meteorQuip: 'A core. Finally. Stay back — it\'s mine.',
+    headgearType: 'SOLAR CROWN',
     portraitSource: PORTRAITS.nyra,
     accentColor: '#ffaa00',
     passive: {
@@ -85,6 +88,7 @@ export const CHARACTERS: Character[] = [
     title: 'The Tracker',
     lore: 'Never loses a mark. Patience measured in days. Mercy measured in zero.',
     meteorQuip: 'Sky just did my job for me.',
+    headgearType: 'HUNTER\'S MASK',
     portraitSource: PORTRAITS.kade,
     accentColor: '#cc6633',
     passive: {
@@ -106,6 +110,7 @@ export const CHARACTERS: Character[] = [
     title: 'The Fracture',
     lore: 'Psy-ops operator. Convinced three people they were somewhere else simultaneously.',
     meteorQuip: 'Controlled impact. Someone aimed that.',
+    headgearType: 'FRACTURE LENS',
     portraitSource: PORTRAITS.iris,
     accentColor: '#cc44aa',
     passive: {
@@ -127,6 +132,7 @@ export const CHARACTERS: Character[] = [
     title: 'The Smoke',
     lore: 'Tactical specialist. Controls terrain. The smoke is never random.',
     meteorQuip: 'New cover. Adapt.',
+    headgearType: 'SMOKE COWL',
     portraitSource: PORTRAITS.rook,
     accentColor: '#446688',
     passive: {
@@ -149,6 +155,7 @@ export const CHARACTERS: Character[] = [
     title: 'The Predator',
     lore: 'Apex hunter from a collapsed nation. Tracks by sound. Closes in silence.',
     meteorQuip: 'Flushed them right out. Efficient.',
+    headgearType: 'PREDATOR HOOD',
     portraitSource: PORTRAITS.talon,
     accentColor: '#882222',
     passive: {
@@ -170,6 +177,7 @@ export const CHARACTERS: Character[] = [
     title: 'The Surgeon',
     lore: 'Field surgeon who operates on himself between engagements. The stitches are self-dissolving.',
     meteorQuip: 'Triage priority just changed.',
+    headgearType: 'MEDIC DOME',
     portraitSource: PORTRAITS.voss,
     accentColor: '#4488ff',
     passive: {
@@ -192,6 +200,7 @@ export const CHARACTERS: Character[] = [
     title: 'The Tether',
     lore: 'Former intelligence broker. Knows that information shared is pain shared.',
     meteorQuip: 'Accelerated evolution. The weak are being selected out.',
+    headgearType: 'INTEL CAP',
     portraitSource: PORTRAITS.sable,
     accentColor: '#9933cc',
     passive: {
@@ -213,6 +222,7 @@ export const CHARACTERS: Character[] = [
     title: 'The Salvager',
     lore: 'Built his first weapon from a vending machine and a door hinge. Still uses it.',
     meteorQuip: 'Free parts. I\'ll take it.',
+    headgearType: 'SCRAP HELM',
     portraitSource: PORTRAITS.orin,
     accentColor: '#cc8800',
     passive: {
@@ -234,6 +244,7 @@ export const CHARACTERS: Character[] = [
     title: 'The Resonance',
     lore: 'Sound engineer turned soldier. The blast radius is calculated, not accidental.',
     meteorQuip: 'Beautiful resonance. Terrible timing.',
+    headgearType: 'RESONANCE BAND',
     portraitSource: PORTRAITS.lyric,
     accentColor: '#44ccaa',
     passive: {
@@ -255,6 +266,7 @@ export const CHARACTERS: Character[] = [
     title: 'The Gravity',
     lore: 'Physicist who discovered the practical applications of his research. Immediately regretted it.',
     meteorQuip: 'This is my fault. Again.',
+    headgearType: 'GRAVITY VISOR',
     portraitSource: PORTRAITS.magnus,
     accentColor: '#6644ff',
     passive: {
@@ -277,6 +289,7 @@ export const CHARACTERS: Character[] = [
     title: 'The Glacier',
     lore: 'Cryogenic containment specialist. The "containment" part is optional.',
     meteorQuip: 'Heat. I despise heat.',
+    headgearType: 'CRYO SHELL',
     portraitSource: PORTRAITS.eira,
     accentColor: '#44ddff',
     passive: {
@@ -298,6 +311,7 @@ export const CHARACTERS: Character[] = [
     title: 'The Overclocked',
     lore: 'Neural augmentations pushed past rated limits. The tremor in his hands is from the speed, not the fear.',
     meteorQuip: 'HA. Let\'s go again.',
+    headgearType: 'OVERCLOCK CROWN',
     portraitSource: PORTRAITS.jax,
     accentColor: '#ff4400',
     passive: {
@@ -319,6 +333,7 @@ export const CHARACTERS: Character[] = [
     title: 'The Void',
     lore: 'Emerged from a void experiment intact. Mostly. The parts that changed are the useful parts.',
     meteorQuip: 'The void remembers this energy.',
+    headgearType: 'VOID COWL',
     portraitSource: PORTRAITS.kael,
     accentColor: '#220044',
     passive: {
