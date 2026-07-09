@@ -1,20 +1,37 @@
 {
   "name": "RunDown",
-  "displayName": "Run Down",
+  "displayName": "Hidden Cam Detector",
   "expo": {
-    "name": "Run Down",
+    "name": "Hidden Cam Detector",
     "slug": "run-down",
-    "version": "0.1.0",
-    "orientation": "landscape",
+    "version": "2.0.0",
+    "orientation": "portrait",
     "ios": {
-      "bundleIdentifier": "com.claude.rundown",
+      "bundleIdentifier": "com.cloudygetty.hidcamdetector",
       "infoPlist": {
+        "NSBluetoothAlwaysUsageDescription": "Used to scan for hidden Bluetooth cameras nearby.",
+        "NSBluetoothPeripheralUsageDescription": "Used to detect Bluetooth surveillance devices.",
+        "NSLocalNetworkUsageDescription": "Used to scan the local WiFi network for IP cameras.",
+        "NSCameraUsageDescription": "Used for IR lens detection via the device camera.",
         "UIBackgroundModes": ["fetch", "processing"],
-        "BGTaskSchedulerPermittedIdentifiers": ["com.claude.rundown.refresh"]
+        "BGTaskSchedulerPermittedIdentifiers": ["com.cloudygetty.hidcamdetector.refresh"]
       }
     },
     "android": {
-      "package": "com.claude.rundown"
-    }
+      "package": "com.cloudygetty.hidcamdetector",
+      "permissions": [
+        "BLUETOOTH",
+        "BLUETOOTH_ADMIN",
+        "BLUETOOTH_SCAN",
+        "BLUETOOTH_CONNECT",
+        "ACCESS_WIFI_STATE",
+        "CHANGE_WIFI_STATE",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "CAMERA",
+        "VIBRATE"
+      ]
+    },
+    "plugins": []
   }
 }

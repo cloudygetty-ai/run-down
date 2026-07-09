@@ -52,7 +52,8 @@ export const CHARACTERS: Character[] = [
     },
     ability: {
       name: 'Titan Guard',
-      description: 'Deploys a frontal energy shield, absorbing all incoming damage for 6 seconds before releasing it as a shockwave.',
+      description:
+        'Deploys a frontal energy shield, absorbing all incoming damage for 6 seconds before releasing it as a shockwave.',
       cooldownMs: 28000,
       durationMs: 6000,
       effectType: 'damage_immunity',
@@ -63,7 +64,7 @@ export const CHARACTERS: Character[] = [
     name: 'Nyra Solis',
     title: 'The Solar',
     lore: 'Channelled solar energy into her biology. Warm to the touch. Lethal at range.',
-    meteorQuip: 'A core. Finally. Stay back — it\'s mine.',
+    meteorQuip: "A core. Finally. Stay back — it's mine.",
     portraitSource: PORTRAITS.nyra,
     accentColor: '#ffaa00',
     passive: {
@@ -73,7 +74,8 @@ export const CHARACTERS: Character[] = [
     },
     ability: {
       name: 'Solar Bloom',
-      description: 'Emits a healing flare — instantly restores 60 HP — while enemies within range are marked for +40% bonus damage for 5 seconds.',
+      description:
+        'Emits a healing flare — instantly restores 60 HP — while enemies within range are marked for +40% bonus damage for 5 seconds.',
       cooldownMs: 22000,
       durationMs: 5000,
       effectType: 'damage_boost',
@@ -94,7 +96,8 @@ export const CHARACTERS: Character[] = [
     },
     ability: {
       name: 'Trapline',
-      description: 'Activates hidden snares — marks all enemies and increases outgoing damage by 40% for 6 seconds.',
+      description:
+        'Activates hidden snares — marks all enemies and increases outgoing damage by 40% for 6 seconds.',
       cooldownMs: 18000,
       durationMs: 6000,
       effectType: 'damage_boost',
@@ -115,7 +118,8 @@ export const CHARACTERS: Character[] = [
     },
     ability: {
       name: 'Mind Fracture',
-      description: 'Deploys hallucinations — enemies cannot accurately target for 4 seconds, effectively granting damage immunity.',
+      description:
+        'Deploys hallucinations — enemies cannot accurately target for 4 seconds, effectively granting damage immunity.',
       cooldownMs: 20000,
       durationMs: 4000,
       effectType: 'damage_immunity',
@@ -137,7 +141,8 @@ export const CHARACTERS: Character[] = [
     },
     ability: {
       name: 'Smoke Reign',
-      description: 'Blankets the area — grants damage immunity for 3 seconds and doubles movement speed within the smoke.',
+      description:
+        'Blankets the area — grants damage immunity for 3 seconds and doubles movement speed within the smoke.',
       cooldownMs: 16000,
       durationMs: 3000,
       effectType: 'damage_immunity',
@@ -158,7 +163,8 @@ export const CHARACTERS: Character[] = [
     },
     ability: {
       name: 'Predator Leap',
-      description: 'Launches forward 200 units and marks the target, increasing all damage dealt to them by 50% for 5 seconds.',
+      description:
+        'Launches forward 200 units and marks the target, increasing all damage dealt to them by 50% for 5 seconds.',
       cooldownMs: 15000,
       durationMs: 5000,
       effectType: 'damage_boost',
@@ -201,7 +207,8 @@ export const CHARACTERS: Character[] = [
     },
     ability: {
       name: 'Shadow Bind',
-      description: 'Tethers enemies — damage dealt to any target is increased by 45% for 5 seconds as the bind amplifies all hits.',
+      description:
+        'Tethers enemies — damage dealt to any target is increased by 45% for 5 seconds as the bind amplifies all hits.',
       cooldownMs: 18000,
       durationMs: 5000,
       effectType: 'damage_boost',
@@ -212,7 +219,7 @@ export const CHARACTERS: Character[] = [
     name: 'Orin "Scrap" Dax',
     title: 'The Salvager',
     lore: 'Built his first weapon from a vending machine and a door hinge. Still uses it.',
-    meteorQuip: 'Free parts. I\'ll take it.',
+    meteorQuip: "Free parts. I'll take it.",
     portraitSource: PORTRAITS.orin,
     accentColor: '#cc8800',
     passive: {
@@ -243,7 +250,8 @@ export const CHARACTERS: Character[] = [
     },
     ability: {
       name: 'Sonic Crescendo',
-      description: 'Charges a focused sound blast — knocks back nearby enemies and deals +50% weapon damage for 5 seconds.',
+      description:
+        'Charges a focused sound blast — knocks back nearby enemies and deals +50% weapon damage for 5 seconds.',
       cooldownMs: 20000,
       durationMs: 5000,
       effectType: 'damage_boost',
@@ -265,7 +273,8 @@ export const CHARACTERS: Character[] = [
     },
     ability: {
       name: 'Gravity Well',
-      description: 'Pulls enemies toward a central point — all pulled targets take +50% weapon damage for 5 seconds.',
+      description:
+        'Pulls enemies toward a central point — all pulled targets take +50% weapon damage for 5 seconds.',
       cooldownMs: 22000,
       durationMs: 5000,
       effectType: 'damage_boost',
@@ -286,7 +295,8 @@ export const CHARACTERS: Character[] = [
     },
     ability: {
       name: 'Cryo Veil',
-      description: 'Freezes the surrounding ground — grants damage immunity for 4 seconds and creates ice barriers that block bullets.',
+      description:
+        'Freezes the surrounding ground — grants damage immunity for 4 seconds and creates ice barriers that block bullets.',
       cooldownMs: 20000,
       durationMs: 4000,
       effectType: 'damage_immunity',
@@ -297,7 +307,7 @@ export const CHARACTERS: Character[] = [
     name: 'Jax "Overclock" Renn',
     title: 'The Overclocked',
     lore: 'Neural augmentations pushed past rated limits. The tremor in his hands is from the speed, not the fear.',
-    meteorQuip: 'HA. Let\'s go again.',
+    meteorQuip: "HA. Let's go again.",
     portraitSource: PORTRAITS.jax,
     accentColor: '#ff4400',
     passive: {
@@ -307,7 +317,8 @@ export const CHARACTERS: Character[] = [
     },
     ability: {
       name: 'Adrenal Override',
-      description: 'Pushes all systems past the limit — doubles fire rate and movement speed for 5 seconds, but drains 5 HP per second during the effect.',
+      description:
+        'Pushes all systems past the limit — doubles fire rate and movement speed for 5 seconds, but drains 5 HP per second during the effect.',
       cooldownMs: 20000,
       durationMs: 5000,
       effectType: 'rapid_fire',
@@ -329,7 +340,8 @@ export const CHARACTERS: Character[] = [
     },
     ability: {
       name: 'Void Step',
-      description: 'Becomes intangible for 5 seconds — grants damage immunity and passes through all obstacles.',
+      description:
+        'Becomes intangible for 5 seconds — grants damage immunity and passes through all obstacles.',
       cooldownMs: 25000,
       durationMs: 5000,
       effectType: 'damage_immunity',
