@@ -6,7 +6,7 @@
 |---|---|---|
 | Feature | `feat/<slug>` | `feat/spectator-mode` |
 | Fix | `fix/<slug>` | `fix/meteor-blast-radius` |
-| Claude session | `claude/<slug>` | `claude/bot-pathfinding` |
+| AI session | `ai/<slug>` | `ai/bot-pathfinding` |
 | Chore | `chore/<slug>` | `chore/upgrade-rn-073` |
 
 ## Commit format
