@@ -46,6 +46,11 @@
 		{
 			"Name": "RemoteControlAPI",
 			"Enabled": true
+		},
+		{
+			"Name": "UnrealMCP",
+			"Enabled": true,
+			"TargetAllowList": ["Editor"]
 		}
 	]
 }
