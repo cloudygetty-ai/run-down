@@ -46,6 +46,27 @@ jobs:
           path: coverage/
           retention-days: 7
 
+  gridlock:
+    name: GRIDLOCK Simulation Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # WHY node 20 and no install step: the GRIDLOCK simulation core is
+      # dependency-free ES modules on the built-in node test runner, so it needs
+      # neither the RN toolchain nor npm ci.
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Test simulation core
+        working-directory: games/gridlock
+        run: node --test
+
   android-build:
     name: Android Build Check
     runs-on: ubuntu-latest

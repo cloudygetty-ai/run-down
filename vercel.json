@@ -1,5 +1,12 @@
 {
   "version": 2,
-  "builds": [{ "src": "index.html", "use": "@vercel/static" }],
-  "routes": [{ "src": "/(.*)", "dest": "/index.html" }]
+  "builds": [
+    { "src": "index.html", "use": "@vercel/static" },
+    { "src": "games/**", "use": "@vercel/static" }
+  ],
+  "routes": [
+    { "src": "/gridlock/?", "dest": "/games/gridlock/index.html" },
+    { "src": "/games/(.*)", "dest": "/games/$1" },
+    { "src": "/(.*)", "dest": "/index.html" }
+  ]
 }

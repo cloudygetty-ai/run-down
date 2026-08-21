@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GRIDLOCK — Everything runs through you</title>
+<meta name="description" content="An isometric neon city-builder. Zone it, power it, cool it, and keep the whole thing moving." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230d0a14'/%3E%3Cpath d='M16 5l11 6.5v9L16 27 5 20.5v-9z' fill='none' stroke='%23c9a84c' stroke-width='2'/%3E%3Cpath d='M16 14h6v6' fill='none' stroke='%238b5cf6' stroke-width='2'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;900&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+<div id="app">
+  <canvas id="stage" aria-label="City map"></canvas>
+
+  <header id="hud" class="hud">
+    <div class="hud-brand">
+      <span class="brand-mark">GRIDLOCK</span>
+      <span class="brand-date" id="hud-date">JAN 2087</span>
+      <span class="brand-grade" id="hud-grade" data-tone="ok">STABLE</span>
+    </div>
+
+    <div class="hud-stat">
+      <span class="hs-label">Treasury</span>
+      <span class="hs-value" id="hud-credits">₡0</span>
+      <span class="hs-note" id="hud-net">+₡0/mo</span>
+    </div>
+
+    <div class="hud-stat">
+      <span class="hs-label">Residents</span>
+      <span class="hs-value" id="hud-pop">0</span>
+      <span class="hs-note" id="hud-pop-note">0 working</span>
+    </div>
+
+    <div class="hud-stat">
+      <span class="hs-label">Approval</span>
+      <span class="hs-value" id="hud-approval">68%</span>
+      <div class="meter" id="hud-approval-bar" data-tone="good"><i></i></div>
+    </div>
+
+    <div class="hud-stat">
+      <span class="hs-label">Power</span>
+      <span class="hs-value" id="hud-power">0/0</span>
+      <div class="meter" id="hud-power-bar" data-tone="good"><i></i></div>
+    </div>
+
+    <div class="hud-stat">
+      <span class="hs-label">Water</span>
+      <span class="hs-value" id="hud-water">0/0</span>
+      <div class="meter" id="hud-water-bar" data-tone="good"><i></i></div>
+    </div>
+
+    <div class="hud-stat">
+      <span class="hs-label">Heat Index</span>
+      <span class="hs-value" id="hud-heat">12</span>
+      <div class="meter" id="hud-heat-bar" data-tone="good"><i></i></div>
+    </div>
+
+    <div class="hud-stat wide">
+      <span class="hs-label">Era</span>
+      <span class="hs-value" id="hud-era">ERA 1 · DIESEL AGE</span>
+      <span class="hs-note" id="hud-era-note">120 research to Solar Age</span>
+    </div>
+
+    <div class="hud-alerts" id="hud-alerts" aria-live="polite"></div>
+  </header>
+
+  <aside class="panel left">
+    <div class="panel-head">Build <span class="panel-hint">click, then drag on the map</span></div>
+    <div id="build-list" class="build-list"></div>
+  </aside>
+
+  <aside class="panel right">
+    <div id="inspector" class="inspector"></div>
+    <section class="panel-section">
+      <h3>Directives</h3>
+      <div id="panel-directives"></div>
+    </section>
+    <section class="panel-section">
+      <h3>Pressures</h3>
+      <div id="panel-modifiers"></div>
+    </section>
+    <section class="panel-section">
+      <h3>Trends</h3>
+      <div id="panel-trends"></div>
+    </section>
+    <section class="panel-section">
+      <h3>City Log</h3>
+      <div id="panel-log"></div>
+    </section>
+  </aside>
+
+  <footer id="controls" class="controls">
+    <div class="ctrl-group" id="speed-group">
+      <span class="ctrl-label">Speed <b id="hud-speed">1×</b></span>
+      <button class="btn tiny" data-speed="0" title="Pause [Space]">❚❚</button>
+      <button class="btn tiny" data-speed="1" title="Normal [1]">▶</button>
+      <button class="btn tiny" data-speed="2" title="Fast [2]">▶▶</button>
+      <button class="btn tiny" data-speed="3" title="Very fast [3]">▶▶▶</button>
+    </div>
+
+    <div class="ctrl-group">
+      <span class="ctrl-label">Tax rate</span>
+      <button class="btn tiny" id="tax-down" title="Lower taxes">−</button>
+      <b id="tax-value">9%</b>
+      <button class="btn tiny" id="tax-up" title="Raise taxes">+</button>
+    </div>
+
+    <div class="ctrl-group" id="overlay-group">
+      <span class="ctrl-label">View [O]</span>
+    </div>
+
+    <div class="ctrl-group right-align">
+      <button class="btn" id="btn-save" title="Save to this browser">Save</button>
+      <button class="btn" id="btn-load" title="Load the saved city">Load</button>
+      <button class="btn" id="btn-new" title="Start a new city">New</button>
+      <button class="btn tiny" id="btn-mute" title="Mute audio">♪</button>
+      <button class="btn tiny" id="btn-help" title="How to play [H]">?</button>
+    </div>
+  </footer>
+
+  <div id="modal" class="modal"></div>
+  <div id="toasts" class="toasts"></div>
+  <pre id="telemetry" class="telemetry hidden"></pre>
+</div>
+
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
