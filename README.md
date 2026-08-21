@@ -142,6 +142,30 @@ Open `demo.html` directly in Chrome — no server needed. Runs at native 4K on h
 
 ---
 
+## Also in this repo: GRIDLOCK
+
+> **Everything runs through you.** An isometric neon city-builder.
+
+Open `games/gridlock/index.html` — zero build step, zero dependencies.
+
+Zone it, power it, cool it, and keep it moving. Three pressures separate it from
+a city-painter: **adjacency synergy** (the same building is worth more or less
+depending on what it touches), a rising **Heat Index** (your industry cooks the
+planet you are building on), and **crisis cards** that pause the world and force
+a trade with no clean answer. Build the Zero Point interchange to win.
+
+The simulation core is pure, dependency-free ES modules — `tickMonth(state) →
+state`, no DOM, no clock, no `Math.random` — so it runs headless under
+`node --test`:
+
+```bash
+npm run test:gridlock    # 77 tests, no framework
+```
+
+Full design and architecture notes: [`games/gridlock/README.md`](games/gridlock/README.md).
+
+---
+
 ## Development
 
 ```bash
