@@ -1,0 +1,247 @@
+import { Button } from '../types/input';
+import type { Move } from '../types/move';
+import { blast, box, cost, hit, input, move } from './builders';
+
+/**
+ * Moves every fighter owns. Characters differentiate through specials and
+ * supers, not through their normals — the shared normals are what makes the
+ * game teachable, exactly as in Street Fighter.
+ *
+ * `@special` and `@super` in a cancel list are wildcards meaning "any move of
+ * that kind belonging to this character", which keeps per-character tables
+ * from having to restate the universal cancel routes.
+ */
+
+const CHAIN_FROM_LIGHT = ['u.M', 'u.H', 'u.2M', 'u.blast', '@special', '@super'] as const;
+const CHAIN_FROM_MEDIUM = ['u.H', 'u.2H', 'u.blast', '@special', '@super'] as const;
+const CANCEL_TO_SPECIAL = ['@special', '@super'] as const;
+
+export const UNIVERSAL_MOVES: readonly Move[] = [
+  move({
+    id: 'u.L',
+    name: 'Jab',
+    kind: 'normal',
+    input: input([], Button.Light),
+    startup: 5,
+    active: 2,
+    recovery: 9,
+    // +3 on hit, 0 on block: a safe check that still converts into a chain.
+    hit: hit({ damage: 30, hitstun: 14, blockstun: 11, hitstop: 5, pushback: 0.06 }),
+    hitboxes: [box(0.55, 1.25, 0.42, 0.7, 5, 6)],
+    cancels: CHAIN_FROM_LIGHT,
+  }),
+  move({
+    id: 'u.M',
+    name: 'Straight',
+    kind: 'normal',
+    input: input([], Button.Medium),
+    startup: 8,
+    active: 3,
+    recovery: 14,
+    hit: hit({ damage: 55, hitstun: 19, blockstun: 15, hitstop: 7, pushback: 0.1 }),
+    hitboxes: [box(0.75, 1.3, 0.45, 0.85, 8, 10)],
+    cancels: CHAIN_FROM_MEDIUM,
+  }),
+  move({
+    id: 'u.H',
+    name: 'Rising Smash',
+    kind: 'normal',
+    input: input([], Button.Heavy),
+    startup: 12,
+    active: 4,
+    recovery: 20,
+    hit: hit({
+      damage: 85,
+      hitstun: 26,
+      blockstun: 20,
+      hitstop: 10,
+      pushback: 0.16,
+      launch: 0.26,
+      driveDamageOnBlock: 240,
+    }),
+    hitboxes: [box(0.85, 1.45, 0.5, 0.95, 12, 15)],
+    cancels: CANCEL_TO_SPECIAL,
+  }),
+  move({
+    id: 'u.2M',
+    name: 'Low Sweep Kick',
+    kind: 'command',
+    input: input([], Button.Medium, 2),
+    startup: 7,
+    active: 3,
+    recovery: 13,
+    hit: hit({ damage: 48, hitstun: 18, blockstun: 14, hitstop: 6, pushback: 0.08 }),
+    hitboxes: [box(0.7, 0.45, 0.4, 0.8, 7, 9)],
+    cancels: CHAIN_FROM_MEDIUM,
+  }),
+  move({
+    id: 'u.2H',
+    name: 'Ankle Breaker',
+    kind: 'command',
+    input: input([], Button.Heavy, 2),
+    startup: 11,
+    active: 4,
+    recovery: 22,
+    hit: hit({ damage: 70, hitstun: 30, blockstun: 16, hitstop: 9, knockdown: true, pushback: 0.14 }),
+    hitboxes: [box(0.9, 0.4, 0.45, 1.0, 11, 14)],
+    cancels: CANCEL_TO_SPECIAL,
+  }),
+  move({
+    id: 'u.6H',
+    name: 'Skyfall Axe',
+    kind: 'command',
+    input: input([], Button.Heavy, 6),
+    startup: 20,
+    active: 4,
+    recovery: 18,
+    // Slow overhead: the answer to a crouching opponent, punishable if read.
+    hit: hit({ damage: 75, hitstun: 28, blockstun: 18, hitstop: 9, launch: 0.2, pushback: 0.12 }),
+    hitboxes: [box(0.8, 1.6, 0.48, 1.1, 20, 23)],
+    cancels: CANCEL_TO_SPECIAL,
+    travel: { forward: 0.08, up: 0 },
+  }),
+  move({
+    id: 'u.airL',
+    name: 'Air Jab',
+    kind: 'normal',
+    input: input([], Button.Light),
+    startup: 5,
+    active: 3,
+    recovery: 10,
+    hit: hit({ damage: 32, hitstun: 16, blockstun: 12, hitstop: 5, juggleCost: 1 }),
+    hitboxes: [box(0.6, 1.0, 0.44, 0.75, 5, 7)],
+    cancels: ['u.airH', '@special'],
+    groundOk: false,
+    airOk: true,
+  }),
+  move({
+    id: 'u.airH',
+    name: 'Meteor Heel',
+    kind: 'normal',
+    input: input([], Button.Heavy),
+    startup: 10,
+    active: 4,
+    recovery: 16,
+    hit: hit({
+      damage: 80,
+      hitstun: 30,
+      blockstun: 18,
+      hitstop: 10,
+      knockdown: true,
+      juggleCost: 2,
+      pushback: 0.1,
+    }),
+    hitboxes: [box(0.7, 0.7, 0.5, 1.0, 10, 13)],
+    cancels: CANCEL_TO_SPECIAL,
+    groundOk: false,
+    airOk: true,
+  }),
+  move({
+    id: 'u.throw',
+    name: 'Seize',
+    kind: 'throw',
+    input: input([], Button.Light | Button.Medium),
+    startup: 5,
+    active: 2,
+    recovery: 22,
+    hit: hit({
+      damage: 110,
+      hitstun: 40,
+      hitstop: 14,
+      knockdown: true,
+      guardBreak: true,
+      pushback: 0.3,
+      kiGainOnHit: 8,
+    }),
+    hitboxes: [box(0.5, 1.1, 0.5, 0.6, 5, 6)],
+  }),
+  move({
+    id: 'u.blast',
+    name: 'Ki Blast',
+    kind: 'blast',
+    input: input([], Button.Ki),
+    startup: 11,
+    active: 1,
+    recovery: 16,
+    hit: hit({ damage: 0 }),
+    cost: cost(5),
+    cancels: ['@special', '@super'],
+    airOk: true,
+    projectile: blast({
+      hit: hit({ damage: 40, chipDamage: 8, hitstun: 18, blockstun: 14, hitstop: 6, pushback: 0.12 }),
+    }),
+  }),
+  move({
+    id: 'u.driveImpact',
+    name: 'Drive Impact',
+    kind: 'driveImpact',
+    input: input([], Button.Guard | Button.Heavy),
+    startup: 26,
+    active: 3,
+    recovery: 18,
+    // Absorbs one hit during startup and wall-splats on connect — the SF6
+    // pressure-reset button, and the reason cornering an opponent is dangerous.
+    hit: hit({
+      damage: 90,
+      chipDamage: 20,
+      hitstun: 36,
+      blockstun: 22,
+      hitstop: 14,
+      launch: 0.1,
+      wallBounce: true,
+      pushback: 0.24,
+      driveDamageOnBlock: 500,
+    }),
+    hitboxes: [box(0.9, 1.2, 0.55, 1.1, 26, 28)],
+    cost: cost(0, 1000),
+    invuln: { start: 1, end: 25, kind: 'armor', armorHits: 1 },
+  }),
+  move({
+    id: 'u.fatal',
+    name: 'Fatal Blow',
+    kind: 'fatal',
+    input: input([], Button.Drive | Button.Ki),
+    startup: 12,
+    active: 4,
+    recovery: 34,
+    // Mortal Kombat's comeback valve: fully invulnerable on the way in, one
+    // attempt per match, and only unlocked once the user is nearly dead.
+    hit: hit({
+      damage: 300,
+      hitstun: 60,
+      hitstop: 24,
+      knockdown: true,
+      guardBreak: true,
+      pushback: 0.4,
+      juggleCost: 0,
+      kiGainOnHit: 0,
+    }),
+    hitboxes: [box(1.0, 1.2, 0.65, 1.3, 12, 15)],
+    invuln: { start: 1, end: 11, kind: 'full' },
+    travel: { forward: 0.35, up: 0 },
+    finisher: true,
+  }),
+  move({
+    id: 'u.transform',
+    name: 'Ascend',
+    kind: 'transform',
+    input: input([2, 2], Button.Charge),
+    startup: 6,
+    active: 1,
+    recovery: 47,
+    // The burst itself knocks nearby opponents away, so ascending under
+    // pressure is a real option rather than a free punish for the attacker.
+    hit: hit({
+      damage: 20,
+      hitstun: 24,
+      blockstun: 14,
+      hitstop: 8,
+      knockdown: true,
+      pushback: 0.5,
+      guardBreak: true,
+    }),
+    hitboxes: [box(0, 1.0, 2.2, 0.1, 6, 6)],
+    airOk: true,
+    invuln: { start: 1, end: 30, kind: 'full' },
+  }),
+];

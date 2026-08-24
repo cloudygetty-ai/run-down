@@ -1,0 +1,7 @@
+node_modules/
+coverage/
+dist/
+# ascendants/ is a self-contained subproject with its own ESLint config,
+# TypeScript settings and Prettier rules. Linting it with the React Native
+# config at this repo's root reports formatting conflicts that mean nothing.
+ascendants/

@@ -60,7 +60,14 @@
       "^@components/(.*)$": "<rootDir>/src/components/$1",
       "^@utils/(.*)$": "<rootDir>/src/utils/$1",
       "^@types/(.*)$": "<rootDir>/src/types/$1"
-    }
+    },
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/ascendants/"
+    ],
+    "modulePathIgnorePatterns": [
+      "/ascendants/"
+    ]
   },
   "description": "Run Down \u2014 Mobile battle royale game built with React Native and TypeScript",
   "repository": {
