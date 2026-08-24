@@ -125,7 +125,7 @@ export class Menu {
   private title(): Promise<void> {
     return new Promise((resolve) => {
       this.show(`
-        <h1 class="logo">ASCENDANT</h1>
+        <h1 class="logo">ASCENDANTS</h1>
         <p class="tagline">The sky fell. Some of us got back up.</p>
         <button class="primary" data-start>ENTER</button>
         <p class="footnote">${FINISHER_CALLOUT_GENERIC}</p>`);

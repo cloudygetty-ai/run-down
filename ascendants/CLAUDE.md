@@ -1,4 +1,4 @@
-# CLAUDE.md — ASCENDANT
+# CLAUDE.md — ASCENDANTS
 
 Repo-specific operating rules. Read `README.md` first for what the game is.
 

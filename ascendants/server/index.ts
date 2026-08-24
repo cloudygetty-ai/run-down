@@ -106,7 +106,7 @@ const heartbeat = setInterval(() => {
   process.stdout.write(
     `${JSON.stringify({
       timestamp: new Date().toISOString(),
-      service: 'ascendant-relay',
+      service: 'ascendants-relay',
       level: 'info',
       event: 'heartbeat',
       data: { rooms: lobby.roomCount, players: lobby.playerCount },
@@ -123,4 +123,4 @@ function shutdown(): void {
 process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
 
-process.stdout.write(`ascendant relay listening on :${PORT}\n`);
+process.stdout.write(`ascendants relay listening on :${PORT}\n`);

@@ -63,10 +63,10 @@
     },
     "testPathIgnorePatterns": [
       "/node_modules/",
-      "/ascendant/"
+      "/ascendants/"
     ],
     "modulePathIgnorePatterns": [
-      "/ascendant/"
+      "/ascendants/"
     ]
   },
   "description": "Run Down \u2014 Mobile battle royale game built with React Native and TypeScript",

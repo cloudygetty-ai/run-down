@@ -151,5 +151,5 @@ async function main(): Promise<void> {
 
 void main().catch((error: unknown) => {
   const message = error instanceof Error ? error.message : String(error);
-  document.body.innerHTML = `<div class="fatal"><h1>ASCENDANT</h1><p>${message}</p></div>`;
+  document.body.innerHTML = `<div class="fatal"><h1>ASCENDANTS</h1><p>${message}</p></div>`;
 });

@@ -1,8 +1,8 @@
 {
-  "name": "ascendant",
+  "name": "ascendants",
   "version": "0.1.0",
   "private": true,
-  "description": "ASCENDANT — 3D arena fighter with deterministic rollback netcode",
+  "description": "ASCENDANTS — 3D arena fighter with deterministic rollback netcode",
   "type": "module",
   "license": "MIT",
   "scripts": {
