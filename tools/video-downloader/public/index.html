@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Siphon — Pull any stream</title>
+<meta name="description" content="Resolve any video URL to its direct download streams."/>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⇣</text></svg>"/>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+  :root{
+    --obsidian:#08090d; --panel:#101119; --line:rgba(212,168,71,.18);
+    --gold:#d4a847; --gold-lit:#f5d98a; --ink:#f5f0e8; --muted:#8a8070;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--obsidian);color:var(--ink);font-family:'DM Mono',monospace;
+       min-height:100vh;line-height:1.6}
+  .bg{position:fixed;inset:0;z-index:0;
+      background:radial-gradient(ellipse at 50% -10%,#1a1206 0%,var(--obsidian) 55%)}
+  .wrap{position:relative;z-index:1;max-width:920px;margin:0 auto;padding:3rem 1.25rem 5rem}
+
+  header{text-align:center;margin-bottom:2.5rem}
+  .logo{font-family:'Cinzel',serif;font-size:clamp(2.6rem,7vw,4.5rem);font-weight:900;
+        letter-spacing:.06em;line-height:1.1;
+        background:linear-gradient(135deg,#d4a847,#f5d98a 50%,#b8860b);
+        -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+  .tagline{font-size:.72rem;letter-spacing:.34em;text-transform:uppercase;color:var(--muted);margin-top:.6rem}
+
+  form{display:flex;gap:.6rem;margin-bottom:1rem;flex-wrap:wrap}
+  input[type=url]{flex:1 1 320px;min-width:0;background:var(--panel);border:1px solid var(--line);
+    color:var(--ink);font-family:inherit;font-size:.9rem;padding:1rem 1.1rem;border-radius:3px;outline:none}
+  input[type=url]:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,168,71,.09)}
+  input[type=url]::placeholder{color:#4d4a44}
+  button{background:linear-gradient(135deg,var(--gold),#b8860b);color:var(--obsidian);
+    font-family:'Cinzel',serif;font-weight:700;font-size:.8rem;letter-spacing:.14em;
+    text-transform:uppercase;padding:1rem 2rem;border:none;border-radius:3px;cursor:pointer}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  button:not(:disabled):hover{filter:brightness(1.12)}
+
+  .hint{font-size:.72rem;color:#5c574d;text-align:center;margin-bottom:2rem}
+
+  .state{text-align:center;padding:2.5rem 1rem;color:var(--muted);font-size:.85rem}
+  .spinner{width:26px;height:26px;margin:0 auto 1rem;border:2px solid rgba(212,168,71,.2);
+    border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .error{border:1px solid rgba(200,80,80,.35);background:rgba(120,30,30,.14);
+    color:#e8b0b0;padding:1rem 1.2rem;border-radius:3px;font-size:.82rem;word-break:break-word}
+  .error strong{display:block;font-family:'Cinzel',serif;color:#f0c4c4;margin-bottom:.35rem;
+    letter-spacing:.1em;text-transform:uppercase;font-size:.72rem}
+
+  .meta{display:flex;gap:1.25rem;align-items:flex-start;border:1px solid var(--line);
+    background:var(--panel);border-radius:3px;padding:1.1rem;margin-bottom:1.5rem;flex-wrap:wrap}
+  .meta img{width:150px;aspect-ratio:16/9;object-fit:cover;border-radius:2px;flex-shrink:0;background:#000}
+  .meta-body{flex:1 1 240px;min-width:0}
+  .meta h2{font-family:'Cinzel',serif;font-size:1.05rem;font-weight:700;color:var(--ink);
+    margin-bottom:.4rem;overflow-wrap:anywhere}
+  .meta dl{display:flex;gap:1.25rem;flex-wrap:wrap;font-size:.74rem;color:var(--muted)}
+  .meta dt{display:inline;color:#5c574d;letter-spacing:.1em;text-transform:uppercase;margin-right:.4rem}
+  .meta dd{display:inline;color:var(--gold)}
+
+  .group-label{font-family:'Cinzel',serif;font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;
+    color:var(--muted);margin:1.5rem 0 .6rem;display:flex;align-items:center;gap:.75rem}
+  .group-label::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--line),transparent)}
+
+  .fmt{display:flex;align-items:center;gap:1rem;border:1px solid var(--line);background:var(--panel);
+    border-radius:3px;padding:.85rem 1rem;margin-bottom:.5rem;text-decoration:none;color:inherit;
+    transition:border-color .15s,transform .15s}
+  .fmt:hover{border-color:var(--gold);transform:translateX(3px)}
+  .fmt .res{font-family:'Cinzel',serif;font-weight:700;color:var(--gold-lit);font-size:.95rem;
+    min-width:104px}
+  .fmt .det{flex:1;min-width:0;font-size:.72rem;color:var(--muted);overflow-wrap:anywhere}
+  .fmt .size{font-size:.75rem;color:var(--ink);white-space:nowrap}
+  .fmt .arrow{color:var(--gold);font-size:1.1rem}
+  .tag{display:inline-block;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;
+    border:1px solid var(--line);color:var(--gold);padding:.1rem .45rem;border-radius:2px;margin-left:.5rem}
+
+  .cli{margin-top:2.5rem;border:1px solid var(--line);border-radius:3px;background:var(--panel);padding:1.1rem}
+  .cli h3{font-family:'Cinzel',serif;font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;
+    color:var(--muted);margin-bottom:.7rem}
+  .cli-row{display:flex;gap:.6rem;align-items:center}
+  .cli code{flex:1;min-width:0;background:#0a0b10;border:1px solid rgba(212,168,71,.1);color:var(--gold-lit);
+    padding:.7rem .9rem;border-radius:2px;font-size:.76rem;overflow-x:auto;white-space:nowrap}
+  .cli button{padding:.7rem 1.1rem;font-size:.7rem}
+
+  footer{margin-top:3.5rem;text-align:center;font-size:.7rem;color:#4d4a44;line-height:2}
+  footer a{color:var(--muted)}
+  .divider{width:60px;height:1px;margin:2.5rem auto;
+    background:linear-gradient(90deg,transparent,var(--gold),transparent)}
+  @media(max-width:560px){.fmt .res{min-width:auto}.fmt .det{display:none}}
+</style>
+</head>
+<body>
+<div class="bg"></div>
+<div class="wrap">
+  <header>
+    <div class="logo">SIPHON</div>
+    <div class="tagline">Pull any stream</div>
+  </header>
+
+  <form id="f">
+    <input id="u" type="url" placeholder="https://…  paste a video URL" required autocomplete="off" spellcheck="false"/>
+    <button type="submit" id="go">Resolve</button>
+  </form>
+  <p class="hint">Resolves the URL to its direct streams. Transfer runs browser → source, never through this server.</p>
+
+  <div id="out"></div>
+
+  <div class="divider"></div>
+  <footer>
+    Siphon reads what a site already serves to a normal browser.<br/>
+    It does not break DRM, defeat paywalls, or bypass logins.<br/>
+    Download only what you own or are licensed to keep.
+  </footer>
+</div>
+
+<script>
+const out = document.getElementById('out');
+const form = document.getElementById('f');
+const input = document.getElementById('u');
+const go = document.getElementById('go');
+
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+const bytes = n => {
+  if (!n) return '—';
+  const u = ['B','KB','MB','GB','TB'];
+  let i = 0;
+  while (n >= 1024 && i < u.length - 1) { n /= 1024; i++; }
+  return n.toFixed(1) + u[i];
+};
+
+const clock = s => {
+  if (s == null) return '—';
+  s = Math.round(s);
+  const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60;
+  const pad = v => String(v).padStart(2, '0');
+  return h ? `${h}:${pad(m)}:${pad(x)}` : `${m}:${pad(x)}`;
+};
+
+const GROUPS = [
+  ['progressive', 'Ready to play — video + audio'],
+  ['video', 'Video only — pair with an audio track'],
+  ['audio', 'Audio only'],
+];
+
+function render(d) {
+  const parts = [];
+
+  parts.push(`<div class="meta">
+    ${d.thumbnail ? `<img src="${esc(d.thumbnail)}" alt="" onerror="this.remove()"/>` : ''}
+    <div class="meta-body">
+      <h2>${esc(d.title)}</h2>
+      <dl>
+        ${d.uploader ? `<div><dt>By</dt><dd>${esc(d.uploader)}</dd></div>` : ''}
+        <div><dt>Length</dt><dd>${clock(d.duration)}</dd></div>
+        <div><dt>Source</dt><dd>${esc(d.extractor || '—')}</dd></div>
+        <div><dt>Streams</dt><dd>${d.formats.length}</dd></div>
+      </dl>
+    </div>
+  </div>`);
+
+  if (!d.formats.length) {
+    parts.push(`<div class="error"><strong>No downloadable streams</strong>
+      The extractor found this page but no stream it can hand over directly.</div>`);
+  }
+
+  for (const [kind, label] of GROUPS) {
+    const rows = d.formats.filter(f => f.kind === kind);
+    if (!rows.length) continue;
+    parts.push(`<div class="group-label">${label}</div>`);
+    for (const f of rows) {
+      const codec = [f.vcodec, f.acodec].filter(c => c && c !== 'none').join(' · ');
+      parts.push(`<a class="fmt" href="${esc(f.url)}" target="_blank" rel="noopener noreferrer">
+        <span class="res">${esc(f.resolution)}</span>
+        <span class="det">${esc(f.ext)}${f.fps ? ` · ${f.fps}fps` : ''}${codec ? ` · ${esc(codec)}` : ''}
+          ${f.note ? `<span class="tag">${esc(f.note)}</span>` : ''}</span>
+        <span class="size">${bytes(f.filesize)}</span>
+        <span class="arrow">⇣</span>
+      </a>`);
+    }
+  }
+
+  const cmd = `vdl "${d.webpage_url}"`;
+  parts.push(`<div class="cli">
+    <h3>Same thing, from the terminal</h3>
+    <div class="cli-row">
+      <code id="cmd">${esc(cmd)}</code>
+      <button type="button" id="copy">Copy</button>
+    </div>
+  </div>`);
+
+  out.innerHTML = parts.join('');
+  document.getElementById('copy').onclick = async e => {
+    try {
+      await navigator.clipboard.writeText(cmd);
+      e.target.textContent = 'Copied';
+      setTimeout(() => { e.target.textContent = 'Copy'; }, 1600);
+    } catch { e.target.textContent = 'Ctrl+C'; }
+  };
+}
+
+form.onsubmit = async e => {
+  e.preventDefault();
+  go.disabled = true;
+  out.innerHTML = `<div class="state"><div class="spinner"></div>Resolving streams…</div>`;
+  try {
+    const r = await fetch('/api/resolve', {
+      method: 'POST',
+      headers: {'content-type': 'application/json'},
+      body: JSON.stringify({url: input.value}),
+    });
+    const d = await r.json();
+    if (!r.ok) {
+      out.innerHTML = `<div class="error"><strong>${esc(d.kind || 'Could not resolve')}</strong>
+        ${esc(d.error || 'Unknown failure.')}</div>`;
+    } else {
+      render(d);
+    }
+  } catch (err) {
+    out.innerHTML = `<div class="error"><strong>Request failed</strong>${esc(err.message)}</div>`;
+  } finally {
+    go.disabled = false;
+  }
+};
+</script>
+</body>
+</html>

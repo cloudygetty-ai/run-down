@@ -13,14 +13,15 @@ partial-failure isolation, structured telemetry, and a CLI you can remember.
 
 ```bash
 cd tools/video-downloader
-pip install -r requirements.txt      # yt-dlp + a bundled ffmpeg binary
+pip install -r requirements.txt        # core: yt-dlp
+pip install imageio-ffmpeg             # optional: bundled ffmpeg binary
 python -m vdl --help
 ```
 
-Optionally install it as a real command:
+Optionally install it as a real command, with ffmpeg included:
 
 ```bash
-pip install -e .
+pip install -e ".[ffmpeg]"
 vdl --help
 ```
 
@@ -98,6 +99,40 @@ vdl URL --cookies cookies.txt            # or a Netscape cookie file
 
 ---
 
+## Siphon — the web front end
+
+The same engine, deployed to Vercel as **Siphon**. Paste a URL, get every
+downloadable stream as a direct link.
+
+```
+public/index.html    static UI (obsidian/gold, Cinzel + DM Mono)
+api/resolve.py       serverless function — metadata resolution only
+vercel.json          function limits + security headers
+```
+
+**Why it resolves instead of proxying.** Vercel functions cap at 60s and have
+no persistent disk, so streaming a full video through one fails on anything
+sizable. Siphon's function probes the URL and returns the direct stream URLs;
+the browser then fetches from the origin CDN. No middleman, no egress bill, no
+timeout, and the server never touches video bytes.
+
+**The security boundary is `validate()`.** The function hands
+attacker-controlled URLs to yt-dlp, which will fetch whatever it is given —
+that is an SSRF gadget aimed at Vercel's internal network unless it is fenced.
+Every request is checked before extraction: `http`/`https` only, length capped,
+and every resolved address rejected if it lands in private, loopback,
+link-local, reserved, or multicast space (including the `169.254.169.254`
+metadata endpoint). If DNS returns several addresses and *any* is internal, the
+request is refused.
+
+Deploy it yourself with the project root set to `tools/video-downloader`:
+
+```bash
+vercel --cwd tools/video-downloader
+```
+
+---
+
 ## Design notes
 
 **Errors are classified, and classification drives retries.** yt-dlp reports a
@@ -139,6 +174,8 @@ unsatisfiable constraint.
 
 ```
 tools/video-downloader/
+├── api/resolve.py       Vercel function — URL validation + stream resolution
+├── public/index.html    Siphon web UI
 ├── vdl/
 │   ├── cli.py           argument parsing, output formatting, exit codes
 │   ├── config.py        DownloadConfig — validated once, frozen
@@ -150,7 +187,7 @@ tools/video-downloader/
 │   ├── telemetry.py     HEALTH / PRESSURE / EFFICIENCY signals
 │   ├── ffmpeg.py        ffmpeg discovery with bundled fallback
 │   └── errors.py        error taxonomy, retry classification, exit codes
-└── tests/               79 tests, no network access required
+└── tests/               114 tests, no network access required
 ```
 
 Run the suite with `python -m pytest` from `tools/video-downloader`. The tests
